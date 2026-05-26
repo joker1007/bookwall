@@ -5,7 +5,6 @@ class CreateBooksFts < ActiveRecord::Migration[8.1]
         title,
         series_name,
         authors,
-        content='',
         tokenize='unicode61 remove_diacritics 2'
       )
     SQL

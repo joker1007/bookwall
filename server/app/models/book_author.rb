@@ -3,4 +3,12 @@ class BookAuthor < ApplicationRecord
 
   belongs_to :book
   belongs_to :author
+
+  after_commit :sync_book_fts
+
+  private
+
+  def sync_book_fts
+    Books::FtsIndex.upsert(book)
+  end
 end

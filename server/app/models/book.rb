@@ -28,10 +28,20 @@ class Book < ApplicationRecord
   validates :file_hash, length: {is: 64}, allow_nil: true
 
   before_save :ensure_added_at
+  after_commit :sync_fts_index, on: %i[create update]
+  after_commit :delete_fts_index, on: :destroy
 
   private
 
   def ensure_added_at
     self.added_at ||= Time.current
+  end
+
+  def sync_fts_index
+    Books::FtsIndex.upsert(self)
+  end
+
+  def delete_fts_index
+    Books::FtsIndex.delete(id)
   end
 end

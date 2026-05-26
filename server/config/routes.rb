@@ -6,6 +6,15 @@ Rails.application.routes.draw do
     resources :registrations, only: %i[create]
     resources :api_tokens, only: %i[index create destroy]
     resources :libraries
+    resources :books do
+      member do
+        post :favorite
+        delete :favorite, action: :unfavorite
+      end
+    end
+    resources :series
+    resources :authors
+    resources :tags
   end
 
   namespace :opds do
