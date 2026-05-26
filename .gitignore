@@ -1,0 +1,5 @@
+# Claude Code local-only settings (skills are checked in)
+.claude/settings.local.json
+
+# playwright-cli runtime artifacts (snapshots / console logs)
+**/.playwright-cli/
