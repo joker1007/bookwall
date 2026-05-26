@@ -152,6 +152,7 @@ module Scanners
       book.save!
       book.authors = author_records
       book.tags = tag_records
+      Covers::Extractor.attach(book, result[:cover_bytes])
       book
     end
 

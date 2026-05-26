@@ -69,6 +69,12 @@ RSpec.describe Scanners::LibraryScanner do
       expect(epub_book.authors.pluck(:name)).to include("Lewis Carroll")
     end
 
+    it "attaches a cover image to every book" do
+      described_class.new(library).call
+      attached = library.books.all.map { |b| b.cover.attached? }
+      expect(attached).to all(be true)
+    end
+
     it "updates last_scanned_at on the library" do
       expect { described_class.new(library).call }
         .to change { library.reload.last_scanned_at }

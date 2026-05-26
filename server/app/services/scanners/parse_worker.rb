@@ -15,6 +15,7 @@ module Scanners
       format = job[:format]
       parser = Parsers.for(path)
       meta = parser.metadata
+      cover = cover_bytes_for(parser)
 
       {
         path: path,
@@ -23,10 +24,17 @@ module Scanners
         file_hash: file_hash_for(path, format),
         file_size: size_for(path, format),
         mtime: mtime_for(path).to_i,
+        cover_bytes: cover,
         error: nil
       }
     rescue StandardError => e
       {path: path, format: format&.to_s, error: e.message}
+    end
+
+    def cover_bytes_for(parser)
+      parser.cover_bytes
+    rescue Parsers::CoverNotFound, Parsers::InvalidFile
+      nil
     end
 
     def file_hash_for(path, format)
