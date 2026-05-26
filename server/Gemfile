@@ -8,6 +8,10 @@ gem "sqlite3", ">= 2.1"
 # Web server (async, fiber-based)
 gem "falcon"
 
+# HTTP/2 + asset caching + X-Sendfile fronting proxy used in the Docker
+# image (./bin/thrust → falcon).
+gem "thruster", require: false
+
 # Authentication
 gem "bcrypt", "~> 3.1.7"
 

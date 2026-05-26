@@ -71,7 +71,9 @@ COPY --chown=rails:rails --from=build /rails /rails
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Start the Falcon server (async, fiber-based). Override with another
-# command (e.g. ./bin/jobs) when running the SolidQueue worker container.
-EXPOSE 3000
-CMD ["bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]
+# Front Falcon with Thruster (HTTP/2 + asset caching + X-Sendfile). Thruster
+# listens on $PORT (default 80) and proxies to its child on TARGET_PORT.
+# Override CMD with `./bin/jobs` etc. for the SolidQueue worker container.
+ENV TARGET_PORT="3000"
+EXPOSE 80
+CMD ["./bin/thrust", "bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]

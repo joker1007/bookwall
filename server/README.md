@@ -36,6 +36,11 @@ bin/dev  # Procfile.dev 経由で Falcon を起動 (foreman が必要、自動�
 bundle exec falcon serve --bind http://0.0.0.0:3000
 ```
 
+Docker イメージでは Thruster (HTTP/2 + asset caching + X-Sendfile) を前段に
+噛ませて Falcon を子プロセスとして起動する (`./bin/thrust bundle exec falcon
+serve --bind http://0.0.0.0:3000`)。Thruster はホストポート 80 を listen し、
+内部で Falcon の 3000 (`TARGET_PORT`) にプロキシする。
+
 非同期ジョブ (production):
 
 ```sh
