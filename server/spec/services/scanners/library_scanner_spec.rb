@@ -30,19 +30,6 @@ RSpec.describe Scanners::LibraryScanner do
       expect(log.removed_count).to eq(0)
     end
 
-    it "computes file_hash for non-directory formats" do
-      described_class.new(library).call
-
-      file_book = library.books.where.not(file_format: "image_dir").first
-      expect(file_book.file_hash).to match(/\A[0-9a-f]{64}\z/)
-    end
-
-    it "skips file_hash for image_dir" do
-      described_class.new(library).call
-      dir_book = library.books.find_by(file_format: "image_dir")
-      expect(dir_book.file_hash).to be_nil
-    end
-
     it "is idempotent on a second run with unchanged files" do
       described_class.new(library).call
       first_total = library.books.count

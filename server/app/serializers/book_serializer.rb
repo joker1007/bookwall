@@ -4,7 +4,7 @@ class BookSerializer
   include Alba::Resource
 
   attributes :id, :title, :volume, :file_format, :file_path, :file_size,
-             :file_hash, :page_count, :published_at, :added_at, :scanned_at,
+             :page_count, :published_at, :added_at, :scanned_at,
              :library_id, :series_id
 
   attribute :series_name do |b|

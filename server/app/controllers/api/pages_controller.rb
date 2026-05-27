@@ -5,9 +5,10 @@ module Api
   # rather than the OPDS Bearer/Basic path so an <img src=...> element in the
   # SPA streams the image without extra headers.
   #
-  # The bytes for a given (book, page) are immutable for as long as
-  # book.file_hash is unchanged, so we let the browser cache them
-  # aggressively. A matching If-None-Match returns 304 with no body, and
+  # The bytes for a given (book, page) only change when the library
+  # scanner re-imports the file (which bumps book.updated_at), so we
+  # let the browser cache them aggressively. A matching If-None-Match
+  # returns 304 with no body, and
   # the long max-age means subsequent loads come from the disk cache
   # without even hitting the server.
   class PagesController < BaseController

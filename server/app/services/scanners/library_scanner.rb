@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
+require "etc"
 require "retriable"
 
 module Scanners
   class LibraryScanner
-    DEFAULT_POOL_SIZE = ENV.fetch("BOOKWALL_SCAN_POOL_SIZE", 4).to_i
+    # One worker per CPU core, with a floor of 2 so single-core hosts
+    # still get parser + hash overlap. Override with BOOKWALL_SCAN_POOL_SIZE.
+    DEFAULT_POOL_SIZE = ENV.fetch("BOOKWALL_SCAN_POOL_SIZE") { [Etc.nprocessors, 2].max }.to_i
 
     # ActiveRecord::StatementInvalid whose message (or wrapped cause) matches
     # one of these patterns means SQLite returned BUSY — the writer can retry
@@ -244,7 +247,6 @@ module Scanners
         volume: meta[:volume],
         file_format: result[:format],
         file_size: result[:file_size],
-        file_hash: result[:file_hash],
         page_count: meta[:page_count],
         published_at: meta[:published_at],
         scanned_at: Time.current

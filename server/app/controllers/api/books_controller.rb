@@ -75,8 +75,9 @@ module Api
         return head :forbidden
       end
 
-      # File bytes are immutable as long as file_hash is unchanged.
-      etag = @book.file_hash.presence || @book.updated_at.to_i.to_s
+      # The library scanner bumps updated_at whenever the file is
+      # re-ingested, so it's a good enough cache key.
+      etag = @book.updated_at.to_i.to_s
       response.set_header("Cache-Control", "private, max-age=31536000, immutable")
       return unless stale?(etag: etag)
 

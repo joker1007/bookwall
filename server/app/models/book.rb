@@ -29,7 +29,6 @@ class Book < ApplicationRecord
   validates :file_path, presence: true, uniqueness: {scope: :library_id}
   validates :file_format, presence: true
   validates :file_size, numericality: {greater_than_or_equal_to: 0}
-  validates :file_hash, length: {is: 64}, allow_nil: true
 
   # The on-disk path resolved against the owning library's root. Stored
   # `file_path` is relative (so libraries can be remounted) and consumers

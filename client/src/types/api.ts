@@ -21,7 +21,6 @@ export interface Book {
   file_format: "cbz" | "epub" | "pdf" | "image_dir";
   file_path: string;
   file_size: number;
-  file_hash: string | null;
   page_count: number | null;
   published_at: string | null;
   added_at: string;

@@ -1,15 +1,11 @@
 # frozen_string_literal: true
 
-require "digest"
-
 # Pure-ruby worker invoked from a Concurrent::FixedThreadPool by
 # Scanners::LibraryScanner. The worker MUST NOT touch ActiveRecord — the
 # connection is not thread-safe to share, and writes are routed back to
 # the main thread which serializes them through SQLite's single writer.
 module Scanners
   module ParseWorker
-    READ_CHUNK = 1024 * 1024
-
     module_function
 
     def parse(job)
@@ -23,7 +19,6 @@ module Scanners
         path: path,
         format: format.to_s,
         metadata: meta,
-        file_hash: file_hash_for(path, format),
         file_size: size_for(path, format),
         mtime: mtime_for(path).to_i,
         cover_bytes: cover,
@@ -37,17 +32,6 @@ module Scanners
       parser.cover_bytes
     rescue Parsers::CoverNotFound, Parsers::InvalidFile
       nil
-    end
-
-    def file_hash_for(path, format)
-      return nil if format == :image_dir
-      digest = Digest::SHA256.new
-      File.open(path, "rb") do |f|
-        while (chunk = f.read(READ_CHUNK))
-          digest.update(chunk)
-        end
-      end
-      digest.hexdigest
     end
 
     def size_for(path, format)
