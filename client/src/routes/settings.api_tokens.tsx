@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Copy, Plus, Trash2, Check } from "lucide-react";
+import { Copy, Eye, Plus, Trash2, Check } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,12 +25,18 @@ import {
   useRevokeApiToken,
 } from "@/hooks/useApiTokens";
 import { ApiError } from "@/lib/api";
-import type { IssuedApiToken } from "@/types/api";
+import type { ApiToken, IssuedApiToken } from "@/types/api";
 
 export default function ApiTokensSettings() {
   const list = useApiTokens();
   const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState<IssuedApiToken | null>(null);
+  const [revealedHeading, setRevealedHeading] = useState("トークンを発行しました");
+
+  const showToken = (token: ApiToken, justIssued = false) => {
+    setRevealedHeading(justIssued ? "トークンを発行しました" : "トークンを表示");
+    setRevealed(token);
+  };
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
@@ -40,7 +46,8 @@ export default function ApiTokensSettings() {
             API トークン
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            OPDS リーダーや CLI から認証するための長寿命トークンを発行します。発行時のみ平文が表示されます。
+            OPDS リーダーや CLI から認証するための長寿命トークンを発行します。
+            各トークンは発行後も「表示」ボタンから何度でも再表示できます。
           </p>
         </div>
         <Button onClick={() => setOpen(true)} className="gap-2">
@@ -50,7 +57,11 @@ export default function ApiTokensSettings() {
       </header>
 
       {revealed ? (
-        <RevealedToken token={revealed} onDismiss={() => setRevealed(null)} />
+        <RevealedToken
+          token={revealed}
+          heading={revealedHeading}
+          onDismiss={() => setRevealed(null)}
+        />
       ) : null}
 
       {list.isPending ? (
@@ -65,7 +76,7 @@ export default function ApiTokensSettings() {
                 <TableHead>名前</TableHead>
                 <TableHead className="w-44 whitespace-nowrap">最終使用</TableHead>
                 <TableHead className="w-44 whitespace-nowrap">発行日</TableHead>
-                <TableHead className="w-24 text-right">操作</TableHead>
+                <TableHead className="w-32 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -77,7 +88,11 @@ export default function ApiTokensSettings() {
                 </TableRow>
               ) : (
                 list.data!.map((token) => (
-                  <TokenRow key={token.id} token={token} />
+                  <TokenRow
+                    key={token.id}
+                    token={token}
+                    onShow={() => showToken(token)}
+                  />
                 ))
               )}
             </TableBody>
@@ -89,7 +104,7 @@ export default function ApiTokensSettings() {
         open={open}
         onOpenChange={setOpen}
         onIssued={(token) => {
-          setRevealed(token);
+          showToken(token, true);
           setOpen(false);
         }}
       />
@@ -98,10 +113,11 @@ export default function ApiTokensSettings() {
 }
 
 interface TokenRowProps {
-  token: { id: number; name: string; last_used_at: string | null; created_at: string };
+  token: ApiToken;
+  onShow: () => void;
 }
 
-function TokenRow({ token }: TokenRowProps) {
+function TokenRow({ token, onShow }: TokenRowProps) {
   const revoke = useRevokeApiToken();
   const handleRevoke = () => {
     if (!window.confirm(`「${token.name}」を失効させます。よろしいですか?`)) return;
@@ -117,16 +133,27 @@ function TokenRow({ token }: TokenRowProps) {
         {token.created_at.slice(0, 10)}
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleRevoke}
-          disabled={revoke.isPending}
-          aria-label="失効"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="size-4" />
-        </Button>
+        <div className="flex justify-end gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onShow}
+            aria-label="トークンを表示"
+            title="トークンを表示"
+          >
+            <Eye className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleRevoke}
+            disabled={revoke.isPending}
+            aria-label="失効"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -188,7 +215,13 @@ function IssueDialog({ open, onOpenChange, onIssued }: IssueDialogProps) {
   );
 }
 
-function RevealedToken({ token, onDismiss }: { token: IssuedApiToken; onDismiss: () => void }) {
+interface RevealedTokenProps {
+  token: ApiToken;
+  heading: string;
+  onDismiss: () => void;
+}
+
+function RevealedToken({ token, heading, onDismiss }: RevealedTokenProps) {
   const [copied, setCopied] = useState(false);
   const opdsUrl = `${window.location.origin}/opds`;
 
@@ -206,9 +239,9 @@ function RevealedToken({ token, onDismiss }: { token: IssuedApiToken; onDismiss:
     <div className="grid gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">トークンを発行しました</h2>
+          <h2 className="text-sm font-semibold">{heading}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            このトークンはこの画面を閉じると再表示できません。OPDS リーダーには Authorization ヘッダ <code className="font-mono">Bearer …</code> または HTTP Basic で渡してください。
+            OPDS リーダーには Authorization ヘッダ <code className="font-mono">Bearer …</code> または HTTP Basic で渡してください。
           </p>
         </div>
         <Button size="sm" variant="ghost" onClick={onDismiss}>閉じる</Button>

@@ -4,19 +4,16 @@ class ApiToken < ApplicationRecord
   validates :name, presence: true, length: {maximum: 100}
   validates :token_digest, presence: true, uniqueness: true
 
-  attr_reader :plain_token
-
   class << self
     def issue!(user:, name:, expires_at: nil)
       plain = SecureRandom.urlsafe_base64(32)
-      record = create!(
+      create!(
         user: user,
         name: name,
         expires_at: expires_at,
+        token: plain,
         token_digest: digest_for(plain)
       )
-      record.instance_variable_set(:@plain_token, plain)
-      record
     end
 
     def authenticate(plain)
@@ -32,6 +29,12 @@ class ApiToken < ApplicationRecord
     def digest_for(plain)
       Digest::SHA256.hexdigest(plain)
     end
+  end
+
+  # Backwards-compat alias kept for code that read the issued plaintext via
+  # the previous API. The plaintext is now persisted on the `token` column.
+  def plain_token
+    token
   end
 
   def expired?

@@ -12,8 +12,7 @@ module Api
         name: name,
         expires_at: parse_expires_at(params[:expires_at])
       )
-      render json: serialize_token(token).merge(token: token.plain_token),
-             status: :created
+      render json: serialize_token(token), status: :created
     end
 
     def destroy
@@ -31,10 +30,14 @@ module Api
       nil
     end
 
+    # The plaintext token is intentionally returned on every read because
+    # Bookwall is designed for a private/VPN deployment where convenient
+    # re-display matters more than zero-trust digest-only storage.
     def serialize_token(token)
       {
         id: token.id,
         name: token.name,
+        token: token.token,
         last_used_at: token.last_used_at,
         expires_at: token.expires_at,
         created_at: token.created_at

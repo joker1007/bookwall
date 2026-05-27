@@ -20,7 +20,7 @@ FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 );
 CREATE INDEX "index_sessions_on_user_id" ON "sessions" ("user_id") /*application='Bookwall'*/;
-CREATE TABLE IF NOT EXISTS "api_tokens" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "name" varchar NOT NULL, "token_digest" varchar NOT NULL, "last_used_at" datetime(6), "expires_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_f16b5e0447"
+CREATE TABLE IF NOT EXISTS "api_tokens" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "name" varchar NOT NULL, "token_digest" varchar NOT NULL, "last_used_at" datetime(6), "expires_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "token" varchar /*application='Bookwall'*/, CONSTRAINT "fk_rails_f16b5e0447"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 );
@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS 'books_fts_content'(id INTEGER PRIMARY KEY, c0, c1, c
 CREATE TABLE IF NOT EXISTS 'books_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB);
 CREATE TABLE IF NOT EXISTS 'books_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID;
 INSERT INTO "schema_migrations" (version) VALUES
+('20260527100000'),
 ('20260527000009'),
 ('20260527000008'),
 ('20260527000007'),

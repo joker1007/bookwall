@@ -46,11 +46,12 @@ export interface Library {
 export interface ApiToken {
   id: number;
   name: string;
+  token: string;
   last_used_at: string | null;
   expires_at: string | null;
   created_at: string;
 }
 
-export interface IssuedApiToken extends ApiToken {
-  token: string;
-}
+// Issued tokens are the same shape; kept as a separate alias for clarity
+// at call sites where it's explicitly the plaintext-bearing record.
+export type IssuedApiToken = ApiToken;
