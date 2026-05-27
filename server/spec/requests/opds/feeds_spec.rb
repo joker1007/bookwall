@@ -98,8 +98,8 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(acq.call("CbzLink")["type"]).to eq("application/x-cbz")
     end
 
-    it "omits the acquisition link for image_dir books (no single file to download)" do
-      create(:book, library: library, file_format: :image_dir,
+    it "advertises image_dir books as CBZ acquisitions (packaged on the fly at download)" do
+      book = create(:book, library: library, file_format: :image_dir,
         file_path: "/mnt/books/some-dir", title: "DirOnly")
 
       get "/opds/recent", headers: {"Authorization" => auth_header}
@@ -109,7 +109,9 @@ RSpec.describe "Opds::Feeds", type: :request do
         "//atom:entry[atom:title='DirOnly']/atom:link[@rel='http://opds-spec.org/acquisition']",
         "atom" => "http://www.w3.org/2005/Atom"
       )
-      expect(acq).to be_nil
+      expect(acq).not_to be_nil
+      expect(acq["href"]).to eq("/opds/books/#{book.id}/file.cbz")
+      expect(acq["type"]).to eq("application/x-cbz")
     end
 
     it "exposes the file format via dc:format and atom:content for redundant detection" do
@@ -185,7 +187,7 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(Rails.public_path.join("opds/placeholder-thumb.jpg")).to exist
     end
 
-    it "omits dc:format for image_dir but still emits atom:content" do
+    it "exposes image_dir to clients as CBZ via dc:format and atom:content" do
       create(:book,
         library: library,
         file_format: :image_dir,
@@ -201,8 +203,8 @@ RSpec.describe "Opds::Feeds", type: :request do
         "dc" => "http://purl.org/dc/elements/1.1/"
       }
       entry = doc.at_xpath("//atom:entry[atom:title='ImgDirContent']", ns)
-      expect(entry.at_xpath("dc:format", ns)).to be_nil
-      expect(entry.at_xpath("atom:content", ns)&.text).to include("Image Directory")
+      expect(entry.at_xpath("dc:format", ns)&.text).to eq("application/x-cbz")
+      expect(entry.at_xpath("atom:content", ns)&.text).to start_with("CBZ")
     end
   end
 

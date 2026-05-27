@@ -64,18 +64,16 @@ module Opds
             # @type attribute, but some OPDS clients additionally inspect
             # dc:format and atom:content. Emitting both keeps EPUB recognition
             # working when other metadata (authors / series / pages) is sparse.
-            xml["dc"].format_(download_mime(book)) if downloadable?(book)
+            xml["dc"].format_(download_mime(book))
             book.tags.each { |t| xml.category(term: t.name) }
             content_text = entry_content(book)
             xml.content_(type: "text") { xml.text(content_text) } if content_text.present?
 
-            if downloadable?(book)
-              xml.link(
-                rel: ACQUISITION_REL,
-                href: helpers.opds_book_file_path(book_id: book.id, format: book.file_format.to_s),
-                type: download_mime(book)
-              )
-            end
+            xml.link(
+              rel: ACQUISITION_REL,
+              href: helpers.opds_book_file_path(book_id: book.id, format: acquisition_format(book)),
+              type: download_mime(book)
+            )
 
             if book.cover.attached?
               xml.link(rel: IMAGE_REL, href: helpers.rails_blob_path(book.cover, only_path: true), type: book.cover.content_type)
@@ -112,11 +110,14 @@ module Opds
       PSE_STREAMABLE_FORMATS.include?(book.file_format.to_s)
     end
 
-    # image_dir books live on disk as a directory of images, so they cannot
-    # be served as a single downloadable file. Other formats are downloadable
-    # via the OPDS acquisition link.
-    def self.downloadable?(book)
-      book.file_format.to_s != "image_dir"
+    # image_dir books are exposed to OPDS clients as CBZ: the acquisition
+    # link points at /file.cbz, the controller builds the archive on the fly
+    # from the directory of images, and the response is discarded after send.
+    def self.acquisition_format(book)
+      case book.file_format.to_s
+      when "image_dir" then "cbz"
+      else book.file_format.to_s
+      end
     end
 
     def self.pse_stream_href(book, helpers)
@@ -138,7 +139,7 @@ module Opds
 
     def self.download_mime(book)
       case book.file_format
-      when "cbz" then "application/x-cbz"
+      when "cbz", "image_dir" then "application/x-cbz"
       when "epub" then "application/epub+zip"
       when "pdf" then "application/pdf"
       else "application/octet-stream"
@@ -158,10 +159,9 @@ module Opds
 
     def self.format_label(book)
       case book.file_format.to_s
-      when "cbz" then "CBZ"
+      when "cbz", "image_dir" then "CBZ"
       when "epub" then "EPUB"
       when "pdf" then "PDF"
-      when "image_dir" then "Image Directory"
       end
     end
 

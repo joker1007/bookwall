@@ -3,13 +3,15 @@ module Opds
     EXTENSIONS = {
       "cbz" => ".cbz",
       "epub" => ".epub",
-      "pdf" => ".pdf"
+      "pdf" => ".pdf",
+      # image_dir is repackaged into a CBZ at download time, so the
+      # client-visible extension is .cbz too.
+      "image_dir" => ".cbz"
     }.freeze
 
     def file
       book = Book.find(params[:book_id])
-      head :not_found and return if book.file_format == "image_dir"
-      head :not_found and return if params[:format].to_s != book.file_format.to_s
+      head :not_found and return unless params[:format].to_s == expected_format(book)
 
       resolved = File.expand_path(book.file_path)
       library_root = File.expand_path(book.library.path)
@@ -18,13 +20,27 @@ module Opds
         return
       end
 
-      send_file resolved,
-        type: Opds::FeedBuilder.download_mime(book),
-        disposition: "attachment",
-        filename: download_filename(book)
+      if book.file_format == "image_dir"
+        send_data Opds::CbzBuilder.build(resolved),
+          type: "application/x-cbz",
+          disposition: "attachment",
+          filename: download_filename(book)
+      else
+        send_file resolved,
+          type: Opds::FeedBuilder.download_mime(book),
+          disposition: "attachment",
+          filename: download_filename(book)
+      end
     end
 
     private
+
+    def expected_format(book)
+      case book.file_format.to_s
+      when "image_dir" then "cbz"
+      else book.file_format.to_s
+      end
+    end
 
     def download_filename(book)
       ext = EXTENSIONS.fetch(book.file_format.to_s, "")

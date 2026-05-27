@@ -1,4 +1,5 @@
 require "rails_helper"
+require "zip"
 
 RSpec.describe "Opds::Downloads", type: :request do
   let(:user) { create(:user, password: "password123") }
@@ -46,15 +47,33 @@ RSpec.describe "Opds::Downloads", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "returns 404 for image_dir books (not downloadable)" do
+    it "packages image_dir books into an on-the-fly CBZ" do
+      book = create(:book,
+        library: library,
+        file_format: :image_dir,
+        title: "Image Dir Book",
+        file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
+
+      get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("application/x-cbz")
+      expect(response.headers["Content-Disposition"]).to include('filename="Image Dir Book.cbz"')
+      # Response body is a real zip with the directory's images repackaged.
+      Zip::File.open_buffer(response.body) do |zip|
+        names = zip.entries.map(&:name)
+        expect(names).not_to be_empty
+        names.each { |n| expect(n).to match(/\A\d{4}\.(jpg|jpeg|png|webp|gif)\z/i) }
+      end
+    end
+
+    it "rejects an image_dir download requested with a non-cbz format" do
       book = create(:book,
         library: library,
         file_format: :image_dir,
         file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
 
-      # image_dir is not in the route constraint, so this path isn't reachable
-      # via .epub/.cbz/.pdf either — even if a client tried, we 404.
-      get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
+      get "/opds/books/#{book.id}/file.epub", headers: {"Authorization" => auth_header}
 
       expect(response).to have_http_status(:not_found)
     end
