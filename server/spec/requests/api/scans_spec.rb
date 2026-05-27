@@ -18,10 +18,19 @@ RSpec.describe "Api::Scans", type: :request do
     end
 
     it "enqueues a ScanLibraryJob" do
-      expect {
-        post "/api/libraries/#{library.id}/scans"
-      }.to have_enqueued_job(ScanLibraryJob).with(library.id).on_queue("default")
-      expect(response).to have_http_status(:accepted)
+      # test env uses :inline by default; flip to :test so the enqueue itself
+      # is what we observe (otherwise the job would also run inline and try
+      # to scan a non-existent directory).
+      original = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      begin
+        expect {
+          post "/api/libraries/#{library.id}/scans"
+        }.to have_enqueued_job(ScanLibraryJob).with(library.id).on_queue("default")
+        expect(response).to have_http_status(:accepted)
+      ensure
+        ActiveJob::Base.queue_adapter = original
+      end
     end
 
     it "404 when library is missing" do

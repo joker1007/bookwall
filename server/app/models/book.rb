@@ -30,8 +30,13 @@ class Book < ApplicationRecord
   validates :file_hash, length: {is: 64}, allow_nil: true
 
   before_save :ensure_added_at
-  after_commit :sync_fts_index, on: %i[create update]
-  after_commit :delete_fts_index, on: :destroy
+  # FTS sync runs out-of-band so the writing transaction (API update etc.)
+  # doesn't hold the SQLite writer lock while FTS5 internals rewrite
+  # books_fts_data / books_fts_idx / ... The library scanner sets the
+  # `:bookwall_skip_fts_callback` thread-local to suppress these per-row
+  # callbacks and enqueues one bulk job at the end of the scan instead.
+  after_commit :enqueue_fts_sync, on: %i[create update], unless: :fts_callback_skipped?
+  after_commit :enqueue_fts_delete, on: :destroy, unless: :fts_callback_skipped?
 
   private
 
@@ -39,11 +44,15 @@ class Book < ApplicationRecord
     self.added_at ||= Time.current
   end
 
-  def sync_fts_index
-    Books::FtsIndex.upsert(self)
+  def fts_callback_skipped?
+    Thread.current[:bookwall_skip_fts_callback]
   end
 
-  def delete_fts_index
-    Books::FtsIndex.delete(id)
+  def enqueue_fts_sync
+    Books::FtsSyncJob.perform_later([id], "upsert")
+  end
+
+  def enqueue_fts_delete
+    Books::FtsSyncJob.perform_later([id], "delete")
   end
 end

@@ -50,4 +50,10 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Run ActiveJob inline so existing model / scanner specs that rely on the
+  # post-commit FTS sync see it happen synchronously. Specs that need to
+  # assert about enqueueing flip this to :test inside a focused `around`
+  # block via ActiveJob::TestHelper.
+  config.active_job.queue_adapter = :inline
 end

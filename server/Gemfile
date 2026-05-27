@@ -41,6 +41,10 @@ gem "ruby-vips"
 # XML / HTML parsing (also used for OPDS feed builder)
 gem "nokogiri"
 
+# Exponential-backoff retry wrapper used by the library scanner to ride out
+# SQLite BUSY contention with the web process.
+gem "retriable"
+
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 

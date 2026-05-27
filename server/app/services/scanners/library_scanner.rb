@@ -1,8 +1,15 @@
 require "find"
+require "retriable"
 
 module Scanners
   class LibraryScanner
     DEFAULT_POOL_SIZE = ENV.fetch("BOOKWALL_SCAN_POOL_SIZE", 4).to_i
+
+    # ActiveRecord::StatementInvalid whose message (or wrapped cause) matches
+    # one of these patterns means SQLite returned BUSY — the writer can retry
+    # safely. Other StatementInvalid causes (constraint violations etc.) are
+    # not retried.
+    SQLITE_BUSY_PATTERN = /database is locked|SQLITE_BUSY|SQLite3::BusyException/
 
     attr_reader :library
 
@@ -12,13 +19,22 @@ module Scanners
     end
 
     def call
+      # Suppress Book#after_commit's per-row FTS enqueue during the scan;
+      # we collect the touched ids and enqueue a single bulk job at the
+      # end so SQLite's writer lock is exercised once, not N times.
+      previous_skip = Thread.current[:bookwall_skip_fts_callback]
+      Thread.current[:bookwall_skip_fts_callback] = true
+
       log = library.scan_logs.create!(status: :running, started_at: Time.current)
       jobs = discover(library.path).freeze
       diff = diff_against_db(jobs)
 
-      remove_books(diff[:remove])
+      # The scan no longer prunes books whose files have disappeared. That
+      # work belongs to a dedicated cleanup job (to be added) so the scan
+      # only does add / update writes and keeps the writer-lock window
+      # short.
       results = parse_parallel(diff[:add] + diff[:update])
-      apply_results(results)
+      upserted_ids = apply_results(results)
 
       library.update!(last_scanned_at: Time.current)
       log.update!(
@@ -27,8 +43,10 @@ module Scanners
         found_count: jobs.size,
         added_count: diff[:add].size,
         updated_count: diff[:update].size,
-        removed_count: diff[:remove].size
+        removed_count: 0
       )
+
+      enqueue_fts_sync(upserted_ids)
       log
     rescue StandardError => e
       log&.update!(
@@ -37,9 +55,16 @@ module Scanners
         error_message: e.message
       )
       raise
+    ensure
+      Thread.current[:bookwall_skip_fts_callback] = previous_skip
     end
 
     private
+
+    def enqueue_fts_sync(upserted_ids)
+      return if upserted_ids.empty?
+      Books::FtsSyncJob.perform_later(upserted_ids, "upsert")
+    end
 
     def discover(root)
       out = []
@@ -77,7 +102,6 @@ module Scanners
 
     def diff_against_db(jobs)
       existing = library.books.pluck(:file_path, :scanned_at).to_h
-      job_paths = jobs.map { |j| j[:path] }
 
       to_add = []
       to_update = []
@@ -90,7 +114,9 @@ module Scanners
         end
       end
 
-      {add: to_add, update: to_update, remove: existing.keys - job_paths}
+      # Deleted files are handled by a separate cleanup job; the scan
+      # itself only adds and updates.
+      {add: to_add, update: to_update}
     end
 
     def modified_since?(path, scanned_at)
@@ -119,16 +145,43 @@ module Scanners
       end
     end
 
-    def remove_books(paths)
-      return if paths.empty?
-      library.books.where(file_path: paths).destroy_all
+    # Returns the ids of books that were created or updated so the caller
+    # can dispatch the FTS sync in bulk. Each book's writes (taxonomy
+    # upserts, the book row, join replacements, and the cover attachment)
+    # run inside a single transaction so the SQLite writer lock is
+    # acquired once per book rather than once per statement, and so the
+    # whole set rolls back together on failure.
+    def apply_results(results)
+      results.filter_map do |result|
+        next if result[:error]
+        with_busy_retry do
+          ActiveRecord::Base.transaction { upsert_book(result) }
+        end&.id
+      end
     end
 
-    def apply_results(results)
-      results.each do |result|
-        next if result[:error]
-        upsert_book(result)
-      end
+    # Wrap a SQLite write block so it survives transient BUSY errors from
+    # other writers (e.g. the web process committing favorites or reading
+    # progress while the scanner is also writing). The driver already
+    # honors busy_timeout; this adds an application-level retry on top so
+    # very long contention windows still succeed instead of failing the
+    # whole scan.
+    def with_busy_retry(&block)
+      Retriable.retriable(
+        on: {ActiveRecord::StatementInvalid => SQLITE_BUSY_PATTERN},
+        tries: 5,
+        base_interval: 0.1,
+        multiplier: 2.0,
+        rand_factor: 0.25,
+        on_retry: ->(exception, try, _elapsed, next_interval) {
+          # On the final failure Retriable passes next_interval == nil.
+          delay_text = next_interval ? "after #{next_interval.round(2)}s" : "(no more retries)"
+          Rails.logger.warn do
+            "[LibraryScanner] SQLite busy, retry #{try} #{delay_text}: #{exception.message}"
+          end
+        },
+        &block
+      )
     end
 
     def upsert_book(result)

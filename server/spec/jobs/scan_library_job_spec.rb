@@ -17,8 +17,15 @@ RSpec.describe ScanLibraryJob, type: :job do
   end
 
   it "enqueues onto the default queue" do
-    expect {
-      described_class.perform_later(library.id)
-    }.to have_enqueued_job(described_class).on_queue("default")
+    # test env uses :inline by default; switch to :test for this assertion.
+    original = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    begin
+      expect {
+        described_class.perform_later(library.id)
+      }.to have_enqueued_job(described_class).on_queue("default")
+    ensure
+      ActiveJob::Base.queue_adapter = original
+    end
   end
 end

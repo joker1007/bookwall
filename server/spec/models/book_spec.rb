@@ -27,4 +27,43 @@ RSpec.describe Book, type: :model do
       expect(book.added_at).to be_present
     end
   end
+
+  describe "FTS sync via job" do
+    include ActiveJob::TestHelper
+
+    around do |example|
+      original = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      example.run
+    ensure
+      ActiveJob::Base.queue_adapter = original
+    end
+
+    it "enqueues an upsert job after create / update" do
+      expect {
+        create(:book)
+      }.to have_enqueued_job(Books::FtsSyncJob).with(
+        ->(arg) { arg.is_a?(Array) && arg.size == 1 && arg.first.is_a?(Integer) },
+        "upsert",
+      )
+    end
+
+    it "enqueues a delete job after destroy" do
+      book = create(:book)
+      clear_enqueued_jobs
+
+      expect {
+        book.destroy!
+      }.to have_enqueued_job(Books::FtsSyncJob).with([book.id], "delete")
+    end
+
+    it "skips the callback while Thread.current[:bookwall_skip_fts_callback] is set (scanner path)" do
+      Thread.current[:bookwall_skip_fts_callback] = true
+      expect {
+        create(:book)
+      }.not_to have_enqueued_job(Books::FtsSyncJob)
+    ensure
+      Thread.current[:bookwall_skip_fts_callback] = nil
+    end
+  end
 end
