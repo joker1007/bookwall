@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
+import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
 import {
   useReadingProgress,
   useUpdateReadingProgress,
@@ -56,6 +57,7 @@ interface FoliateView extends HTMLElement {
   goTo(target: string | number): Promise<void>;
   goLeft(): Promise<void>;
   goRight(): Promise<void>;
+  goToFraction(fraction: number): Promise<void>;
   renderer: HTMLElement & {
     setStyles?: (css: string | string[]) => void;
   };
@@ -64,6 +66,7 @@ interface FoliateView extends HTMLElement {
     // OPF's `<spine page-progression-direction>` — "rtl" for most
     // vertically-typeset Japanese books.
     dir?: string;
+    sections?: unknown[];
   };
 }
 
@@ -75,6 +78,22 @@ export interface TocItem {
 
 interface EpubReaderViewProps {
   book: Book;
+}
+
+// Flatten a TOC tree into a list, preserving the original order so we
+// can pick the entry whose section index is closest to (but not past)
+// a given section. foliate-js doesn't expose section index → TOC
+// directly, so this is a best-effort lookup for the scrubber preview.
+function flattenToc(items: TocItem[]): TocItem[] {
+  const out: TocItem[] = [];
+  const walk = (list: TocItem[]) => {
+    for (const item of list) {
+      out.push(item);
+      if (item.subitems?.length) walk(item.subitems);
+    }
+  };
+  walk(items);
+  return out;
 }
 
 // foliate-js renders book content inside an iframe that sits inside a
@@ -180,6 +199,11 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const [tocOpen, setTocOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [toc, setToc] = useState<TocItem[]>([]);
+  // foliate-js's relocate event exposes a `fraction` (0..1) for the
+  // current position. We stash it so the bottom scrubber can show
+  // progress and seek via view.goToFraction.
+  const [fraction, setFraction] = useState(0);
+  const [sectionTotal, setSectionTotal] = useState(0);
 
   // Resolved settings (per-book ReadingProgress.settings beats user defaults
   // beats hard-coded defaults).
@@ -234,8 +258,15 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         viewRef.current = view;
 
         view.addEventListener("relocate", (e: Event) => {
-          const detail = (e as CustomEvent<{ cfi: string }>).detail;
+          const detail = (e as CustomEvent<{
+            cfi?: string;
+            fraction?: number;
+            index?: number;
+          }>).detail;
           if (detail?.cfi) saveCfi(detail.cfi);
+          if (typeof detail?.fraction === "number") {
+            setFraction(Math.max(0, Math.min(1, detail.fraction)));
+          }
         });
 
         // Inject per-document styles when each section loads. Routed via
@@ -335,6 +366,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         // Capture the TOC for the sidebar.
         const bookToc = view.book?.toc;
         if (bookToc) setToc(bookToc);
+        const sections = view.book?.sections;
+        if (Array.isArray(sections)) setSectionTotal(sections.length);
 
         // The "settings change" effect below picks up loadStatus === "ready"
         // and applies the current font_size / theme / writing_mode to the
@@ -584,13 +617,68 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           onClick={onRightHalfClick}
           className="absolute inset-y-0 right-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-black/[0.06] focus-visible:bg-black/[0.06] focus:outline-none"
         />
+        {loadStatus === "ready" && sectionTotal > 0 ? (
+          <ReaderScrubber
+            value={Math.round(fraction * 1000)}
+            min={0}
+            max={1000}
+            step={1}
+            direction={effectiveDirection}
+            onSeek={(n) => {
+              const f = n / 1000;
+              setFraction(f);
+              try {
+                viewRef.current?.goToFraction?.(f);
+              } catch {
+                // ignore — foliate occasionally rejects out-of-range
+              }
+            }}
+            renderPreview={(n) => {
+              const f = n / 1000;
+              const idx = Math.min(sectionTotal - 1, Math.floor(f * sectionTotal));
+              const flat = flattenToc(toc);
+              // Walk the flat TOC backwards looking for the chapter that
+              // covers this section. No perfect mapping is possible
+              // without rendering, so this is best-effort.
+              let label: string | undefined;
+              for (let i = Math.min(idx, flat.length - 1); i >= 0; i--) {
+                if (flat[i]?.label) {
+                  label = flat[i].label;
+                  break;
+                }
+              }
+              return (
+                <div className="max-w-[40vw] rounded border border-white/20 bg-black/90 px-3 py-2 text-xs text-white shadow-lg">
+                  <p className="font-medium">
+                    {label ??
+                      t("reader.scrubber.epubSection", {
+                        current: idx + 1,
+                        total: sectionTotal,
+                      })}
+                  </p>
+                  <p className="text-white/60">
+                    {t("reader.scrubber.epubPercent", {
+                      percent: Math.round(f * 100),
+                    })}
+                  </p>
+                </div>
+              );
+            }}
+            formatLabel={(n) =>
+              t("reader.scrubber.epubPercent", {
+                percent: Math.round((n / 1000) * 100),
+              })
+            }
+            ariaLabel={t("reader.scrubber.epubAriaLabel")}
+          />
+        ) : null}
         {loadStatus === "loading" ? (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 text-white">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 text-white">
             {t("common.loading")}
           </div>
         ) : null}
         {loadStatus === "error" ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/90 text-white">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/90 text-white">
             <p>{t("reader.loadFailed")}</p>
             <Button variant="secondary" onClick={goBack}>
               {t("reader.back")}

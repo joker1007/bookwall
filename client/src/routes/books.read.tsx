@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, Keyboard, Settings as SettingsIcon } from "lucide-react";
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
+import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -384,6 +385,33 @@ export default function ReaderPage() {
             />
           ))}
         </div>
+
+        {total > 1 && id ? (
+          <ReaderScrubber
+            value={page}
+            min={0}
+            max={Math.max(0, total - 1)}
+            // Always advance by one page on the slider, even when spread
+            // is on — otherwise the user can never land on an "odd"
+            // page to re-pair an offset spread.
+            step={1}
+            direction={direction}
+            onSeek={(n) => setPage(n)}
+            renderPreview={(p) => (
+              <img
+                src={`/api/books/${id}/pages/${p}`}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-32 w-auto max-w-[40vw] rounded border border-white/20 bg-black object-contain shadow-lg"
+              />
+            )}
+            formatLabel={(p) =>
+              t("reader.pager.status", { page: p + 1, pages: total })
+            }
+            ariaLabel={t("reader.scrubber.ariaLabel")}
+          />
+        ) : null}
       </div>
 
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>

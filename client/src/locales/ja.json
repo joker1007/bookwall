@@ -219,6 +219,12 @@
       "description": "章をタップしてジャンプします。",
       "empty": "目次がありません。"
     },
+    "scrubber": {
+      "ariaLabel": "ページにジャンプ",
+      "epubAriaLabel": "位置にジャンプ",
+      "epubPercent": "{{percent}}% 地点",
+      "epubSection": "セクション {{current}} / {{total}}"
+    },
     "hotkeys": {
       "open": "キーボードショートカット",
       "title": "キーボードショートカット",

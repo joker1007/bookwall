@@ -219,6 +219,12 @@
       "description": "Jump to a chapter.",
       "empty": "No chapters available."
     },
+    "scrubber": {
+      "ariaLabel": "Jump to page",
+      "epubAriaLabel": "Jump to position",
+      "epubPercent": "{{percent}}% through",
+      "epubSection": "Section {{current}} / {{total}}"
+    },
     "hotkeys": {
       "open": "Keyboard shortcuts",
       "title": "Keyboard shortcuts",
