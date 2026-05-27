@@ -184,6 +184,13 @@
     "direction": "読む方向",
     "directionLtr": "左 → 右",
     "directionRtl": "右 → 左",
+    "scale": "拡大設定",
+    "scaleMode": {
+      "fit": "フィット",
+      "fit_height": "縦幅合わせ",
+      "fit_width": "横幅合わせ",
+      "original": "原寸"
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "書籍を読み込めませんでした。",
     "unsupportedFormat": "この形式のリーダーはまだ用意されていません。"

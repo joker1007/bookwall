@@ -184,6 +184,13 @@
     "direction": "Read direction",
     "directionLtr": "Left → Right",
     "directionRtl": "Right → Left",
+    "scale": "Image scale",
+    "scaleMode": {
+      "fit": "Fit",
+      "fit_height": "Fit height",
+      "fit_width": "Fit width",
+      "original": "Original"
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "Could not load this book.",
     "unsupportedFormat": "Reader is not available for this format yet."

@@ -85,9 +85,12 @@ export interface ApiToken {
 // at call sites where it's explicitly the plaintext-bearing record.
 export type IssuedApiToken = ApiToken;
 
+export type ReaderScale = "fit" | "fit_height" | "fit_width" | "original";
+
 export interface ReaderSettings {
   spread?: boolean;
   direction?: "ltr" | "rtl";
+  scale?: ReaderScale;
 }
 
 export interface ReadingProgress {

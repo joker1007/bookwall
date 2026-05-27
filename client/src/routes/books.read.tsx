@@ -19,7 +19,9 @@ import {
   useReadingProgress,
   useUpdateReadingProgress,
 } from "@/hooks/useReadingProgress";
-import type { ReaderSettings } from "@/types/api";
+import type { ReaderScale, ReaderSettings } from "@/types/api";
+
+const SCALE_VALUES = ["fit", "fit_height", "fit_width", "original"] as const;
 
 const DEBOUNCE_MS = 800;
 
@@ -34,6 +36,7 @@ export default function ReaderPage() {
   const [page, setPage] = useState(0);
   const [spread, setSpread] = useState(false);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
+  const [scale, setScale] = useState<ReaderScale>("fit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -43,6 +46,7 @@ export default function ReaderPage() {
     setPage(progress.data.current_page);
     setSpread(progress.data.settings.spread ?? false);
     setDirection(progress.data.settings.direction ?? "ltr");
+    setScale(progress.data.settings.scale ?? "fit");
     setInitialized(true);
   }, [progress.data, initialized]);
 
@@ -84,11 +88,15 @@ export default function ReaderPage() {
 
   const handleSpreadChange = (value: boolean) => {
     setSpread(value);
-    saveSettings({ spread: value, direction });
+    saveSettings({ spread: value, direction, scale });
   };
   const handleDirectionChange = (value: "ltr" | "rtl") => {
     setDirection(value);
-    saveSettings({ spread, direction: value });
+    saveSettings({ spread, direction: value, scale });
+  };
+  const handleScaleChange = (value: ReaderScale) => {
+    setScale(value);
+    saveSettings({ spread, direction, scale: value });
   };
 
   // Keyboard navigation (suspended while the settings sheet is open so the
@@ -128,6 +136,48 @@ export default function ReaderPage() {
     const base = spread ? [page, page + 1].filter((p) => p < total) : [page];
     return direction === "rtl" ? [...base].reverse() : base;
   }, [page, spread, direction, total]);
+
+  // Tailwind classes per scale mode. Spread layouts apply the same scale to
+  // the **pair** of pages as a single unit — `fit` shrinks both side-by-side
+  // until either edge hits the viewport; `fit_width` splits the viewport
+  // width 50/50 between the two pages; etc.
+  const viewportClass = useMemo(() => {
+    // No gap between pages: in spread mode the two pages must butt up
+    // against each other so they read as a single canvas.
+    const base = "flex px-2";
+    switch (scale) {
+      case "fit":
+        return `${base} h-full w-full items-center justify-center`;
+      case "fit_height":
+        return `${base} h-full w-full items-center justify-center overflow-x-auto`;
+      case "fit_width":
+        return `${base} min-h-full w-full items-start justify-center overflow-y-auto`;
+      case "original":
+        return `${base} min-h-full min-w-full items-start justify-center overflow-auto`;
+    }
+  }, [scale]);
+
+  const imageClass = useMemo(() => {
+    switch (scale) {
+      case "fit":
+        // `h-full w-auto` makes the <img> element take its width from its
+        // natural aspect ratio (so no horizontal gap is rendered around
+        // the image itself), while still scaling up to fill the height.
+        // `max-w-[50%]` in spread mode prevents either page from spilling
+        // past the viewport's midline so the two halves meet flush.
+        return spread
+          ? "h-full w-auto max-w-[50%] object-contain"
+          : "h-full w-auto max-w-full object-contain";
+      case "fit_height":
+        return "h-full max-w-none w-auto";
+      case "fit_width":
+        // Spread: each page gets half the viewport width so the pair lines
+        // up flush. Single: full viewport width.
+        return spread ? "w-1/2 max-h-none h-auto" : "w-full max-h-none h-auto";
+      case "original":
+        return "max-w-none max-h-none";
+    }
+  }, [scale, spread]);
 
   if (!id) return null;
 
@@ -199,13 +249,13 @@ export default function ReaderPage() {
         {visiblePages.length === 0 ? (
           <p className="text-white/60">{t("reader.loadFailed")}</p>
         ) : (
-          <div className="flex h-full w-full items-center justify-center gap-1 px-2">
+          <div className={viewportClass}>
             {visiblePages.map((p) => (
               <img
                 key={p}
                 src={`/api/books/${id}/pages/${p}`}
                 alt={t("reader.pageIndicator", { current: p + 1, total })}
-                className="max-h-full max-w-full object-contain"
+                className={imageClass}
                 draggable={false}
               />
             ))}
@@ -250,6 +300,30 @@ export default function ReaderPage() {
                 <ToggleGroupItem value="rtl" aria-label={t("reader.directionRtl")}>
                   {t("reader.directionRtl")}
                 </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div className="grid gap-2">
+              <Label>{t("reader.scale")}</Label>
+              <ToggleGroup
+                type="single"
+                value={scale}
+                onValueChange={(v) => {
+                  if (SCALE_VALUES.includes(v as ReaderScale)) {
+                    handleScaleChange(v as ReaderScale);
+                  }
+                }}
+                variant="outline"
+                className="flex-wrap justify-start"
+              >
+                {SCALE_VALUES.map((value) => (
+                  <ToggleGroupItem
+                    key={value}
+                    value={value}
+                    aria-label={t(`reader.scaleMode.${value}`)}
+                  >
+                    {t(`reader.scaleMode.${value}`)}
+                  </ToggleGroupItem>
+                ))}
               </ToggleGroup>
             </div>
           </div>
