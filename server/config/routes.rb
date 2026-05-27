@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
+  root to: redirect("/ui/")
+
   get "up" => "rails/health#show", as: :rails_health_check
+
+  get "/ui", to: "spa#index"
+  get "/ui/*unmatched", to: "spa#index"
 
   namespace :api do
     resource :session, only: %i[show create destroy]

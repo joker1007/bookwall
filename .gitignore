@@ -3,3 +3,7 @@
 
 # playwright-cli runtime artifacts (snapshots / console logs)
 **/.playwright-cli/
+
+# Bundled client served from server/public/ui — built at deploy time
+# (`npm run build` from client/ in dev, multi-stage Docker in prod).
+server/public/ui/

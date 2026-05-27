@@ -1,0 +1,23 @@
+# Local-only Claude / dev tooling
+.claude/
+.git/
+.github/
+
+# Node
+**/node_modules/
+client/dist/
+client/.vite/
+
+# Ruby
+server/.bundle/
+server/log/*
+!server/log/.keep
+server/tmp/*
+!server/tmp/.keep
+server/storage/*
+!server/storage/.keep
+server/spec/fixtures/files/
+
+# OS / editor
+**/.DS_Store
+**/*.swp
