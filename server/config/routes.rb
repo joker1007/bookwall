@@ -7,6 +7,10 @@ Rails.application.routes.draw do
   get "/ui/*unmatched", to: "spa#index"
 
   namespace :api do
+    if ENV["BOOKWALL_E2E_RESET"] == "1"
+      post "test_support/reset", to: "test_support#reset"
+    end
+
     resource :session, only: %i[show create destroy]
     resources :registrations, only: %i[create]
     resources :api_tokens, only: %i[index create destroy]

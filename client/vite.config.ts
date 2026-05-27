@@ -5,6 +5,11 @@ import path from "node:path";
 
 // Bookwall client is mounted under /ui in production, both dev and prod
 // use the same base so relative paths in routes stay consistent.
+const apiTarget = process.env.BOOKWALL_API_TARGET ?? "http://localhost:3000";
+const devPort = process.env.BOOKWALL_VITE_PORT
+  ? Number(process.env.BOOKWALL_VITE_PORT)
+  : 5173;
+
 export default defineConfig({
   base: "/ui/",
   plugins: [react(), tailwindcss()],
@@ -14,12 +19,13 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: devPort,
+    strictPort: true,
     proxy: {
-      "/api": "http://localhost:3000",
-      "/opds": "http://localhost:3000",
-      "/rails": "http://localhost:3000",
-      "/up": "http://localhost:3000",
+      "/api": apiTarget,
+      "/opds": apiTarget,
+      "/rails": apiTarget,
+      "/up": apiTarget,
     },
   },
 });
