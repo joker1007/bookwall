@@ -11,23 +11,27 @@ module Parsers
     end
 
     def page_count
-      image_entry_names.size
+      load_once
+      @image_entry_names.size
     end
 
     def cover_bytes
-      raise CoverNotFound, @path if image_entry_names.empty?
-      read_entry(image_entry_names.first)
+      load_once
+      raise CoverNotFound, @path if @cover_bytes.nil?
+      @cover_bytes
     end
 
     def page_bytes(index)
-      name = image_entry_names.fetch(index)
+      load_once
+      name = @image_entry_names.fetch(index)
       read_entry(name)
     rescue IndexError
       raise Error, "page index out of range: #{index}"
     end
 
     def page_content_type(index)
-      name = image_entry_names.fetch(index)
+      load_once
+      name = @image_entry_names.fetch(index)
       Parsers.mime_type_for_extension(name, default: "image/jpeg")
     rescue IndexError
       "image/jpeg"
@@ -35,7 +39,35 @@ module Parsers
 
     private
 
+    # The scanner's hot path is `metadata` then `cover_bytes`. Pulling
+    # both pieces of state out in a single Zip::File.open avoids
+    # parsing the central directory three times per book (once each
+    # for image entries, ComicInfo.xml, and the cover image).
+    def load_once
+      return if @loaded
+      Zip::File.open(@path) do |zip|
+        image_entries = []
+        info_entry = nil
+        zip.each do |entry|
+          next if entry.directory?
+          if entry.name.end_with?(COMIC_INFO_FILENAME)
+            info_entry = entry
+          elsif IMAGE_EXTENSIONS.include?(File.extname(entry.name).downcase)
+            image_entries << entry
+          end
+        end
+        image_entries.sort_by! { |e| e.name.downcase }
+        @image_entry_names = image_entries.map(&:name).freeze
+        @cover_bytes = image_entries.first&.get_input_stream&.read
+        @comic_info_xml = info_entry&.get_input_stream&.read
+      end
+      @loaded = true
+    rescue Zip::Error => e
+      raise InvalidFile, "broken CBZ: #{e.message}"
+    end
+
     def build_metadata
+      load_once
       base = {
         title: basename_without_ext,
         series: parent_dirname,
@@ -43,18 +75,15 @@ module Parsers
         authors: [],
         tags: [],
         published_at: nil,
-        page_count: image_entry_names.size
+        page_count: @image_entry_names.size
       }
       merge_comic_info(base)
-    rescue Zip::Error => e
-      raise InvalidFile, "broken CBZ: #{e.message}"
     end
 
     def merge_comic_info(base)
-      xml = read_comic_info
-      return base unless xml
+      return base unless @comic_info_xml
 
-      doc = Nokogiri::XML(xml)
+      doc = Nokogiri::XML(@comic_info_xml)
       title = text_for(doc, "//Title")
       series = text_for(doc, "//Series")
       volume_raw = text_for(doc, "//Number")
@@ -89,27 +118,6 @@ module Parsers
       Date.new(year.to_i, (month.presence || 1).to_i, (day.presence || 1).to_i)
     rescue ArgumentError
       nil
-    end
-
-    def read_comic_info
-      Zip::File.open(@path) do |zip|
-        entry = zip.find { |e| e.name.end_with?(COMIC_INFO_FILENAME) }
-        entry&.get_input_stream&.read
-      end
-    rescue Zip::Error => e
-      raise InvalidFile, "broken CBZ: #{e.message}"
-    end
-
-    def image_entry_names
-      @image_entry_names ||= Zip::File.open(@path) do |zip|
-        zip.entries
-          .reject(&:directory?)
-          .select { |e| IMAGE_EXTENSIONS.include?(File.extname(e.name).downcase) }
-          .sort_by { |e| e.name.downcase }
-          .map(&:name)
-      end
-    rescue Zip::Error => e
-      raise InvalidFile, "broken CBZ: #{e.message}"
     end
 
     def read_entry(name)

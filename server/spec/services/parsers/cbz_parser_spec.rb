@@ -82,6 +82,25 @@ RSpec.describe Parsers::CbzParser do
     end
   end
 
+  describe "zip open count" do
+    it "opens the zip once across metadata + cover_bytes + page_count" do
+      opens = 0
+      original = Zip::File.method(:open)
+      allow(Zip::File).to receive(:open) do |*args, **kwargs, &blk|
+        # Only count opens against the book we're parsing; spec setup
+        # for ComicInfo creates its own CBZ files.
+        opens += 1 if args.first == path
+        original.call(*args, **kwargs, &blk)
+      end
+
+      parser.metadata
+      parser.cover_bytes
+      parser.page_count
+
+      expect(opens).to eq(1)
+    end
+  end
+
   context "with a corrupted file" do
     let(:path) do
       tmp = Dir.mktmpdir("bookwall-cbz-broken-")
