@@ -200,7 +200,10 @@
   "settings": {
     "readerDefaults": {
       "title": "リーダーの既定値",
-      "description": "まだ開いていない書籍を読む時に適用される設定です。リーダー内で書籍ごとに変更したものはそちらが優先されます。"
+      "description": "まだ開いていない書籍を読む時に適用される設定です。リーダー内で書籍ごとに変更したものはそちらが優先されます。",
+      "preloadAhead": "先読みページ数",
+      "preloadAheadHint": "現在の表示の先にプリロードするページ数です。多いほどちらつきが減りますが、メモリを多く使います。",
+      "preloadAheadValue": "{{count}} ページ"
     },
     "libraries": {
       "title": "ライブラリ設定",

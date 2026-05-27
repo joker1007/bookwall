@@ -33,7 +33,11 @@ import {
   useUserPreferences,
 } from "@/hooks/useUserPreferences";
 import { ApiError } from "@/lib/api";
-import { READER_SCALE_VALUES } from "@/types/api";
+import {
+  READER_PRELOAD_AHEAD_DEFAULT,
+  READER_PRELOAD_AHEAD_OPTIONS,
+  READER_SCALE_VALUES,
+} from "@/types/api";
 import type { Library, ReaderScale, ReaderSettings } from "@/types/api";
 
 export default function LibrariesSettings() {
@@ -304,10 +308,17 @@ function ReaderDefaultsSection() {
   const spread = defaults.spread ?? false;
   const direction = (defaults.direction ?? "ltr") as "ltr" | "rtl";
   const scale = (defaults.scale ?? "fit") as ReaderScale;
+  const preloadAhead = defaults.preload_ahead ?? READER_PRELOAD_AHEAD_DEFAULT;
 
   const save = (patch: ReaderSettings) => {
     update.mutate({
-      reader_defaults: { spread, direction, scale, ...patch },
+      reader_defaults: {
+        spread,
+        direction,
+        scale,
+        preload_ahead: preloadAhead,
+        ...patch,
+      },
     });
   };
 
@@ -388,6 +399,37 @@ function ReaderDefaultsSection() {
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("settings.readerDefaults.preloadAhead")}</Label>
+            <ToggleGroup
+              type="single"
+              value={String(preloadAhead)}
+              onValueChange={(v) => {
+                if (!v) return;
+                const n = Number(v);
+                if (Number.isInteger(n) && READER_PRELOAD_AHEAD_OPTIONS.includes(n as 0 | 2 | 4 | 8)) {
+                  save({ preload_ahead: n });
+                }
+              }}
+              variant="outline"
+              className="flex-wrap justify-start"
+              disabled={update.isPending}
+            >
+              {READER_PRELOAD_AHEAD_OPTIONS.map((value) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={String(value)}
+                  aria-label={t("settings.readerDefaults.preloadAheadValue", { count: value })}
+                >
+                  {value}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.readerDefaults.preloadAheadHint")}
+            </p>
           </div>
         </div>
       )}

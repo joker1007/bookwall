@@ -200,7 +200,10 @@
   "settings": {
     "readerDefaults": {
       "title": "Reader defaults",
-      "description": "Applied when opening a book that hasn't been read yet. Per-book overrides set inside the reader take priority over these."
+      "description": "Applied when opening a book that hasn't been read yet. Per-book overrides set inside the reader take priority over these.",
+      "preloadAhead": "Preload ahead",
+      "preloadAheadHint": "Pages to fetch into the browser cache ahead of the current spread. Higher values reduce flicker but use more memory.",
+      "preloadAheadValue": "{{count}} pages"
     },
     "libraries": {
       "title": "Library settings",

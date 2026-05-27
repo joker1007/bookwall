@@ -93,10 +93,17 @@ export const READER_SCALE_VALUES = [
 ] as const;
 export type ReaderScale = (typeof READER_SCALE_VALUES)[number];
 
+export const READER_PRELOAD_AHEAD_OPTIONS = [0, 2, 4, 8] as const;
+export const READER_PRELOAD_AHEAD_DEFAULT = 4;
+
 export interface ReaderSettings {
   spread?: boolean;
   direction?: "ltr" | "rtl";
   scale?: ReaderScale;
+  // How many pages ahead of the visible spread to preload into the
+  // browser cache. Only meaningful as a user-wide default — per-book
+  // settings ignore this field.
+  preload_ahead?: number;
 }
 
 export interface ReadingProgress {

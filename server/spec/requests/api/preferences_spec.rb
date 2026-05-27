@@ -52,7 +52,11 @@ RSpec.describe "Api::Preferences", type: :request do
 
     it "stores a new set of reader defaults" do
       patch "/api/preferences",
-        params: {reader_defaults: {spread: true, direction: "rtl", scale: "fit_height"}},
+        params: {
+          reader_defaults: {
+            spread: true, direction: "rtl", scale: "fit_height", preload_ahead: 6
+          }
+        },
         as: :json
 
       expect(response).to have_http_status(:ok)
@@ -60,11 +64,13 @@ RSpec.describe "Api::Preferences", type: :request do
         "spread" => true,
         "direction" => "rtl",
         "scale" => "fit_height",
+        "preload_ahead" => 6,
       )
       expect(user.reload.reader_defaults).to eq(
         "spread" => true,
         "direction" => "rtl",
         "scale" => "fit_height",
+        "preload_ahead" => 6,
       )
     end
 

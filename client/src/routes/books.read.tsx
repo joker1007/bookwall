@@ -23,7 +23,7 @@ import {
   useUpdateUserPreferences,
   useUserPreferences,
 } from "@/hooks/useUserPreferences";
-import { READER_SCALE_VALUES } from "@/types/api";
+import { READER_PRELOAD_AHEAD_DEFAULT, READER_SCALE_VALUES } from "@/types/api";
 import type { ReaderScale, ReaderSettings } from "@/types/api";
 
 const DEBOUNCE_MS = 800;
@@ -148,6 +148,26 @@ export default function ReaderPage() {
     return direction === "rtl" ? [...base].reverse() : base;
   }, [page, spread, direction, total]);
 
+  // Pages to preload into the browser cache so the next page-turn
+  // doesn't re-download. We always look 1 page behind and N pages
+  // ahead, where N is the user preference (default 4).
+  const preloadPages = useMemo(() => {
+    if (total === 0) return [];
+    const ahead =
+      preferences.data?.reader_defaults.preload_ahead ?? READER_PRELOAD_AHEAD_DEFAULT;
+    const startAhead = spread ? 2 : 1;
+    const visible = new Set(visiblePages);
+    const ids = new Set<number>();
+    const prev = page - 1;
+    if (prev >= 0 && !visible.has(prev)) ids.add(prev);
+    for (let i = 0; i < ahead; i++) {
+      const p = page + startAhead + i;
+      if (p >= total) break;
+      if (!visible.has(p)) ids.add(p);
+    }
+    return [...ids];
+  }, [page, spread, total, visiblePages, preferences.data]);
+
   // Tailwind classes per scale mode. Spread layouts apply the same scale to
   // the **pair** of pages as a single unit — `fit` shrinks both side-by-side
   // until either edge hits the viewport; `fit_width` splits the viewport
@@ -261,17 +281,41 @@ export default function ReaderPage() {
           <p className="text-white/60">{t("reader.loadFailed")}</p>
         ) : (
           <div className={viewportClass}>
-            {visiblePages.map((p) => (
+            {visiblePages.map((p, slot) => (
+              // Slot-based key keeps the same <img> element across page
+              // turns so the browser holds onto the previous image until
+              // the new src has decoded — that's the main trick that
+              // eliminates the blank-frame flicker.
               <img
-                key={p}
+                key={`slot-${slot}`}
                 src={`/api/books/${id}/pages/${p}`}
                 alt={t("reader.pageIndicator", { current: p + 1, total })}
                 className={imageClass}
                 draggable={false}
+                decoding="async"
+                fetchPriority="high"
               />
             ))}
           </div>
         )}
+        {/* Hidden preload pool — keeps the next few pages (and the page
+            we just left) warm in the browser cache so navigation feels
+            instant. position:absolute + size 0 keeps it out of layout
+            without `display:none` (which can suppress some fetches). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute size-0 overflow-hidden opacity-0"
+        >
+          {preloadPages.map((p) => (
+            <img
+              key={p}
+              src={`/api/books/${id}/pages/${p}`}
+              alt=""
+              decoding="async"
+              fetchPriority="low"
+            />
+          ))}
+        </div>
       </div>
 
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>

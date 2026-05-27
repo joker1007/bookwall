@@ -12,6 +12,25 @@ RSpec.describe UserPreference, type: :model do
 
     it { is_expected.to validate_inclusion_of(:reader_direction).in_array(%w[ltr rtl]).allow_nil }
     it { is_expected.to validate_inclusion_of(:reader_scale).in_array(%w[fit fit_height fit_width original]).allow_nil }
+
+    it "accepts integer 0..16 for reader_preload_ahead" do
+      pref = build(:user_preference, reader_preload_ahead: 0)
+      expect(pref).to be_valid
+      pref.reader_preload_ahead = 16
+      expect(pref).to be_valid
+    end
+
+    it "rejects out-of-range reader_preload_ahead" do
+      pref = build(:user_preference, reader_preload_ahead: -1)
+      expect(pref).to be_invalid
+      pref.reader_preload_ahead = 17
+      expect(pref).to be_invalid
+    end
+
+    it "allows nil reader_preload_ahead (means fall through to client default)" do
+      pref = build(:user_preference, reader_preload_ahead: nil)
+      expect(pref).to be_valid
+    end
   end
 
   describe "#reader_defaults" do
@@ -24,12 +43,15 @@ RSpec.describe UserPreference, type: :model do
 
     it "round-trips a full set of reader settings through the writer" do
       pref = UserPreference.new(user: user)
-      pref.reader_defaults = {spread: false, direction: "rtl", scale: "fit_height"}
+      pref.reader_defaults = {
+        spread: false, direction: "rtl", scale: "fit_height", preload_ahead: 6
+      }
       pref.save!
       expect(pref.reload.reader_defaults).to eq(
         "spread" => false,
         "direction" => "rtl",
         "scale" => "fit_height",
+        "preload_ahead" => 6,
       )
     end
 
