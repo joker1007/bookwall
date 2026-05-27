@@ -219,6 +219,19 @@
       "description": "Jump to a chapter.",
       "empty": "No chapters available."
     },
+    "hotkeys": {
+      "open": "Keyboard shortcuts",
+      "title": "Keyboard shortcuts",
+      "description": "Quick reference for the reader.",
+      "nextPage": "Next page",
+      "prevPage": "Previous page",
+      "singlePageNudge": "Advance by one page (overrides spread mode)",
+      "toggleSpread": "Toggle two-page spread",
+      "close": "Close the reader",
+      "toggleHelp": "Show this dialog",
+      "clickEdgesKey": "Click edges",
+      "clickEdges": "Left / right margin clicks turn pages (direction follows the book's writing direction)."
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "Could not load this book.",
     "unsupportedFormat": "Reader is not available for this format yet."

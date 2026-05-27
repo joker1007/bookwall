@@ -219,6 +219,19 @@
       "description": "章をタップしてジャンプします。",
       "empty": "目次がありません。"
     },
+    "hotkeys": {
+      "open": "キーボードショートカット",
+      "title": "キーボードショートカット",
+      "description": "リーダーの操作一覧です。",
+      "nextPage": "次のページ",
+      "prevPage": "前のページ",
+      "singlePageNudge": "1 ページだけ送る (見開きモード時)",
+      "toggleSpread": "見開き表示の切替",
+      "close": "リーダーを閉じる",
+      "toggleHelp": "このダイアログを表示",
+      "clickEdgesKey": "左右クリック",
+      "clickEdges": "画面の左右端をクリックでページを送ります (方向は書字方向に追従)。"
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "書籍を読み込めませんでした。",
     "unsupportedFormat": "この形式のリーダーはまだ用意されていません。"

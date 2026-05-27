@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ListTree, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, Keyboard, ListTree, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,6 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import {
   useReadingProgress,
   useUpdateReadingProgress,
@@ -177,6 +178,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
+  const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [toc, setToc] = useState<TocItem[]>([]);
 
   // Resolved settings (per-book ReadingProgress.settings beats user defaults
@@ -467,9 +469,18 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   // Keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (settingsOpen || tocOpen) return;
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+
+      // "?" works anywhere — it's the open/close shortcut for the
+      // cheat sheet itself, so it shouldn't be gated by any open
+      // overlay.
+      if (e.key === "?") {
+        e.preventDefault();
+        setHotkeysOpen((v) => !v);
+        return;
+      }
+      if (settingsOpen || tocOpen || hotkeysOpen) return;
 
       // ArrowLeft/Right flip on RTL (vertical Japanese); Space/Backspace
       // stay direction-agnostic — they're "forward" / "back" by convention,
@@ -493,7 +504,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, goBack, settingsOpen, tocOpen, effectiveDirection]);
+  }, [goNext, goPrev, goBack, settingsOpen, tocOpen, hotkeysOpen, effectiveDirection]);
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = effectiveDirection === "ltr" ? goPrev : goNext;
@@ -531,6 +542,15 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           className="text-white hover:bg-white/10 hover:text-white"
         >
           <ListTree className="size-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("reader.hotkeys.open")}
+          onClick={() => setHotkeysOpen(true)}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <Keyboard className="size-5" />
         </Button>
         <Button
           variant="ghost"
@@ -710,6 +730,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           </nav>
         </SheetContent>
       </Sheet>
+
+      <ReaderHotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
     </div>
   );
 }

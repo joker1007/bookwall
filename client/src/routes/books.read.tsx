@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, Keyboard, Settings as SettingsIcon } from "lucide-react";
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
+import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -54,6 +55,7 @@ export default function ReaderPage() {
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [scale, setScale] = useState<ReaderScale>("fit");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   // Restore once both the per-book progress and the user-wide defaults
@@ -83,6 +85,16 @@ export default function ReaderPage() {
   const goPrev = useCallback(() => {
     setPage((p) => Math.max(p - step, 0));
   }, [step]);
+
+  // Single-page nudges (Shift+Arrow). Useful in spread mode when the
+  // pages are offset by one and the reader needs to re-pair them.
+  const goNextOne = useCallback(() => {
+    setPage((p) => Math.min(p + 1, lastPage));
+  }, [lastPage]);
+
+  const goPrevOne = useCallback(() => {
+    setPage((p) => Math.max(p - 1, 0));
+  }, []);
 
   // Debounced progress save (only after we've restored, so we don't clobber
   // the saved value with the initial 0).
@@ -125,27 +137,49 @@ export default function ReaderPage() {
   // sheet's own focus trap can use arrows without paging the reader).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (settingsOpen) return;
-      // Avoid interfering with text inputs (none in this view, but defensive)
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
 
+      // "?" toggles the cheat sheet from anywhere — it shouldn't be
+      // gated by any open overlay.
+      if (e.key === "?") {
+        e.preventDefault();
+        setHotkeysOpen((v) => !v);
+        return;
+      }
+      if (settingsOpen || hotkeysOpen) return;
+
       // ArrowLeft/Right flip on RTL — matches the tap-zone reversal so
       // an arrow key always advances in the same direction the reader
-      // sees the next page. Space/Backspace are direction-agnostic
-      // ("forward" / "back" by convention).
+      // sees the next page. Holding Shift overrides spread mode so the
+      // arrow advances by exactly one page, which is how you re-pair
+      // an offset spread without leaving the keyboard. Space/Backspace
+      // are direction-agnostic ("forward" / "back" by convention).
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        (direction === "rtl" ? goPrev : goNext)();
+        if (e.shiftKey) {
+          (direction === "rtl" ? goPrevOne : goNextOne)();
+        } else {
+          (direction === "rtl" ? goPrev : goNext)();
+        }
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        (direction === "rtl" ? goNext : goPrev)();
+        if (e.shiftKey) {
+          (direction === "rtl" ? goNextOne : goPrevOne)();
+        } else {
+          (direction === "rtl" ? goNext : goPrev)();
+        }
       } else if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         goNext();
       } else if (e.key === "Backspace") {
         e.preventDefault();
         goPrev();
+      } else if (e.key === "2") {
+        e.preventDefault();
+        const next = !spread;
+        setSpread(next);
+        saveSettings({ spread: next, direction, scale });
       } else if (e.key === "Escape") {
         e.preventDefault();
         goBack();
@@ -153,7 +187,7 @@ export default function ReaderPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, goBack, settingsOpen, direction]);
+  }, [goNext, goPrev, goNextOne, goPrevOne, goBack, settingsOpen, hotkeysOpen, direction, spread, scale, saveSettings]);
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = direction === "ltr" ? goPrev : goNext;
@@ -270,6 +304,15 @@ export default function ReaderPage() {
         <span className="px-2 text-xs tabular-nums text-white/70">
           {t("reader.pageIndicator", { current: page + 1, total })}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("reader.hotkeys.open")}
+          onClick={() => setHotkeysOpen(true)}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <Keyboard className="size-5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -429,6 +472,12 @@ export default function ReaderPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <ReaderHotkeysDialog
+        open={hotkeysOpen}
+        onOpenChange={setHotkeysOpen}
+        showSinglePageNudge
+      />
     </div>
   );
 }
