@@ -72,7 +72,8 @@
   "home": {
     "title": "Home",
     "description": "Recently added books.",
-    "empty": "No books yet. Add a library in settings and run a scan."
+    "empty": "No books yet. Add a library in settings and run a scan.",
+    "continueReading": "Continue reading"
   },
   "placeholder": {
     "description": "This page will be filled in by a later UI phase."

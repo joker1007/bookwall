@@ -1,0 +1,34 @@
+# frozen_string_literal: true
+
+module Api
+  # Books the current user has opened in the reader, ordered by the
+  # most-recent ReadingProgress timestamp. Powers the home page's
+  # "Continue reading" carousel.
+  class RecentReadsController < BaseController
+    LIMIT = 12
+
+    def index
+      progresses = ReadingProgress
+        .where(user_id: Current.user.id)
+        .where.not(last_read_at: nil)
+        .order(last_read_at: :desc)
+        .limit(LIMIT)
+        .includes(book: [:authors, :tags, :series, {cover_attachment: :blob}])
+
+      books = progresses.map(&:book)
+      render json: {
+        books: BookSerializer.new(
+          books,
+          params: {favorite_book_ids: favorite_book_ids(books.map(&:id))}
+        ).serializable_hash
+      }
+    end
+
+    private
+
+    def favorite_book_ids(ids)
+      return [] if ids.empty?
+      Favorite.where(user_id: Current.user.id, book_id: ids).pluck(:book_id)
+    end
+  end
+end

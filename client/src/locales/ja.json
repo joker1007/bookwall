@@ -72,7 +72,8 @@
   "home": {
     "title": "ホーム",
     "description": "最近追加された書籍。",
-    "empty": "まだ書籍がありません。設定からライブラリを追加してスキャンしてみてください。"
+    "empty": "まだ書籍がありません。設定からライブラリを追加してスキャンしてみてください。",
+    "continueReading": "最近読んだ本"
   },
   "placeholder": {
     "description": "このページは次の UI Phase で実装されます。"

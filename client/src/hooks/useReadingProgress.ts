@@ -27,6 +27,10 @@ export function useUpdateReadingProgress(bookId: number | string) {
       }),
     onSuccess: (data) => {
       queryClient.setQueryData<ReadingProgress>(key(bookId), data);
+      // The home carousel orders by last_read_at, which this update
+      // just bumped — invalidate so the user sees the book pop to the
+      // front next time they go home.
+      queryClient.invalidateQueries({ queryKey: ["recent_reads"] });
     },
   });
 }

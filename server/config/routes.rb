@@ -32,6 +32,7 @@ Rails.application.routes.draw do
     resources :series
     resources :authors
     resources :tags
+    resources :recent_reads, only: %i[index]
   end
 
   namespace :opds do

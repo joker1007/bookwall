@@ -42,6 +42,13 @@ export function useBookList(
   });
 }
 
+export function useRecentReads() {
+  return useQuery<{ books: Book[] }>({
+    queryKey: ["recent_reads"],
+    queryFn: () => api<{ books: Book[] }>("/api/recent_reads"),
+  });
+}
+
 export function useBook(id: number | string | undefined) {
   return useQuery<Book>({
     queryKey: ["book", String(id)],
