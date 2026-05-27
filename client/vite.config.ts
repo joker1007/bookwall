@@ -19,13 +19,14 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     port: devPort,
     strictPort: true,
     proxy: {
-      "/api": apiTarget,
-      "/opds": apiTarget,
-      "/rails": apiTarget,
-      "/up": apiTarget,
+      "/api": { target: apiTarget, changeOrigin: true },
+      "/opds": { target: apiTarget, changeOrigin: true },
+      "/rails": { target: apiTarget, changeOrigin: true },
+      "/up": { target: apiTarget, changeOrigin: true },
     },
   },
 });
