@@ -36,6 +36,8 @@
   "nav": {
     "home": "Home",
     "libraries": "Libraries",
+    "myLibraries": "Libraries",
+    "noLibraries": "No libraries yet",
     "series": "Series",
     "authors": "Authors",
     "tags": "Tags",

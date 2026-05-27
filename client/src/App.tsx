@@ -17,7 +17,6 @@ import BookDetailPage from "@/routes/books.detail";
 import SearchPage from "@/routes/search";
 import LibrariesSettings from "@/routes/settings.libraries";
 import ApiTokensSettings from "@/routes/settings.api_tokens";
-import { Placeholder } from "@/components/Placeholder";
 import { SessionBootstrap } from "@/components/SessionBootstrap";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -37,7 +36,9 @@ export default function App() {
             }
           >
             <Route index element={<HomePage />} />
-            <Route path="libraries" element={<Placeholder title="ライブラリ" />} />
+            {/* Libraries are picked directly from the sidebar; the bare
+                /libraries URL has nothing to show. */}
+            <Route path="libraries" element={<Navigate to="/" replace />} />
             <Route path="libraries/:id" element={<LibraryDetailPage />} />
             <Route path="series" element={<SeriesIndexPage />} />
             <Route path="series/:id" element={<SeriesDetailPage />} />

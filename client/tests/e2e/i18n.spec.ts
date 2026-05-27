@@ -14,7 +14,7 @@ test.describe("i18n", () => {
     await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
     // Sidebar reflects the new language too.
     await expect(
-      page.getByRole("link", { name: "ライブラリ", exact: true }).first(),
+      page.getByRole("link", { name: "シリーズ", exact: true }).first(),
     ).toBeVisible();
 
     // Reload preserves the choice via localStorage.

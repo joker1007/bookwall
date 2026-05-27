@@ -1,20 +1,16 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 import { BookListView } from "@/components/books/BookListView";
-import type { Library } from "@/types/api";
+import { useLibrary } from "@/hooks/useLibraries";
 
 export default function LibraryDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
-  const library = useQuery<Library>({
-    queryKey: ["library", id],
-    enabled: !!id,
-    queryFn: () => api<Library>(`/api/libraries/${id}`),
-  });
+  const library = useLibrary(id);
 
   return (
     <BookListView
-      title={library.data?.name ?? "ライブラリ"}
+      title={library.data?.name ?? t("books.list.byLibrary")}
       description={library.data?.path}
       baseParams={{ library_id: id }}
     />

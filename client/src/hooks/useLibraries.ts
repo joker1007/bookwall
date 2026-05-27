@@ -14,6 +14,14 @@ export function useLibraries() {
   });
 }
 
+export function useLibrary(id: number | string | undefined) {
+  return useQuery<Library>({
+    queryKey: ["library", String(id)],
+    enabled: id !== undefined,
+    queryFn: () => api<Library>(`/api/libraries/${id}`),
+  });
+}
+
 export function useCreateLibrary() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -36,6 +36,8 @@
   "nav": {
     "home": "ホーム",
     "libraries": "ライブラリ",
+    "myLibraries": "ライブラリ",
+    "noLibraries": "ライブラリ未登録",
     "series": "シリーズ",
     "authors": "著者",
     "tags": "タグ",
