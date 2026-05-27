@@ -44,9 +44,14 @@ export function BookListView({
   const [searchParams, setSearchParams] = useSearchParams();
   const displayMode = useUiStore((s) => s.displayMode);
   const setDisplayMode = useUiStore((s) => s.setDisplayMode);
+  const sortOrder = useUiStore((s) => s.sortOrder);
+  const setSortOrder = useUiStore((s) => s.setSortOrder);
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
-  const sort = searchParams.get("sort") ?? "added_at_desc";
+  // URL `?sort=` wins so a shared link reproduces the exact view; with
+  // nothing in the URL fall through to whatever the user last picked
+  // (persisted in localStorage via uiStore).
+  const sort = searchParams.get("sort") ?? sortOrder;
 
   const query = useBookList({
     ...baseParams,
@@ -79,7 +84,13 @@ export function BookListView({
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={sort} onValueChange={(v) => updateParam("sort", v)}>
+        <Select
+          value={sort}
+          onValueChange={(v) => {
+            setSortOrder(v);
+            updateParam("sort", v);
+          }}
+        >
           <SelectTrigger className="h-10 w-44">
             <SelectValue />
           </SelectTrigger>
