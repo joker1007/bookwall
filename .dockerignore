@@ -18,6 +18,12 @@ server/storage/*
 !server/storage/.keep
 server/spec/fixtures/files/
 
+# Secrets that must never end up in a layer. master.key is supplied at
+# runtime via RAILS_MASTER_KEY; .env* are local-only.
+server/config/master.key
+server/config/credentials/*.key
+server/.env*
+
 # OS / editor
 **/.DS_Store
 **/*.swp
