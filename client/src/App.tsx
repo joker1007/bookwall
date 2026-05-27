@@ -12,6 +12,8 @@ import TagDetailPage from "@/routes/tags.detail";
 import FavoritesPage from "@/routes/favorites";
 import BookDetailPage from "@/routes/books.detail";
 import SearchPage from "@/routes/search";
+import LibrariesSettings from "@/routes/settings.libraries";
+import ApiTokensSettings from "@/routes/settings.api_tokens";
 import { Placeholder } from "@/components/Placeholder";
 import { SessionBootstrap } from "@/components/SessionBootstrap";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -43,14 +45,8 @@ export default function App() {
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="books/:id" element={<BookDetailPage />} />
-            <Route
-              path="settings/libraries"
-              element={<Placeholder title="設定 — ライブラリ" />}
-            />
-            <Route
-              path="settings/api_tokens"
-              element={<Placeholder title="設定 — API トークン" />}
-            />
+            <Route path="settings/libraries" element={<LibrariesSettings />} />
+            <Route path="settings/api_tokens" element={<ApiTokensSettings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

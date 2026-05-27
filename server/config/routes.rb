@@ -5,7 +5,9 @@ Rails.application.routes.draw do
     resource :session, only: %i[show create destroy]
     resources :registrations, only: %i[create]
     resources :api_tokens, only: %i[index create destroy]
-    resources :libraries
+    resources :libraries do
+      resources :scans, only: %i[create]
+    end
     resources :books do
       member do
         post :favorite
