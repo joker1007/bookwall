@@ -85,7 +85,13 @@ export interface ApiToken {
 // at call sites where it's explicitly the plaintext-bearing record.
 export type IssuedApiToken = ApiToken;
 
-export type ReaderScale = "fit" | "fit_height" | "fit_width" | "original";
+export const READER_SCALE_VALUES = [
+  "fit",
+  "fit_height",
+  "fit_width",
+  "original",
+] as const;
+export type ReaderScale = (typeof READER_SCALE_VALUES)[number];
 
 export interface ReaderSettings {
   spread?: boolean;
@@ -97,4 +103,8 @@ export interface ReadingProgress {
   current_page: number;
   last_read_at: string | null;
   settings: ReaderSettings;
+}
+
+export interface UserPreferences {
+  reader_defaults: ReaderSettings;
 }

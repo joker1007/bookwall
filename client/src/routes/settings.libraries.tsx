@@ -19,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   useLibraries,
   useCreateLibrary,
@@ -26,8 +28,13 @@ import {
   useDeleteLibrary,
   useScanLibrary,
 } from "@/hooks/useLibraries";
+import {
+  useUpdateUserPreferences,
+  useUserPreferences,
+} from "@/hooks/useUserPreferences";
 import { ApiError } from "@/lib/api";
-import type { Library } from "@/types/api";
+import { READER_SCALE_VALUES } from "@/types/api";
+import type { Library, ReaderScale, ReaderSettings } from "@/types/api";
 
 export default function LibrariesSettings() {
   const { t } = useTranslation();
@@ -106,6 +113,8 @@ export default function LibrariesSettings() {
         onOpenChange={setOpen}
         library={editing}
       />
+
+      <ReaderDefaultsSection />
     </section>
   );
 }
@@ -284,4 +293,104 @@ function formatError(error: unknown, t: (key: string) => string) {
     if (body?.errors?.length) return body.errors.join(" / ");
   }
   return t("common.saveFailed");
+}
+
+function ReaderDefaultsSection() {
+  const { t } = useTranslation();
+  const preferences = useUserPreferences();
+  const update = useUpdateUserPreferences();
+
+  const defaults = preferences.data?.reader_defaults ?? {};
+  const spread = defaults.spread ?? false;
+  const direction = (defaults.direction ?? "ltr") as "ltr" | "rtl";
+  const scale = (defaults.scale ?? "fit") as ReaderScale;
+
+  const save = (patch: ReaderSettings) => {
+    update.mutate({
+      reader_defaults: { spread, direction, scale, ...patch },
+    });
+  };
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-border bg-card p-4">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("settings.readerDefaults.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.readerDefaults.description")}
+        </p>
+      </header>
+
+      {preferences.isPending ? (
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+      ) : preferences.isError ? (
+        <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
+      ) : (
+        <div className="grid gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="reader-default-spread">{t("reader.spread")}</Label>
+            <Toggle
+              id="reader-default-spread"
+              pressed={spread}
+              onPressedChange={(v) => save({ spread: v })}
+              variant="outline"
+              size="sm"
+              aria-label={t("reader.spread")}
+              disabled={update.isPending}
+            >
+              {spread ? t("reader.on") : t("reader.off")}
+            </Toggle>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("reader.direction")}</Label>
+            <ToggleGroup
+              type="single"
+              value={direction}
+              onValueChange={(v) => {
+                if (v === "ltr" || v === "rtl") save({ direction: v });
+              }}
+              variant="outline"
+              className="justify-start"
+              disabled={update.isPending}
+            >
+              <ToggleGroupItem value="ltr" aria-label={t("reader.directionLtr")}>
+                {t("reader.directionLtr")}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="rtl" aria-label={t("reader.directionRtl")}>
+                {t("reader.directionRtl")}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("reader.scale")}</Label>
+            <ToggleGroup
+              type="single"
+              value={scale}
+              onValueChange={(v) => {
+                if (READER_SCALE_VALUES.includes(v as ReaderScale)) {
+                  save({ scale: v as ReaderScale });
+                }
+              }}
+              variant="outline"
+              className="flex-wrap justify-start"
+              disabled={update.isPending}
+            >
+              {READER_SCALE_VALUES.map((value) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  aria-label={t(`reader.scaleMode.${value}`)}
+                >
+                  {t(`reader.scaleMode.${value}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

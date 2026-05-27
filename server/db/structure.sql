@@ -13,8 +13,6 @@ FOREIGN KEY ("blob_id")
   REFERENCES "active_storage_blobs" ("id")
 );
 CREATE UNIQUE INDEX "index_active_storage_variant_records_uniqueness" ON "active_storage_variant_records" ("blob_id", "variation_digest") /*application='Bookwall'*/;
-CREATE TABLE IF NOT EXISTS "users" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "email_address" varchar NOT NULL, "password_digest" varchar NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
-CREATE UNIQUE INDEX "index_users_on_email_address" ON "users" ("email_address") /*application='Bookwall'*/;
 CREATE TABLE IF NOT EXISTS "sessions" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "ip_address" varchar, "user_agent" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_758836b4f0"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
@@ -109,7 +107,15 @@ FOREIGN KEY ("book_id")
 CREATE INDEX "index_reading_progresses_on_user_id" ON "reading_progresses" ("user_id");
 CREATE INDEX "index_reading_progresses_on_book_id" ON "reading_progresses" ("book_id");
 CREATE INDEX "index_reading_progresses_on_book_id_only" ON "reading_progresses" ("book_id");
+CREATE TABLE IF NOT EXISTS "users" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "email_address" varchar NOT NULL, "password_digest" varchar NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
+CREATE UNIQUE INDEX "index_users_on_email_address" ON "users" ("email_address");
+CREATE TABLE IF NOT EXISTS "user_preferences" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "reader_spread" boolean, "reader_direction" varchar, "reader_scale" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_a69bfcfd81"
+FOREIGN KEY ("user_id")
+  REFERENCES "users" ("id")
+);
+CREATE UNIQUE INDEX "index_user_preferences_on_user_id" ON "user_preferences" ("user_id");
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528140000'),
 ('20260528000000'),
 ('20260527100000'),
 ('20260527000009'),

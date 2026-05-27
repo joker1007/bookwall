@@ -13,4 +13,12 @@ class User < ApplicationRecord
             presence: true,
             uniqueness: true,
             format: {with: URI::MailTo::EMAIL_REGEXP}
+
+  has_one :preference, class_name: "UserPreference", dependent: :destroy
+
+  # Convenience helper: returns the persisted reader defaults Hash, or {}
+  # when no preference row exists yet.
+  def reader_defaults
+    preference&.reader_defaults || {}
+  end
 end

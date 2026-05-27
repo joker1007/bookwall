@@ -191,11 +191,17 @@
       "fit_width": "横幅合わせ",
       "original": "原寸"
     },
+    "saveAsDefaults": "デフォルトとして保存",
+    "saveAsDefaultsHint": "まだ開いたことのない書籍に適用されます。",
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "書籍を読み込めませんでした。",
     "unsupportedFormat": "この形式のリーダーはまだ用意されていません。"
   },
   "settings": {
+    "readerDefaults": {
+      "title": "リーダーの既定値",
+      "description": "まだ開いていない書籍を読む時に適用される設定です。リーダー内で書籍ごとに変更したものはそちらが優先されます。"
+    },
     "libraries": {
       "title": "ライブラリ設定",
       "description": "スキャン対象のディレクトリを管理します。",

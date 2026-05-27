@@ -27,11 +27,11 @@ module Api
     end
 
     # Returns the existing row or a blank in-memory one so show/update can
-    # share the same upsert path.
+    # share the same upsert path. Don't seed `last_read_at` here — clients
+    # rely on `last_read_at === null` in the show response to detect a
+    # never-opened book and fall back to user-wide reader defaults.
     def current_progress
-      ReadingProgress.find_or_initialize_by(user_id: Current.user.id, book_id: @book.id).tap do |p|
-        p.last_read_at ||= Time.current
-      end
+      ReadingProgress.find_or_initialize_by(user_id: Current.user.id, book_id: @book.id)
     end
 
     def progress_params

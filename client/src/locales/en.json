@@ -191,11 +191,17 @@
       "fit_width": "Fit width",
       "original": "Original"
     },
+    "saveAsDefaults": "Save as default",
+    "saveAsDefaultsHint": "Applied to books that haven't been opened yet.",
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "Could not load this book.",
     "unsupportedFormat": "Reader is not available for this format yet."
   },
   "settings": {
+    "readerDefaults": {
+      "title": "Reader defaults",
+      "description": "Applied when opening a book that hasn't been read yet. Per-book overrides set inside the reader take priority over these."
+    },
     "libraries": {
       "title": "Library settings",
       "description": "Manage the directories that Bookwall scans for books.",

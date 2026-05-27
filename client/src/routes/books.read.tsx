@@ -19,9 +19,12 @@ import {
   useReadingProgress,
   useUpdateReadingProgress,
 } from "@/hooks/useReadingProgress";
+import {
+  useUpdateUserPreferences,
+  useUserPreferences,
+} from "@/hooks/useUserPreferences";
+import { READER_SCALE_VALUES } from "@/types/api";
 import type { ReaderScale, ReaderSettings } from "@/types/api";
-
-const SCALE_VALUES = ["fit", "fit_height", "fit_width", "original"] as const;
 
 const DEBOUNCE_MS = 800;
 
@@ -32,6 +35,8 @@ export default function ReaderPage() {
   const book = useBook(id);
   const progress = useReadingProgress(id);
   const update = useUpdateReadingProgress(id ?? "");
+  const preferences = useUserPreferences();
+  const updatePreferences = useUpdateUserPreferences();
 
   const [page, setPage] = useState(0);
   const [spread, setSpread] = useState(false);
@@ -40,15 +45,21 @@ export default function ReaderPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Restore once the progress fetch resolves
+  // Restore once both the per-book progress and the user-wide defaults
+  // have resolved. A book that has never been opened (last_read_at ===
+  // null) takes its initial settings from the user's reader_defaults so
+  // the experience is consistent across new books.
   useEffect(() => {
-    if (initialized || !progress.data) return;
+    if (initialized || !progress.data || !preferences.data) return;
+    const defaults = preferences.data.reader_defaults;
+    const neverRead = progress.data.last_read_at === null;
+    const source = neverRead ? defaults : progress.data.settings;
     setPage(progress.data.current_page);
-    setSpread(progress.data.settings.spread ?? false);
-    setDirection(progress.data.settings.direction ?? "ltr");
-    setScale(progress.data.settings.scale ?? "fit");
+    setSpread(source.spread ?? false);
+    setDirection(source.direction ?? "ltr");
+    setScale(source.scale ?? "fit");
     setInitialized(true);
-  }, [progress.data, initialized]);
+  }, [progress.data, preferences.data, initialized]);
 
   const total = book.data?.page_count ?? 0;
   const step = spread ? 2 : 1;
@@ -308,14 +319,14 @@ export default function ReaderPage() {
                 type="single"
                 value={scale}
                 onValueChange={(v) => {
-                  if (SCALE_VALUES.includes(v as ReaderScale)) {
+                  if (READER_SCALE_VALUES.includes(v as ReaderScale)) {
                     handleScaleChange(v as ReaderScale);
                   }
                 }}
                 variant="outline"
                 className="flex-wrap justify-start"
               >
-                {SCALE_VALUES.map((value) => (
+                {READER_SCALE_VALUES.map((value) => (
                   <ToggleGroupItem
                     key={value}
                     value={value}
@@ -325,6 +336,26 @@ export default function ReaderPage() {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+            </div>
+            <div className="grid gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updatePreferences.mutate({
+                    reader_defaults: { spread, direction, scale },
+                  })
+                }
+                disabled={updatePreferences.isPending}
+              >
+                {updatePreferences.isPending
+                  ? t("common.saving")
+                  : t("reader.saveAsDefaults")}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {t("reader.saveAsDefaultsHint")}
+              </p>
             </div>
           </div>
         </SheetContent>

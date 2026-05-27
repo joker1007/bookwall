@@ -26,6 +26,9 @@ RSpec.describe "Api::ReadingProgresses", type: :request do
         body = response.parsed_body
         expect(body["current_page"]).to eq(0)
         expect(body["settings"]).to eq({})
+        # The client uses last_read_at == null to detect a never-opened
+        # book so it can apply the user-wide reader defaults instead.
+        expect(body["last_read_at"]).to be_nil
       end
 
       it "returns the stored progress with settings" do
