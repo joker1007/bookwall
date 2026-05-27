@@ -173,6 +173,21 @@
       "favoritesEmpty": "You haven't favorited any books yet."
     }
   },
+  "reader": {
+    "open": "Read",
+    "back": "Back",
+    "settings": "Reader settings",
+    "settingsDescription": "Per-book settings — saved on the server.",
+    "spread": "Two-page spread",
+    "on": "On",
+    "off": "Off",
+    "direction": "Read direction",
+    "directionLtr": "Left → Right",
+    "directionRtl": "Right → Left",
+    "pageIndicator": "{{current}} / {{total}}",
+    "loadFailed": "Could not load this book.",
+    "unsupportedFormat": "Reader is not available for this format yet."
+  },
   "settings": {
     "libraries": {
       "title": "Library settings",

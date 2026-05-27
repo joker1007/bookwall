@@ -1,4 +1,7 @@
-module Opds
+module Api
+  # In-app Web Reader page delivery. Uses the regular session-cookie auth
+  # rather than the OPDS Bearer/Basic path so an <img src=...> element in the
+  # SPA streams the image without extra headers.
   class PagesController < BaseController
     def show
       book = Book.find(params[:book_id])
@@ -8,8 +11,7 @@ module Opds
       when :ok
         send_data result.bytes, type: result.content_type, disposition: "inline"
       when :bad_request
-        # OPDS-PSE numbers pages from 0; negative input is malformed.
-        raise ActionController::BadRequest, "page must be >= 0"
+        head :bad_request
       when :not_found
         head :not_found
       end

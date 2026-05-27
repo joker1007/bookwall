@@ -22,6 +22,8 @@ Rails.application.routes.draw do
         post :favorite
         delete :favorite, action: :unfavorite
       end
+      get "pages/:n", to: "pages#show", as: :page, constraints: {n: /\d+/}
+      resource :progress, only: %i[show update], controller: "reading_progresses"
     end
     resources :series
     resources :authors

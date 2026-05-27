@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { BookOpen, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { useBook, useFavoriteBook } from "@/hooks/useBooks";
 import { useDeleteBook } from "@/hooks/useBookMutation";
 import { useAuthStore } from "@/stores/authStore";
@@ -140,6 +140,16 @@ export default function BookDetailPage() {
           </dl>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="default"
+              onClick={() => navigate(`/books/${book.id}/read`)}
+              disabled={book.file_format === "epub"}
+              title={book.file_format === "epub" ? t("reader.unsupportedFormat") : undefined}
+              className="gap-2"
+            >
+              <BookOpen className="size-4" aria-hidden />
+              {t("reader.open")}
+            </Button>
             <Button
               variant={isFavorited ? "default" : "outline"}
               onClick={() =>

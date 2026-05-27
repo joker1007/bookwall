@@ -173,6 +173,21 @@
       "favoritesEmpty": "お気に入りに追加した書籍はまだありません。"
     }
   },
+  "reader": {
+    "open": "読む",
+    "back": "戻る",
+    "settings": "リーダー設定",
+    "settingsDescription": "書籍ごとの設定 — サーバーに保存されます。",
+    "spread": "見開き表示",
+    "on": "ON",
+    "off": "OFF",
+    "direction": "読む方向",
+    "directionLtr": "左 → 右",
+    "directionRtl": "右 → 左",
+    "pageIndicator": "{{current}} / {{total}}",
+    "loadFailed": "書籍を読み込めませんでした。",
+    "unsupportedFormat": "この形式のリーダーはまだ用意されていません。"
+  },
   "settings": {
     "libraries": {
       "title": "ライブラリ設定",

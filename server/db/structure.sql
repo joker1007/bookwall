@@ -99,7 +99,18 @@ CREATE TABLE IF NOT EXISTS 'books_fts_idx'(segid, term, pgno, PRIMARY KEY(segid,
 CREATE TABLE IF NOT EXISTS 'books_fts_content'(id INTEGER PRIMARY KEY, c0, c1, c2);
 CREATE TABLE IF NOT EXISTS 'books_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB);
 CREATE TABLE IF NOT EXISTS 'books_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS "reading_progresses" ("user_id" integer NOT NULL, "book_id" integer NOT NULL, "current_page" integer DEFAULT 0 NOT NULL, "last_read_at" datetime(6) NOT NULL, "settings_json" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, PRIMARY KEY ("user_id", "book_id"), CONSTRAINT "fk_rails_063fbcdc58"
+FOREIGN KEY ("user_id")
+  REFERENCES "users" ("id")
+, CONSTRAINT "fk_rails_57da0b7b28"
+FOREIGN KEY ("book_id")
+  REFERENCES "books" ("id")
+);
+CREATE INDEX "index_reading_progresses_on_user_id" ON "reading_progresses" ("user_id");
+CREATE INDEX "index_reading_progresses_on_book_id" ON "reading_progresses" ("book_id");
+CREATE INDEX "index_reading_progresses_on_book_id_only" ON "reading_progresses" ("book_id");
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528000000'),
 ('20260527100000'),
 ('20260527000009'),
 ('20260527000008'),

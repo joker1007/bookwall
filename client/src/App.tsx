@@ -14,6 +14,7 @@ import TagsIndexPage from "@/routes/tags";
 import TagDetailPage from "@/routes/tags.detail";
 import FavoritesPage from "@/routes/favorites";
 import BookDetailPage from "@/routes/books.detail";
+import ReaderPage from "@/routes/books.read";
 import SearchPage from "@/routes/search";
 import LibrariesSettings from "@/routes/settings.libraries";
 import ApiTokensSettings from "@/routes/settings.api_tokens";
@@ -28,6 +29,16 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          {/* Reader is fullscreen — outside the AppShell layout so Sidebar
+              and Header don't fight with the immersive view. */}
+          <Route
+            path="/books/:id/read"
+            element={
+              <ProtectedRoute>
+                <ReaderPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             element={
               <ProtectedRoute>

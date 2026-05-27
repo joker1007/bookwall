@@ -84,3 +84,14 @@ export interface ApiToken {
 // Issued tokens are the same shape; kept as a separate alias for clarity
 // at call sites where it's explicitly the plaintext-bearing record.
 export type IssuedApiToken = ApiToken;
+
+export interface ReaderSettings {
+  spread?: boolean;
+  direction?: "ltr" | "rtl";
+}
+
+export interface ReadingProgress {
+  current_page: number;
+  last_read_at: string | null;
+  settings: ReaderSettings;
+}
