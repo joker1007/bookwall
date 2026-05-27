@@ -88,4 +88,7 @@ ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 ENV HTTP_PORT="8237" \
   TARGET_PORT="3000"
 EXPOSE 8237
-CMD ["./bin/thrust", "bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]
+# bin/docker-server boots both the web server (Thruster + Falcon) and
+# the SolidQueue worker in the same container. Override the CMD with
+# ./bin/thrust or ./bin/jobs to split them into separate containers.
+CMD ["./bin/docker-server"]

@@ -18,7 +18,7 @@
 # Cable uses Redis in production (see config/cable.yml), so even though
 # the cable connection lives in database.yml it never needs a schema.
 case "$1" in
-  ./bin/rails | ./bin/thrust | ./bin/jobs | bundle)
+  ./bin/rails | ./bin/thrust | ./bin/jobs | ./bin/docker-server | bundle)
     ./bin/rails db:prepare
     for db in queue cache; do
       db_file="${BOOKWALL_DATA_DIR:-/rails/storage}/production_${db}.sqlite3"

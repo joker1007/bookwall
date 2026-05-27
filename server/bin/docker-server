@@ -1,0 +1,38 @@
+#!/bin/bash
+# Run the web server (Thruster + Falcon) and the SolidQueue worker in
+# the same container. If either dies the other is killed and the
+# container exits — Docker then restarts the whole thing, which is the
+# same recovery model as a Puma + sidekiq pair under foreman.
+#
+# Override the CMD to ./bin/thrust or ./bin/jobs alone if you'd rather
+# run web and worker as separate containers.
+set -euo pipefail
+
+pids=()
+
+shutdown() {
+  echo "[docker-server] shutting down children..." >&2
+  if (( ${#pids[@]} > 0 )); then
+    kill -TERM "${pids[@]}" 2>/dev/null || true
+  fi
+  wait || true
+  exit 0
+}
+trap shutdown SIGTERM SIGINT
+
+./bin/thrust bundle exec falcon serve --bind http://0.0.0.0:3000 &
+pids+=("$!")
+
+./bin/jobs &
+pids+=("$!")
+
+# Wait for whichever child exits first; surface its exit code.
+set +e
+wait -n "${pids[@]}"
+exit_code=$?
+set -e
+
+echo "[docker-server] child exited with code ${exit_code}; tearing down" >&2
+kill -TERM "${pids[@]}" 2>/dev/null || true
+wait || true
+exit "${exit_code}"
