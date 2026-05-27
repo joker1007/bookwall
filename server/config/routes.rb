@@ -18,7 +18,7 @@ Rails.application.routes.draw do
     resources :api_tokens, only: %i[index create destroy]
     resource :preferences, only: %i[show update]
     resources :libraries do
-      resources :scans, only: %i[create]
+      resources :scans, only: %i[create index]
     end
     resources :books do
       member do

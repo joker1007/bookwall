@@ -266,6 +266,12 @@
       },
       "empty": "ライブラリはまだありません。",
       "deleteConfirm": "「{{name}}」を削除します。書籍メタもまとめて削除されます。よろしいですか?",
+      "scanStatus": {
+        "runningProgress": "スキャン中 {{processed}} / {{total}}",
+        "runningIndeterminate": "スキャン中…",
+        "succeeded": "+{{added}} 追加 / {{updated}} 更新",
+        "failed": "スキャン失敗"
+      },
       "dialog": {
         "createTitle": "ライブラリを追加",
         "editTitle": "ライブラリを編集",

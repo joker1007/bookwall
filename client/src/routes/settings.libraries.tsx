@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { ScanLine, Trash2, Pencil, Plus, Check, X } from "lucide-react";
+import { ScanLine, Trash2, Pencil, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
   useUpdateLibrary,
   useDeleteLibrary,
   useScanLibrary,
+  useLibraryScans,
 } from "@/hooks/useLibraries";
 import {
   useUpdateUserPreferences,
@@ -50,6 +52,7 @@ import type {
   ReaderSettings,
   ReaderTheme,
   ReaderWritingMode,
+  ScanLog,
 } from "@/types/api";
 
 export default function LibrariesSettings() {
@@ -144,16 +147,12 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
   const { t } = useTranslation();
   const scan = useScanLibrary();
   const remove = useDeleteLibrary();
-  const [scanned, setScanned] = useState(false);
+  const scans = useLibraryScans(library.id);
+  const latest = scans.data?.scans?.[0];
+  const running = latest?.status === "running";
 
   const handleScan = () => {
-    setScanned(false);
-    scan.mutate(library.id, {
-      onSuccess: () => {
-        setScanned(true);
-        window.setTimeout(() => setScanned(false), 3000);
-      },
-    });
+    scan.mutate(library.id);
   };
 
   const handleDelete = () => {
@@ -166,9 +165,14 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
       <TableCell className="font-medium">{library.name}</TableCell>
       <TableCell className="break-all font-mono text-xs">{library.path}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {library.last_scanned_at
-          ? library.last_scanned_at.slice(0, 16).replace("T", " ")
-          : t("common.never")}
+        <div className="flex flex-col gap-1">
+          <span>
+            {library.last_scanned_at
+              ? library.last_scanned_at.slice(0, 16).replace("T", " ")
+              : t("common.never")}
+          </span>
+          {latest ? <ScanStatusBadge log={latest} /> : null}
+        </div>
       </TableCell>
       <TableCell>
         <div className="flex justify-end gap-1">
@@ -176,10 +180,10 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
             size="sm"
             variant="outline"
             onClick={handleScan}
-            disabled={scan.isPending}
+            disabled={scan.isPending || running}
             className="gap-1"
           >
-            {scanned ? <Check className="size-4" /> : <ScanLine className="size-4" />}
+            <ScanLine className={cn("size-4", running && "animate-pulse")} />
             {t("common.scanning")}
           </Button>
           <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t("common.edit")}>
@@ -199,6 +203,43 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
       </TableCell>
     </TableRow>
   );
+}
+
+function ScanStatusBadge({ log }: { log: ScanLog }) {
+  const { t } = useTranslation();
+  if (log.status === "running") {
+    const total = (log.added_count ?? 0) + (log.updated_count ?? 0);
+    const processed = log.processed_count ?? 0;
+    return (
+      <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 font-mono text-[11px] text-blue-700 dark:text-blue-300">
+        <span className="size-1.5 animate-pulse rounded-full bg-blue-500" aria-hidden />
+        {total > 0
+          ? t("settings.libraries.scanStatus.runningProgress", { processed, total })
+          : t("settings.libraries.scanStatus.runningIndeterminate")}
+      </span>
+    );
+  }
+  if (log.status === "failed") {
+    return (
+      <span
+        className="inline-flex items-center rounded bg-destructive/10 px-1.5 py-0.5 text-[11px] text-destructive"
+        title={log.error_message ?? undefined}
+      >
+        {t("settings.libraries.scanStatus.failed")}
+      </span>
+    );
+  }
+  if (log.status === "succeeded") {
+    return (
+      <span className="text-[11px] text-muted-foreground">
+        {t("settings.libraries.scanStatus.succeeded", {
+          added: log.added_count,
+          updated: log.updated_count,
+        })}
+      </span>
+    );
+  }
+  return null;
 }
 
 interface LibraryDialogProps {

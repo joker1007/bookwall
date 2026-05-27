@@ -33,21 +33,27 @@ module Scanners
       jobs = discover(library.path).freeze
       diff = diff_against_db(jobs)
 
-      # The scan no longer prunes books whose files have disappeared. That
-      # work belongs to a dedicated cleanup job (to be added) so the scan
-      # only does add / update writes and keeps the writer-lock window
-      # short.
-      upserted_ids = parse_and_apply(diff[:add] + diff[:update])
-
-      library.update!(last_scanned_at: Time.current)
-      log.update!(
-        status: :succeeded,
-        finished_at: Time.current,
+      # Surface totals to the UI as soon as we know them so the
+      # progress indicator can show "X / Y" while parse_and_apply
+      # runs. found_count is also useful even if there's nothing to
+      # add or update.
+      log.update_columns(
         found_count: jobs.size,
         added_count: diff[:add].size,
         updated_count: diff[:update].size,
         removed_count: 0
       )
+
+      # The scan no longer prunes books whose files have disappeared. That
+      # work belongs to a dedicated cleanup job (to be added) so the scan
+      # only does add / update writes and keeps the writer-lock window
+      # short.
+      total = diff[:add].size + diff[:update].size
+      upserted_ids = parse_and_apply(diff[:add] + diff[:update], scan_log_id: log.id, total: total)
+
+      library.update!(last_scanned_at: Time.current)
+      log.update!(status: :succeeded, finished_at: Time.current)
+      Rails.cache.delete(progress_cache_key(log.id))
 
       enqueue_fts_sync(upserted_ids)
       log
@@ -57,6 +63,7 @@ module Scanners
         finished_at: Time.current,
         error_message: e.message
       )
+      Rails.cache.delete(progress_cache_key(log.id)) if log
       raise
     ensure
       Thread.current[:bookwall_skip_fts_callback] = previous_skip
@@ -187,7 +194,13 @@ module Scanners
     #
     # Returns the ids of books that were created or updated so the
     # caller can dispatch the FTS sync in bulk.
-    def parse_and_apply(jobs)
+    # Flush in-flight progress to the cache every N books so the UI
+    # endpoint has fresh data without hammering Solid Cache (which is
+    # an SQLite write of its own under the hood).
+    PROGRESS_FLUSH_EVERY = 10
+    PROGRESS_CACHE_TTL = 1.hour
+
+    def parse_and_apply(jobs, scan_log_id: nil, total: nil)
       return [] if jobs.empty?
 
       pool_size = [@pool_size, jobs.size].min
@@ -199,20 +212,44 @@ module Scanners
       end
 
       upserted_ids = []
+      processed = 0
       begin
         jobs.size.times do
           result = result_q.pop
-          next if result[:error]
-          book = with_busy_retry do
-            ActiveRecord::Base.transaction { upsert_book(result) }
+          processed += 1
+          if !result[:error]
+            book = with_busy_retry do
+              ActiveRecord::Base.transaction { upsert_book(result) }
+            end
+            upserted_ids << book.id if book
           end
-          upserted_ids << book.id if book
+          if scan_log_id && (processed % PROGRESS_FLUSH_EVERY).zero?
+            write_progress(scan_log_id, processed, total)
+          end
         end
+        write_progress(scan_log_id, processed, total) if scan_log_id
         upserted_ids
       ensure
         pool.shutdown
         pool.wait_for_termination(60)
       end
+    end
+
+    def write_progress(scan_log_id, processed, total)
+      Rails.cache.write(
+        progress_cache_key(scan_log_id),
+        {processed: processed, total: total},
+        expires_in: PROGRESS_CACHE_TTL
+      )
+    end
+
+    # Public so ScansController can read the same key.
+    def self.progress_cache_key(scan_log_id)
+      "scan_progress:#{scan_log_id}"
+    end
+
+    def progress_cache_key(scan_log_id)
+      self.class.progress_cache_key(scan_log_id)
     end
 
     # Wrap a SQLite write block so it survives transient BUSY errors from

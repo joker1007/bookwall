@@ -266,6 +266,12 @@
       },
       "empty": "No libraries yet.",
       "deleteConfirm": "Delete \"{{name}}\"? All its book metadata will be removed too. Continue?",
+      "scanStatus": {
+        "runningProgress": "Scanning {{processed}} / {{total}}",
+        "runningIndeterminate": "Scanning…",
+        "succeeded": "+{{added}} added, {{updated}} updated",
+        "failed": "Scan failed"
+      },
       "dialog": {
         "createTitle": "Add a library",
         "editTitle": "Edit library",

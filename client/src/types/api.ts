@@ -51,6 +51,24 @@ export interface Library {
   updated_at: string;
 }
 
+export type ScanStatus = "pending" | "running" | "succeeded" | "failed";
+
+export interface ScanLog {
+  id: number;
+  library_id: number;
+  status: ScanStatus;
+  started_at: string;
+  finished_at: string | null;
+  found_count: number;
+  added_count: number;
+  updated_count: number;
+  removed_count: number;
+  // Live count of books that have finished parsing + writing. Only
+  // populated while status === "running" — null otherwise.
+  processed_count: number | null;
+  error_message: string | null;
+}
+
 export interface Series {
   id: number;
   name: string;
