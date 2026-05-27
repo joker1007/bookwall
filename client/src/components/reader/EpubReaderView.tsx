@@ -56,7 +56,12 @@ interface FoliateView extends HTMLElement {
   renderer: HTMLElement & {
     setStyles?: (css: string | string[]) => void;
   };
-  book?: { toc?: TocItem[] };
+  book?: {
+    toc?: TocItem[];
+    // OPF's `<spine page-progression-direction>` — "rtl" for most
+    // vertically-typeset Japanese books.
+    dir?: string;
+  };
 }
 
 export interface TocItem {
@@ -125,10 +130,14 @@ function buildBookStyles({
   theme: ReaderTheme;
   writingMode: ReaderWritingMode;
 }): string {
+  // "auto" → don't touch writing-mode so the book's own CSS wins.
+  // "horizontal" / "vertical" → force-override with !important.
   const writing =
     writingMode === "vertical"
       ? `html, body { writing-mode: vertical-rl !important; }`
-      : "";
+      : writingMode === "horizontal"
+        ? `html, body { writing-mode: horizontal-tb !important; }`
+        : "";
   return [
     themeCss(theme),
     `html, body { font-size: ${fontSize}% !important; }`,
@@ -165,13 +174,20 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     return {
       fontSize: source.font_size ?? READER_FONT_SIZE_DEFAULT,
       theme: (source.theme ?? "light") as ReaderTheme,
-      writingMode: (source.writing_mode ?? "horizontal") as ReaderWritingMode,
+      writingMode: (source.writing_mode ?? "auto") as ReaderWritingMode,
     };
   }, [preferences.data, progress.data]);
 
   const [fontSize, setFontSize] = useState<number>(READER_FONT_SIZE_DEFAULT);
   const [theme, setTheme] = useState<ReaderTheme>("light");
-  const [writingMode, setWritingMode] = useState<ReaderWritingMode>("horizontal");
+  const [writingMode, setWritingMode] = useState<ReaderWritingMode>("auto");
+  // Set once we can answer "is this book vertical?" — driven by
+  // view.book.dir at open and the iframe's computed writing-mode on
+  // load. Stays "horizontal" if we never spot a vertical signal.
+  const [detectedWritingMode, setDetectedWritingMode] = useState<
+    "horizontal" | "vertical"
+  >("horizontal");
+  const detectedVerticalRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
 
   // Hydrate UI state from server once on first response.
@@ -207,10 +223,29 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
 
         // Inject per-document styles when each section loads. Routed via
         // a ref so the latest font_size / theme / writing_mode are used,
-        // not whatever values were in scope at mount time.
+        // not whatever values were in scope at mount time. We also use
+        // this hook to sniff the iframe's computed writing-mode the first
+        // time we see a vertical section — some EPUBs have a horizontal
+        // cover page followed by vertical body sections, so we wait for
+        // "first vertical signal" rather than "first section".
         view.addEventListener("load", (e: Event) => {
           const detail = (e as CustomEvent<{ doc: Document }>).detail;
           applyBookStylesRef.current(detail.doc);
+          if (!detectedVerticalRef.current) {
+            try {
+              const win = detail.doc.defaultView;
+              if (win) {
+                const html = win.getComputedStyle(detail.doc.documentElement).writingMode;
+                const body = win.getComputedStyle(detail.doc.body).writingMode;
+                if (html?.startsWith("vertical") || body?.startsWith("vertical")) {
+                  detectedVerticalRef.current = true;
+                  setDetectedWritingMode("vertical");
+                }
+              }
+            } catch {
+              // sandboxed iframes can throw on cross-origin style access
+            }
+          }
         });
 
         const res = await fetch(`/api/books/${book.id}/file`, {
@@ -230,6 +265,17 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         });
         await view.open(file);
         if (cancelled || !view) return;
+
+        // Static signal for "is this a vertically-typeset book?": OPF's
+        // `<spine page-progression-direction>` lands on view.book.dir.
+        // RTL page progression is the canonical marker for Japanese
+        // vertical EPUBs (and is also the marker we need anyway to flip
+        // ArrowLeft/Right). The iframe computed-style sniff in the load
+        // listener is a fallback for books that omit the OPF attribute.
+        if (view.book?.dir === "rtl") {
+          detectedVerticalRef.current = true;
+          setDetectedWritingMode("vertical");
+        }
 
         // foliate-js's paginator defaults to a narrow column (~720px max
         // inline-size + sizable margins) which leaves a lot of empty
@@ -382,6 +428,20 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     saveSettings({ writing_mode: next });
   };
 
+  // "auto" resolves to whatever we sniffed from the book; explicit
+  // horizontal / vertical from the user wins. effectiveDirection
+  // governs ArrowLeft/Right flip + tap-zone flip in this reader.
+  // (foliate-js itself already flips page-turn direction based on
+  // view.book.dir, so we don't need to tell it anything.)
+  const effectiveWritingMode = useMemo<"horizontal" | "vertical">(
+    () => (writingMode === "auto" ? detectedWritingMode : writingMode),
+    [writingMode, detectedWritingMode],
+  );
+  const effectiveDirection = useMemo<"ltr" | "rtl">(
+    () => (effectiveWritingMode === "vertical" ? "rtl" : "ltr"),
+    [effectiveWritingMode],
+  );
+
   const goNext = useCallback(() => {
     viewRef.current?.next?.();
   }, []);
@@ -396,10 +456,19 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
 
-      if (e.key === "ArrowRight" || e.key === " " || e.code === "Space") {
+      // ArrowLeft/Right flip on RTL (vertical Japanese); Space/Backspace
+      // stay direction-agnostic — they're "forward" / "back" by convention,
+      // matching every other reader app.
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        (effectiveDirection === "rtl" ? goPrev : goNext)();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        (effectiveDirection === "rtl" ? goNext : goPrev)();
+      } else if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         goNext();
-      } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+      } else if (e.key === "Backspace") {
         e.preventDefault();
         goPrev();
       } else if (e.key === "Escape") {
@@ -409,12 +478,14 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, navigate, book.id, settingsOpen, tocOpen]);
+  }, [goNext, goPrev, navigate, book.id, settingsOpen, tocOpen, effectiveDirection]);
 
   const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const isLeftHalf = e.clientX - rect.left < rect.width / 2;
-    (isLeftHalf ? goPrev : goNext)();
+    // LTR: left half = prev / right half = next; RTL inverts.
+    const goingPrev = effectiveDirection === "ltr" ? isLeftHalf : !isLeftHalf;
+    (goingPrev ? goPrev : goNext)();
   };
 
   const goToToc = async (href: string) => {
@@ -562,6 +633,13 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+              {writingMode === "auto" ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("reader.writingMode.autoDetected", {
+                    mode: t(`reader.writingMode.${effectiveWritingMode}`),
+                  })}
+                </p>
+              ) : null}
             </div>
           </div>
         </SheetContent>

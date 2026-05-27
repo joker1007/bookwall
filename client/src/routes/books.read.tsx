@@ -120,10 +120,20 @@ export default function ReaderPage() {
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
 
-      if (e.key === "ArrowRight" || e.key === " " || e.code === "Space") {
+      // ArrowLeft/Right flip on RTL — matches the tap-zone reversal so
+      // an arrow key always advances in the same direction the reader
+      // sees the next page. Space/Backspace are direction-agnostic
+      // ("forward" / "back" by convention).
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        (direction === "rtl" ? goPrev : goNext)();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        (direction === "rtl" ? goNext : goPrev)();
+      } else if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         goNext();
-      } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+      } else if (e.key === "Backspace") {
         e.preventDefault();
         goPrev();
       } else if (e.key === "Escape" && id) {
@@ -133,7 +143,7 @@ export default function ReaderPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, navigate, id, settingsOpen]);
+  }, [goNext, goPrev, navigate, id, settingsOpen, direction]);
 
   const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

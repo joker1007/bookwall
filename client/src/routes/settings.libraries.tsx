@@ -323,7 +323,7 @@ function ReaderDefaultsSection() {
   const preloadAhead = defaults.preload_ahead ?? READER_PRELOAD_AHEAD_DEFAULT;
   const fontSize = defaults.font_size ?? READER_FONT_SIZE_DEFAULT;
   const theme = (defaults.theme ?? "light") as ReaderTheme;
-  const writingMode = (defaults.writing_mode ?? "horizontal") as ReaderWritingMode;
+  const writingMode = (defaults.writing_mode ?? "auto") as ReaderWritingMode;
 
   const save = (patch: ReaderSettings) => {
     update.mutate({

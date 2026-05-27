@@ -18,7 +18,7 @@ class UserPreference < ApplicationRecord
   validates :reader_theme,
     inclusion: {in: %w[light dark sepia], allow_nil: true}
   validates :reader_writing_mode,
-    inclusion: {in: %w[horizontal vertical], allow_nil: true}
+    inclusion: {in: %w[auto horizontal vertical], allow_nil: true}
 
   # Hash form used by the API and consumed by the reader UI. Only keys
   # whose values are actually set are returned, so the client can layer

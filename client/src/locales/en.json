@@ -202,8 +202,10 @@
     },
     "writingMode": {
       "label": "Writing mode",
+      "auto": "Auto",
       "horizontal": "Horizontal",
-      "vertical": "Vertical"
+      "vertical": "Vertical",
+      "autoDetected": "Auto-detected: {{mode}}"
     },
     "toc": {
       "title": "Table of contents",

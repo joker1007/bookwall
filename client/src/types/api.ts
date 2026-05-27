@@ -99,7 +99,7 @@ export const READER_PRELOAD_AHEAD_DEFAULT = 4;
 export const READER_THEME_VALUES = ["light", "dark", "sepia"] as const;
 export type ReaderTheme = (typeof READER_THEME_VALUES)[number];
 
-export const READER_WRITING_MODE_VALUES = ["horizontal", "vertical"] as const;
+export const READER_WRITING_MODE_VALUES = ["auto", "horizontal", "vertical"] as const;
 export type ReaderWritingMode = (typeof READER_WRITING_MODE_VALUES)[number];
 
 export const READER_FONT_SIZE_DEFAULT = 100;
@@ -108,7 +108,8 @@ export const READER_FONT_SIZE_MAX = 300;
 export const READER_FONT_SIZE_STEP = 10;
 
 export interface ReaderSettings {
-  // CBZ-side
+  // CBZ / PDF / image_dir only — page progression direction (also flips
+  // ArrowLeft/Right and the click hot-spots in those readers).
   spread?: boolean;
   direction?: "ltr" | "rtl";
   scale?: ReaderScale;
@@ -116,9 +117,12 @@ export interface ReaderSettings {
   // browser cache. Only meaningful as a user-wide default — per-book
   // settings ignore this field.
   preload_ahead?: number;
-  // EPUB-side
+  // EPUB only.
   font_size?: number;            // percent, default 100
   theme?: ReaderTheme;
+  // "auto" → trust the book's own writing-mode CSS / page-progression-direction;
+  // "horizontal" / "vertical" → force-override regardless of book metadata.
+  // Vertical implies RTL navigation (Arrow keys + tap zones) at runtime.
   writing_mode?: ReaderWritingMode;
 }
 

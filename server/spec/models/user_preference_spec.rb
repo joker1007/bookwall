@@ -43,7 +43,7 @@ RSpec.describe UserPreference, type: :model do
     end
 
     it { is_expected.to validate_inclusion_of(:reader_theme).in_array(%w[light dark sepia]).allow_nil }
-    it { is_expected.to validate_inclusion_of(:reader_writing_mode).in_array(%w[horizontal vertical]).allow_nil }
+    it { is_expected.to validate_inclusion_of(:reader_writing_mode).in_array(%w[auto horizontal vertical]).allow_nil }
   end
 
   describe "#reader_defaults" do

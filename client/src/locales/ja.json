@@ -202,8 +202,10 @@
     },
     "writingMode": {
       "label": "書字方向",
+      "auto": "自動",
       "horizontal": "横書き",
-      "vertical": "縦書き"
+      "vertical": "縦書き",
+      "autoDetected": "自動検出: {{mode}}"
     },
     "toc": {
       "title": "目次",
