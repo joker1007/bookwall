@@ -20,7 +20,7 @@ export default function AuthorsIndexPage() {
   };
 
   return (
-    <section className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-6">
+    <section className="mx-auto flex max-w-[1920px] flex-col gap-4 px-4 py-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           {t("authors.title")}
@@ -38,7 +38,7 @@ export default function AuthorsIndexPage() {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
             {query.data.authors.map((a) => (
               <TaxonomyCard
                 key={a.id}
@@ -103,7 +103,7 @@ function Pagination({ page, pages, onChange }: PaginationProps) {
 
 function AuthorsSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
       {Array.from({ length: 12 }).map((_, i) => (
         <div key={i} className="flex flex-col gap-2 p-2">
           <Skeleton className="aspect-[2/3] w-full rounded-md" />

@@ -20,7 +20,7 @@ export default function TagsIndexPage() {
   };
 
   return (
-    <section className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-6">
+    <section className="mx-auto flex max-w-[1920px] flex-col gap-4 px-4 py-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           {t("tags.title")}
