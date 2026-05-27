@@ -110,7 +110,10 @@ module Api
     def serialize_book(book)
       BookSerializer.new(
         book,
-        params: {favorite_book_ids: favorite_book_ids([book.id])}
+        params: {
+          favorite_book_ids: favorite_book_ids([book.id]),
+          reading_progress_by_book_id: reading_progress_by_book_id([book.id])
+        }
       ).serializable_hash
     end
 
@@ -118,13 +121,23 @@ module Api
       ids = books.map(&:id)
       BookSerializer.new(
         books,
-        params: {favorite_book_ids: favorite_book_ids(ids)}
+        params: {
+          favorite_book_ids: favorite_book_ids(ids),
+          reading_progress_by_book_id: reading_progress_by_book_id(ids)
+        }
       ).serializable_hash
     end
 
     def favorite_book_ids(book_ids)
       return [] if book_ids.empty?
       Favorite.where(user_id: Current.user.id, book_id: book_ids).pluck(:book_id)
+    end
+
+    def reading_progress_by_book_id(book_ids)
+      return {} if book_ids.empty?
+      ReadingProgress
+        .where(user_id: Current.user.id, book_id: book_ids)
+        .index_by(&:book_id)
     end
 
     def update_authors

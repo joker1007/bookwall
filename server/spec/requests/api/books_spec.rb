@@ -49,6 +49,35 @@ RSpec.describe "Api::Books", type: :request do
       ids = response.parsed_body["books"].map { |b| b["id"] }
       expect(ids).to eq([book.id])
     end
+
+    it "exposes reading_progress when the signed-in user has opened the book" do
+      sign_in!
+      read = create(:book, library: library, file_format: :cbz, page_count: 11)
+      _untouched = create(:book, library: library, file_format: :cbz, page_count: 5)
+      ReadingProgress.create!(user: user, book: read, current_page: 5,
+        last_read_at: 1.hour.ago)
+
+      get "/api/books", params: {sort: "added_at_asc"}
+      progresses = response.parsed_body["books"].map { |b| b["reading_progress"] }
+      expect(progresses.first).to include(
+        "fraction" => 0.5,
+        "current_page" => 5
+      )
+      expect(progresses.first["last_read_at"]).to be_present
+      expect(progresses.last).to be_nil
+    end
+
+    it "returns a nil fraction for EPUB progress (no precise signal yet)" do
+      sign_in!
+      epub = create(:book, library: library, file_format: :epub, page_count: 20)
+      ReadingProgress.create!(user: user, book: epub, current_page: 0,
+        last_read_at: 1.hour.ago, epub_cfi: "epubcfi(/6/4!/4/2)")
+
+      get "/api/books"
+      progress = response.parsed_body["books"].first["reading_progress"]
+      expect(progress["fraction"]).to be_nil
+      expect(progress["last_read_at"]).to be_present
+    end
   end
 
   describe "PATCH /api/books/:id" do

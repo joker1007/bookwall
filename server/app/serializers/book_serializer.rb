@@ -31,4 +31,19 @@ class BookSerializer
       thumb_url: helpers.rails_representation_path(b.cover.variant(:thumb), only_path: true)
     }
   end
+
+  # Reading progress for the signed-in user, batch-preloaded by the
+  # controller into params[:reading_progress_by_book_id]. Null when the
+  # user has never opened the book, or when the file format doesn't
+  # support a precise fraction yet (EPUB — pending a stored
+  # fraction column).
+  attribute :reading_progress do |b|
+    progress = params[:reading_progress_by_book_id]&.fetch(b.id, nil)
+    next nil if progress.nil?
+    {
+      fraction: ReadingProgressFraction.call(b, progress),
+      current_page: progress.current_page,
+      last_read_at: progress.last_read_at&.iso8601
+    }
+  end
 end

@@ -112,6 +112,7 @@
     "listEmpty": "書籍はまだありません。",
     "coverMissing": "{{title}} の表紙 (未取得)",
     "coverAlt": "{{title}} の表紙",
+    "progressLabel": "読書進捗: {{percent}}%",
     "volumeSuffix": " 第 {{volume}} 巻",
     "displayMode": {
       "grid": "グリッド表示",

@@ -33,6 +33,14 @@ export interface Book {
   tags: { id: number; name: string }[];
   favorited: boolean;
   cover: CoverInfo | null;
+  // Null when the signed-in user has never opened this book. `fraction`
+  // is null on its own for formats (EPUB) where we don't yet persist a
+  // precise position, but last_read_at still indicates "started".
+  reading_progress: {
+    fraction: number | null;
+    current_page: number;
+    last_read_at: string | null;
+  } | null;
 }
 
 export interface Library {

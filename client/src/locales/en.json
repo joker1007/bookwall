@@ -112,6 +112,7 @@
     "listEmpty": "No books yet.",
     "coverMissing": "Cover for {{title}} (not available)",
     "coverAlt": "Cover for {{title}}",
+    "progressLabel": "Reading progress: {{percent}}%",
     "volumeSuffix": " Vol. {{volume}}",
     "displayMode": {
       "grid": "Grid view",
