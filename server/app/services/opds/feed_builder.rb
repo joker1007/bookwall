@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Opds
   class FeedBuilder
     ATOM_NS = "http://www.w3.org/2005/Atom".freeze

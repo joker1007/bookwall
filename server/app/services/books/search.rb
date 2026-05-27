@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Books
   class Search
     SORTS = %w[title_asc title_desc added_at_asc added_at_desc series_asc].freeze

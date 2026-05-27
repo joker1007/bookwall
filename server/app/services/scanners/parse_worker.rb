@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "digest"
 
 # Pure-ruby worker invoked from a Concurrent::FixedThreadPool by

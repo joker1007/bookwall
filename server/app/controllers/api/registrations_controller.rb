@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class RegistrationsController < BaseController
     allow_unauthenticated_access only: %i[create]

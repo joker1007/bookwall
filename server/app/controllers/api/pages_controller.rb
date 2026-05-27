@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   # In-app Web Reader page delivery. Uses the regular session-cookie auth
   # rather than the OPDS Bearer/Basic path so an <img src=...> element in the

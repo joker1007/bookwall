@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Favorite < ApplicationRecord
   self.primary_key = [:user_id, :book_id]
 

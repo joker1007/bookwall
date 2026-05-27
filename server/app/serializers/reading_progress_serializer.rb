@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ReadingProgressSerializer
   include Alba::Resource
 

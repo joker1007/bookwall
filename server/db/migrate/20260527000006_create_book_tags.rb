@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateBookTags < ActiveRecord::Migration[8.1]
   def change
     create_table :book_tags, primary_key: [:book_id, :tag_id] do |t|

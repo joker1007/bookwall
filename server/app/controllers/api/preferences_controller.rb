@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   # Per-user preferences (currently just reader defaults). Used by the
   # reader UI to apply a sensible starting state for books that haven't

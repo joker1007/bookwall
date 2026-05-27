@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class TestSupportController < BaseController
     allow_unauthenticated_access only: %i[reset]

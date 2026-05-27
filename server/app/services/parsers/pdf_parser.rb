@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "hexapdf"
 require "open3"
 require "tempfile"

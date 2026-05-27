@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ScanLog < ApplicationRecord
   STATUSES = {pending: 0, running: 1, succeeded: 2, failed: 3}.freeze
 

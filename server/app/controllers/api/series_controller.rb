@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class SeriesController < BaseController
     before_action :set_series, only: %i[show update destroy]

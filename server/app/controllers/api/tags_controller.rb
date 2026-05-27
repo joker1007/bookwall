@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class TagsController < BaseController
     before_action :set_tag, only: %i[show update destroy]

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Library < ApplicationRecord
   has_many :series, dependent: :destroy
   has_many :books, dependent: :destroy

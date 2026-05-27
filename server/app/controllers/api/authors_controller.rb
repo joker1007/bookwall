@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class AuthorsController < BaseController
     before_action :set_author, only: %i[show update destroy]

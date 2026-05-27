@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Book < ApplicationRecord
   FILE_FORMATS = {cbz: 0, epub: 1, pdf: 2, image_dir: 3}.freeze
 

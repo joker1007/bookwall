@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Series < ApplicationRecord
   self.table_name = "series"
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # ActiveStorage normally schedules blob analysis and purges through
 # ActiveJob (AnalyzeJob / PurgeJob), which means those write operations
 # land on the primary SQLite database from a different worker thread

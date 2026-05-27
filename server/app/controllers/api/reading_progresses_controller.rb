@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class ReadingProgressesController < BaseController
     before_action :set_book

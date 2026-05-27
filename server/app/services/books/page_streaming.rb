@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Books
   # Shared logic for streaming one image page from a Book to an HTTP client.
   # Used by both the OPDS-PSE page endpoint and the internal Web Reader API

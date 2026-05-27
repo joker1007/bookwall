@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateBookAuthors < ActiveRecord::Migration[8.1]
   def change
     create_table :book_authors, primary_key: [:book_id, :author_id] do |t|

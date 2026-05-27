@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 FactoryBot.define do
   factory :library do
     sequence(:name) { |n| "Library #{n}" }

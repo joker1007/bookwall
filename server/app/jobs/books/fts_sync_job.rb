@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Books
   # Updates the books_fts virtual table for a batch of books asynchronously.
   # Library scans collect every touched book id and enqueue this job once

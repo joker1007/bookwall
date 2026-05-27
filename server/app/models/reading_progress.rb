@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ReadingProgress < ApplicationRecord
   self.primary_key = %i[user_id book_id]
 

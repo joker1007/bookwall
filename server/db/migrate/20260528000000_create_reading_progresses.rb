@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateReadingProgresses < ActiveRecord::Migration[8.1]
   def change
     create_table :reading_progresses, primary_key: %i[user_id book_id] do |t|

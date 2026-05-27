@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Parsers
   class Error < StandardError; end
   class UnsupportedFormat < Error; end

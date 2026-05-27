@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class SpaController < ActionController::API
   def index
     index_path = Rails.public_path.join("ui/index.html")

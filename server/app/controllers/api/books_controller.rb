@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class BooksController < BaseController
     before_action :set_book, only: %i[show update destroy favorite unfavorite]

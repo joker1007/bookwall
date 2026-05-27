@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateFavorites < ActiveRecord::Migration[8.1]
   def change
     create_table :favorites, primary_key: [:user_id, :book_id] do |t|

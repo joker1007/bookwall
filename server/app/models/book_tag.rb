@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class BookTag < ApplicationRecord
   self.primary_key = [:book_id, :tag_id]
 

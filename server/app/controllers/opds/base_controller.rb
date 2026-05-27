@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Opds
   class BaseController < ActionController::API
     include ActionController::HttpAuthentication::Basic::ControllerMethods

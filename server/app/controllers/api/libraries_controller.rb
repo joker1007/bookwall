@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class LibrariesController < BaseController
     before_action :set_library, only: %i[show update destroy]

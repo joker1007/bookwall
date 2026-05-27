@@ -6,3 +6,9 @@ Layout/SpaceInsideArrayLiteralBrackets:
 
 Layout/SpaceInsideHashLiteralBraces:
   EnforcedStyle: no_space
+
+# Require frozen_string_literal: true on every Ruby file to avoid
+# accidental string mutation and to keep allocations down.
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
