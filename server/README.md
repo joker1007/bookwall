@@ -47,8 +47,10 @@ bundle exec falcon serve --bind http://0.0.0.0:3000
 
 Docker イメージでは Thruster (HTTP/2 + asset caching + X-Sendfile) を前段に
 噛ませて Falcon を子プロセスとして起動する (`./bin/thrust bundle exec falcon
-serve --bind http://0.0.0.0:3000`)。Thruster はホストポート 80 を listen し、
-内部で Falcon の 3000 (`TARGET_PORT`) にプロキシする。
+serve --bind http://0.0.0.0:3000`)。Thruster はホストポート 8237 を listen し、
+内部で Falcon の 3000 (`TARGET_PORT`) にプロキシする。SQLite データベースと
+Active Storage 添付ファイルは `BOOKWALL_DATA_DIR` (Docker では `/config`) 配下に
+集約されるので、本番運用ではこのディレクトリだけを volume に出せばよい。
 
 非同期ジョブ (production):
 
@@ -79,6 +81,12 @@ bin/brakeman --no-pager    # Brakeman
 | `GET    /api/books` | 検索 (`q`, `sort`, `library_id`, `series_id`, `author_id`, `tag_id`, `favorites_only`) |
 | `PATCH  /api/books/:id` | メタ編集 (タイトル / 著者名 / タグ名など) |
 | `POST   /api/books/:id/favorite` | お気に入り追加 |
+| `GET    /api/books/:id/file` | 書籍本体 (EPUB / CBZ / PDF bytes) を Web Reader 用に配信 (Cookie auth) |
+| `GET    /api/books/:id/pages/:n` | Web Reader 用の CBZ / image_dir ページ画像 (Cookie auth) |
+| `GET    /api/books/:id/progress` `PATCH` | 読書進捗 (current_page / epub_cfi / progress_fraction / per-book reader settings) |
+| `GET    /api/recent_reads` | サインインユーザの直近 12 冊 (ホームのカルーセル用) |
+| `GET    /api/preferences` `PATCH` | ユーザ全体のリーダー既定値 (font_size / theme / writing_mode / direction / scale / spread / preload_ahead) |
+| `GET    /api/series` `/api/authors` `/api/tags` | タクソノミー一覧 (各 first_book を batch preload) |
 | `GET    /opds` | OPDS ルート (Atom navigation) |
 | `GET    /opds/recent` | 新着フィード |
 | `GET    /opds/libraries/:library_id` | ライブラリ別 acquisition フィード |
@@ -89,10 +97,11 @@ OPDS は Bearer トークン (`Authorization: Bearer …`) と HTTP Basic の両
 
 ## アーキテクチャ概略
 
-- `app/services/parsers/` — フォーマット別 Parser (CBZ / EPUB / PDF / image_dir)。共通 IF: `#metadata`, `#page_count`, `#cover_bytes`, `#page_bytes(i)`
-- `app/services/scanners/` — `LibraryScanner` がディレクトリを再帰走査し、差分検知してから `Concurrent::FixedThreadPool` で並列パース。書き込みはメインスレッドに集約 (SQLite 単一ライタ)。
+- `app/services/parsers/` — フォーマット別 Parser (CBZ / EPUB / PDF / image_dir)。共通 IF: `#metadata`, `#page_count`, `#cover_bytes`, `#page_bytes(i)`。EPUB は `dc:subject` をタグ、`calibre:series` / `calibre:series_index` をシリーズ・巻数として取り込む。
+- `app/services/scanners/` — `LibraryScanner` がディレクトリを再帰走査し、差分検知してから `Concurrent::FixedThreadPool` で並列パース。書き込みはメインスレッドに集約 (SQLite 単一ライタ)。シリーズ未設定の本は親ディレクトリ名を fallback として登録する。`Book#file_path` はライブラリ root からの相対パスで保存し、`Book#absolute_path` で `library.path + file_path` に解決する。
 - `app/services/covers/` — Parser 経由で取得した cover bytes を Active Storage に attach、`thumb / medium / large` の variant を持つ。
-- `app/services/books/` — FTS5 (`books_fts`) との同期 (`FtsIndex.upsert/delete`) と検索クエリビルダ (`Books::Search`)。
+- `app/services/books/` — FTS5 (`books_fts`) との同期 (`FtsIndex.upsert/delete`)、検索クエリビルダ (`Books::Search`)、`Books::PageStreaming` (CBZ / image_dir のページ画像配信)、`Books::FirstBookPreloader` (タクソノミー index 用のバッチローダ)。
+- `app/serializers/concerns/reading_progress_fraction.rb` — Book + ReadingProgress から 0..1 の進捗 fraction を計算 (CBZ 系は `current_page / (page_count - 1)`、EPUB は `progress_fraction` カラム)。BookSerializer の `reading_progress` attribute で利用。
 - `app/services/opds/` — Nokogiri ベースの Atom + OPDS-PSE feed builder。
 - `app/controllers/spa_controller.rb` — `/ui` 配下のリクエストに対して `public/ui/index.html` を返す。ビルドされた client を同梱したときだけ動く (なければ 404)。
 

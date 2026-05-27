@@ -1,15 +1,18 @@
 # Bookwall client
 
 Bookwall の Web UI。`/ui` prefix の下に乗る React SPA で、書籍一覧 / 詳細 /
-検索 / お気に入り / 設定 (ライブラリ管理 / API トークン管理) を提供する。
+検索 / お気に入り / タクソノミー (シリーズ / 著者 / タグ) ナビゲーション /
+Web Reader (CBZ / PDF / EPUB) / 設定 (ライブラリ管理 / API トークン管理) を提供する。
 
 ## 技術スタック
 
 - **Vite 8** + **React 19** + **TypeScript** (`verbatimModuleSyntax` 有効)
 - **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** (Radix + Tailwind)
 - **React Router v7** (`<BrowserRouter basename="/ui">`)
-- **TanStack Query v5** — サーバー状態 (書籍 / セッション / トークン)
-- **Zustand** — クライアント状態 (`displayMode` のみ `persist` で localStorage に保存)
+- **TanStack Query v5** — サーバー状態 (書籍 / セッション / トークン / 読書進捗)
+- **Zustand** — クライアント状態 (`displayMode`, `sortOrder` を `persist` で localStorage に保存)
+- **react-i18next** — 日英 i18n (`src/locales/{en,ja}.json`)
+- **foliate-js** — EPUB レンダラ (`<foliate-view>` カスタム要素 / iframe + shadow DOM)
 - **lucide-react** — アイコン
 
 ダークテーマを起点 (`<html class="dark">`) として、shadcn の CSS variables を
@@ -66,14 +69,16 @@ client/
     ├── index.css               # Tailwind v4 + shadcn CSS variables
     ├── routes/                 # 1 ファイル = 1 ルート
     │   ├── _layout.tsx         #   AppShell をマウントするだけの薄いラッパ
-    │   ├── home.tsx            #   "/" (最近追加された書籍)
+    │   ├── home.tsx            #   "/" 最近読んだ本のカルーセル + 最近追加された書籍
     │   ├── login.tsx           #   "/login" 公開
     │   ├── signup.tsx          #   "/signup" 公開
     │   ├── books.detail.tsx    #   "/books/:id"
+    │   ├── books.read.tsx      #   "/books/:id/read" CBZ / PDF / image_dir リーダー (EPUB は内包)
     │   ├── libraries.detail.tsx
     │   ├── series.detail.tsx
     │   ├── authors.detail.tsx
     │   ├── tags.detail.tsx
+    │   ├── series.tsx authors.tsx tags.tsx
     │   ├── favorites.tsx
     │   ├── search.tsx
     │   ├── settings.libraries.tsx
@@ -81,38 +86,51 @@ client/
     ├── components/
     │   ├── ui/                 # shadcn 生成物 (button, card, dialog, table, …)
     │   ├── layout/             # AppShell, Header, Sidebar
-    │   ├── books/              # BookListView, BookCard, BookRow, BookCover, BookEditDialog
+    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (進捗バー overlay 付き), BookEditDialog, RecentReadsCarousel
+    │   ├── reader/             # EpubReaderView, ReaderScrubber, ReaderHotkeysDialog
+    │   ├── taxonomy/           # TaxonomyCard
     │   ├── ProtectedRoute.tsx
     │   ├── SessionBootstrap.tsx
     │   └── Placeholder.tsx
     ├── hooks/
     │   ├── useAuth.ts          # /api/session, /api/registrations
-    │   ├── useBooks.ts         # /api/books, favorite toggle
+    │   ├── useBooks.ts         # /api/books, /api/recent_reads, favorite toggle
     │   ├── useBookMutation.ts  # PATCH / DELETE /api/books/:id
     │   ├── useLibraries.ts     # /api/libraries + /scans
+    │   ├── useReadingProgress.ts  # /api/books/:id/progress
+    │   ├── useUserPreferences.ts  # /api/preferences (user-wide reader defaults)
+    │   ├── useTaxonomy.ts      # /api/series /api/authors /api/tags
     │   └── useApiTokens.ts     # /api/api_tokens
     ├── stores/
     │   ├── authStore.ts
-    │   └── uiStore.ts          # displayMode は persist
+    │   └── uiStore.ts          # displayMode / sortOrder は persist
+    ├── locales/                # en.json / ja.json (react-i18next)
     ├── lib/
     │   ├── api.ts              # fetch wrapper (credentials: "include")
     │   ├── queryClient.ts
     │   └── utils.ts            # cn = clsx + tailwind-merge
-    └── types/api.ts            # User, Book, Library, ApiToken, ...
+    └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, ...
 ```
 
 ## 設計メモ
 
-- **URL を SSoT に**: ソート / ページ / 検索クエリは `?sort=…&page=…&q=…`、
-  選択中の library/series/author/tag/book は path に乗せる。reload しても状態が
-  復元されるのはこのおかげ。
-- **永続化する UI state は最小限**: グリッド/リスト切替の `displayMode` だけを
-  Zustand `persist` で localStorage に保存。他はメモリのみ。
+- **URL を SSoT に**: ソート / ページ / 検索クエリ / ライブラリビューモード
+  (`?view=series`) は URL に乗せる。reload しても状態が復元されるのはこのおかげ。
+- **永続化する UI state は最小限**: グリッド/リスト切替の `displayMode` と
+  最後に選んだ `sortOrder` を Zustand `persist` で localStorage に保存。他は
+  メモリのみ。
 - **認証は Cookie session が真**: `<SessionBootstrap />` が
   `GET /api/session` を 1 回叩いて authStore を hydrate する。401 を error 扱い
   しないことで、起動直後の auth status が `unauthenticated` に確定する。
 - **モバイルファースト**: 基準は 390x844。サイドバーは `md:` 以上で固定、未満は
-  Sheet で覆い被せる。書籍カードは `grid-cols-2 → 6` で順次広がる。
+  Sheet で覆い被せる。書籍カードは `grid-cols-2 → 8` で順次広がる。
+- **EPUB Reader の foliate-js 連携**: `<foliate-view>` は内部で iframe を
+  shadow DOM 内にホストする。書字方向・テーマ・フォントサイズの override CSS
+  は iframe contentDocument 直下に `<style>` を流し込む。relocate event の
+  `fraction` を debounce 付きで `/api/books/:id/progress` に PATCH すると、
+  表紙の進捗バーやホームのカルーセルが同期する。
+- **Pointer Events**: 進捗スクラバーや左右クリックゾーンはマウス / タッチ
+  両方を Pointer Events で扱う (タッチドラッグ中も hover プレビューが追従)。
 - **shadcn の add 時の落とし穴**: `npx shadcn@latest add …` が
   `@/components/ui/` を literal なディレクトリとして生成することがある (tsconfig に
   baseUrl が無いため)。生成後は `mv "@/components/ui/"* src/components/ui/ &&
