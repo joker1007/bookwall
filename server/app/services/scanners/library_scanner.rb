@@ -190,7 +190,8 @@ module Scanners
       meta = result[:metadata]
       author_records = upsert_named(Author, meta[:authors])
       tag_records = upsert_named(Tag, meta[:tags])
-      series_record = ensure_series(meta[:series])
+      series_name = meta[:series].presence || fallback_series_from_path(result[:path])
+      series_record = ensure_series(series_name)
 
       book = library.books.find_or_initialize_by(file_path: result[:path])
       book.assign_attributes(
@@ -222,6 +223,18 @@ module Scanners
     def ensure_series(name)
       return nil if name.blank?
       library.series.find_or_create_by!(name: name)
+    end
+
+    # When a book carries no series metadata of its own, fall back to the
+    # name of the directory containing it — e.g. `<library>/Akira/vol1.cbz`
+    # joins the "Akira" series. Books sitting at the library root get no
+    # series, since the root directory isn't a series in any meaningful
+    # sense.
+    def fallback_series_from_path(path)
+      parent = File.expand_path(File.dirname(path))
+      root = File.expand_path(library.path)
+      return nil if parent == root
+      File.basename(parent).presence
     end
   end
 end

@@ -156,6 +156,26 @@ RSpec.describe Scanners::LibraryScanner do
       end
     end
 
+    context "series fallback from directory layout" do
+      it "uses the parent directory name as the series when the book has no series metadata" do
+        nested_dir = File.join(tmpdir, "Wonderland Series")
+        FileUtils.mkdir_p(nested_dir)
+        FileUtils.cp(Rails.root.join("spec/fixtures/files/sample.epub"), nested_dir)
+
+        described_class.new(library).call
+
+        nested_book = library.books.find_by(file_path: File.join(nested_dir, "sample.epub"))
+        expect(nested_book.series&.name).to eq("Wonderland Series")
+      end
+
+      it "leaves books at the library root with no series" do
+        described_class.new(library).call
+
+        root_epub = library.books.find_by(file_path: File.join(tmpdir, "sample.epub"))
+        expect(root_epub.series).to be_nil
+      end
+    end
+
     context "when a file is broken" do
       before do
         File.write(File.join(tmpdir, "broken.cbz"), "not a zip")
