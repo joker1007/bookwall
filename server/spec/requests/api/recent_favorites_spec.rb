@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Api::RecentReads", type: :request do
+RSpec.describe "Api::RecentFavorites", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
   let(:library) { create(:library) }
@@ -12,21 +12,21 @@ RSpec.describe "Api::RecentReads", type: :request do
     expect(response).to have_http_status(:created)
   end
 
-  describe "GET /api/recent_reads" do
+  describe "GET /api/recent_favorites" do
     it "requires authentication" do
-      get "/api/recent_reads"
+      get "/api/recent_favorites"
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it "returns books ordered by most recent last_read_at" do
+    it "returns books ordered by most recent favorite creation time" do
       sign_in!
 
       older = create(:book, library: library, title: "Older", file_path: "older.cbz")
       newer = create(:book, library: library, title: "Newer", file_path: "newer.cbz")
-      ReadingProgress.create!(user: user, book: older, last_read_at: 2.days.ago)
-      ReadingProgress.create!(user: user, book: newer, last_read_at: 5.minutes.ago)
+      Favorite.create!(user: user, book: older, created_at: 2.days.ago)
+      Favorite.create!(user: user, book: newer, created_at: 5.minutes.ago)
 
-      get "/api/recent_reads"
+      get "/api/recent_favorites"
 
       expect(response).to have_http_status(:ok)
       titles = response.parsed_body["books"].map { |b| b["title"] }
@@ -39,26 +39,37 @@ RSpec.describe "Api::RecentReads", type: :request do
       other = create(:user)
       mine = create(:book, library: library, title: "Mine", file_path: "mine.cbz")
       stranger = create(:book, library: library, title: "Stranger", file_path: "s.cbz")
-      ReadingProgress.create!(user: user, book: mine, last_read_at: 1.hour.ago)
-      ReadingProgress.create!(user: other, book: stranger, last_read_at: 5.minutes.ago)
+      Favorite.create!(user: user, book: mine, created_at: 1.hour.ago)
+      Favorite.create!(user: other, book: stranger, created_at: 5.minutes.ago)
 
-      get "/api/recent_reads"
+      get "/api/recent_favorites"
 
       titles = response.parsed_body["books"].map { |b| b["title"] }
       expect(titles).to eq(["Mine"])
     end
 
-    it "caps the result at #{Api::RecentReadsController::LIMIT} items" do
+    it "caps the result at #{Api::RecentFavoritesController::LIMIT} items" do
       sign_in!
 
-      (Api::RecentReadsController::LIMIT + 5).times do |i|
+      (Api::RecentFavoritesController::LIMIT + 5).times do |i|
         book = create(:book, library: library, title: "B#{i}", file_path: "b#{i}.cbz")
-        ReadingProgress.create!(user: user, book: book, last_read_at: i.minutes.ago)
+        Favorite.create!(user: user, book: book, created_at: i.minutes.ago)
       end
 
-      get "/api/recent_reads"
+      get "/api/recent_favorites"
 
-      expect(response.parsed_body["books"].length).to eq(Api::RecentReadsController::LIMIT)
+      expect(response.parsed_body["books"].length).to eq(Api::RecentFavoritesController::LIMIT)
+    end
+
+    it "marks each returned book as favorited" do
+      sign_in!
+
+      book = create(:book, library: library, file_path: "fav.cbz")
+      Favorite.create!(user: user, book: book)
+
+      get "/api/recent_favorites"
+
+      expect(response.parsed_body["books"].first["favorited"]).to be(true)
     end
   end
 end

@@ -70,10 +70,8 @@
     "loggedInAs": "Logged in as {{email}}"
   },
   "home": {
-    "title": "Home",
-    "description": "Recently added books.",
-    "empty": "No books yet. Add a library in settings and run a scan.",
-    "continueReading": "Continue reading"
+    "continueReading": "Continue reading",
+    "favorites": "Favorites"
   },
   "placeholder": {
     "description": "This page will be filled in by a later UI phase."

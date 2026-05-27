@@ -33,6 +33,7 @@ Rails.application.routes.draw do
     resources :authors
     resources :tags
     resources :recent_reads, only: %i[index]
+    resources :recent_favorites, only: %i[index]
   end
 
   namespace :opds do

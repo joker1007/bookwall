@@ -5,7 +5,7 @@ module Api
   # most-recent ReadingProgress timestamp. Powers the home page's
   # "Continue reading" carousel.
   class RecentReadsController < BaseController
-    LIMIT = 12
+    LIMIT = 25
 
     def index
       progresses = ReadingProgress

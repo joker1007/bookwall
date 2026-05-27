@@ -49,6 +49,13 @@ export function useRecentReads() {
   });
 }
 
+export function useRecentFavorites() {
+  return useQuery<{ books: Book[] }>({
+    queryKey: ["recent_favorites"],
+    queryFn: () => api<{ books: Book[] }>("/api/recent_favorites"),
+  });
+}
+
 export function useBook(id: number | string | undefined) {
   return useQuery<Book>({
     queryKey: ["book", String(id)],
@@ -67,6 +74,7 @@ export function useFavoriteBook() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
       queryClient.invalidateQueries({ queryKey: ["book", String(id)] });
+      queryClient.invalidateQueries({ queryKey: ["recent_favorites"] });
     },
   });
 }
