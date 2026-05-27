@@ -5,6 +5,11 @@ import RootLayout from "@/routes/_layout";
 import HomePage from "@/routes/home";
 import LoginPage from "@/routes/login";
 import SignupPage from "@/routes/signup";
+import LibraryDetailPage from "@/routes/libraries.detail";
+import SeriesDetailPage from "@/routes/series.detail";
+import AuthorDetailPage from "@/routes/authors.detail";
+import TagDetailPage from "@/routes/tags.detail";
+import FavoritesPage from "@/routes/favorites";
 import { Placeholder } from "@/components/Placeholder";
 import { SessionBootstrap } from "@/components/SessionBootstrap";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -26,14 +31,14 @@ export default function App() {
           >
             <Route index element={<HomePage />} />
             <Route path="libraries" element={<Placeholder title="ライブラリ" />} />
-            <Route path="libraries/:id" element={<Placeholder title="ライブラリ詳細" />} />
+            <Route path="libraries/:id" element={<LibraryDetailPage />} />
             <Route path="series" element={<Placeholder title="シリーズ" />} />
-            <Route path="series/:id" element={<Placeholder title="シリーズ詳細" />} />
+            <Route path="series/:id" element={<SeriesDetailPage />} />
             <Route path="authors" element={<Placeholder title="著者" />} />
-            <Route path="authors/:id" element={<Placeholder title="著者詳細" />} />
+            <Route path="authors/:id" element={<AuthorDetailPage />} />
             <Route path="tags" element={<Placeholder title="タグ" />} />
-            <Route path="tags/:id" element={<Placeholder title="タグ詳細" />} />
-            <Route path="favorites" element={<Placeholder title="お気に入り" />} />
+            <Route path="tags/:id" element={<TagDetailPage />} />
+            <Route path="favorites" element={<FavoritesPage />} />
             <Route path="search" element={<Placeholder title="検索結果" />} />
             <Route path="books/:id" element={<Placeholder title="書籍詳細" />} />
             <Route
