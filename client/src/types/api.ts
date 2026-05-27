@@ -138,6 +138,10 @@ export interface ReadingProgress {
   current_page: number;
   last_read_at: string | null;
   epub_cfi: string | null;
+  // EPUB only: 0..1 position from foliate-js's relocate event. Null for
+  // pre-EPUB-tracking progress rows and for books that have never been
+  // opened in foliate.
+  progress_fraction: number | null;
   settings: ReaderSettings;
 }
 

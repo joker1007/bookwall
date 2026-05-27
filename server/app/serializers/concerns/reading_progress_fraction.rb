@@ -11,9 +11,9 @@ module ReadingProgressFraction
 
     case book.file_format.to_s
     when "epub"
-      # We don't currently persist the foliate-js fraction. Until that
-      # lands, EPUB progress is "started or not" — no fine-grained bar.
-      nil
+      raw = progress.progress_fraction
+      return nil if raw.nil?
+      [[raw.to_f, 0.0].max, 1.0].min
     else
       total = book.page_count.to_i
       return nil if total <= 1

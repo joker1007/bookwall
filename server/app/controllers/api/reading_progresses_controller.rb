@@ -14,6 +14,7 @@ module Api
       progress.current_page = progress_params[:current_page] if progress_params.key?(:current_page)
       progress.settings = progress_params[:settings] if progress_params.key?(:settings)
       progress.epub_cfi = progress_params[:epub_cfi] if progress_params.key?(:epub_cfi)
+      progress.progress_fraction = progress_params[:progress_fraction] if progress_params.key?(:progress_fraction)
       progress.last_read_at = Time.current
 
       if progress.save
@@ -38,7 +39,7 @@ module Api
     end
 
     def progress_params
-      params.permit(:current_page, :epub_cfi, settings: {}).to_h.symbolize_keys
+      params.permit(:current_page, :epub_cfi, :progress_fraction, settings: {}).to_h.symbolize_keys
     end
   end
 end

@@ -67,7 +67,20 @@ RSpec.describe "Api::Books", type: :request do
       expect(progresses.last).to be_nil
     end
 
-    it "returns a nil fraction for EPUB progress (no precise signal yet)" do
+    it "returns the stored progress_fraction for EPUB books" do
+      sign_in!
+      epub = create(:book, library: library, file_format: :epub, page_count: 20)
+      ReadingProgress.create!(user: user, book: epub, current_page: 0,
+        last_read_at: 1.hour.ago, epub_cfi: "epubcfi(/6/4!/4/2)",
+        progress_fraction: 0.42)
+
+      get "/api/books"
+      progress = response.parsed_body["books"].first["reading_progress"]
+      expect(progress["fraction"]).to eq(0.42)
+      expect(progress["last_read_at"]).to be_present
+    end
+
+    it "returns a nil fraction for EPUB books with no stored progress_fraction" do
       sign_in!
       epub = create(:book, library: library, file_format: :epub, page_count: 20)
       ReadingProgress.create!(user: user, book: epub, current_page: 0,
@@ -76,7 +89,6 @@ RSpec.describe "Api::Books", type: :request do
       get "/api/books"
       progress = response.parsed_body["books"].first["reading_progress"]
       expect(progress["fraction"]).to be_nil
-      expect(progress["last_read_at"]).to be_present
     end
   end
 

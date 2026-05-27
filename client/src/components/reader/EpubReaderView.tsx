@@ -241,8 +241,12 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     setHydrated(true);
   }, [preferences.data, progress.data, resolvedSettings, hydrated]);
 
-  // Mount <foliate-view> and stream the book in.
+  // Mount <foliate-view> and stream the book in. We wait for the
+  // progress query to settle before kicking foliate off — otherwise
+  // `progress.data` is still undefined when `view.init({ lastLocation })`
+  // runs, and the user's saved CFI never gets restored.
   useEffect(() => {
+    if (progress.isPending) return;
     let cancelled = false;
     let view: FoliateView | null = null;
 
@@ -263,10 +267,13 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
             fraction?: number;
             index?: number;
           }>).detail;
-          if (detail?.cfi) saveCfi(detail.cfi);
-          if (typeof detail?.fraction === "number") {
-            setFraction(Math.max(0, Math.min(1, detail.fraction)));
+          const clampedFraction = typeof detail?.fraction === "number"
+            ? Math.max(0, Math.min(1, detail.fraction))
+            : undefined;
+          if (typeof clampedFraction === "number") {
+            setFraction(clampedFraction);
           }
+          if (detail?.cfi) saveLocation(detail.cfi, clampedFraction);
         });
 
         // Inject per-document styles when each section loads. Routed via
@@ -391,17 +398,23 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
       viewRef.current = null;
     };
     // book.id intentionally captures the current book — re-mounting on
-    // book change is fine.
+    // book change is fine. progress.isPending lets the effect bail out
+    // until the saved CFI is in hand, then re-run once it lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book.id]);
+  }, [book.id, progress.isPending]);
 
-  // Debounced CFI save.
-  const cfiDebounce = useRef<number | null>(null);
-  const saveCfi = useCallback(
-    (cfi: string) => {
-      if (cfiDebounce.current) window.clearTimeout(cfiDebounce.current);
-      cfiDebounce.current = window.setTimeout(() => {
-        update.mutate({ epub_cfi: cfi } as unknown as { current_page: number });
+  // Debounced position save. CFI restores the exact reading point on
+  // re-open; progress_fraction powers the cover progress bar across the
+  // library views.
+  const locationDebounce = useRef<number | null>(null);
+  const saveLocation = useCallback(
+    (cfi: string, fraction: number | undefined) => {
+      if (locationDebounce.current) window.clearTimeout(locationDebounce.current);
+      locationDebounce.current = window.setTimeout(() => {
+        update.mutate({
+          epub_cfi: cfi,
+          ...(typeof fraction === "number" ? {progress_fraction: fraction} : {}),
+        });
       }, DEBOUNCE_MS);
     },
     [update],

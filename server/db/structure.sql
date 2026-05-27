@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS 'books_fts_idx'(segid, term, pgno, PRIMARY KEY(segid,
 CREATE TABLE IF NOT EXISTS 'books_fts_content'(id INTEGER PRIMARY KEY, c0, c1, c2);
 CREATE TABLE IF NOT EXISTS 'books_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB);
 CREATE TABLE IF NOT EXISTS 'books_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS "reading_progresses" ("user_id" integer NOT NULL, "book_id" integer NOT NULL, "current_page" integer DEFAULT 0 NOT NULL, "last_read_at" datetime(6) NOT NULL, "settings_json" text, "epub_cfi" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, PRIMARY KEY ("user_id", "book_id"), CONSTRAINT "fk_rails_063fbcdc58"
+CREATE TABLE IF NOT EXISTS "reading_progresses" ("user_id" integer NOT NULL, "book_id" integer NOT NULL, "current_page" integer DEFAULT 0 NOT NULL, "last_read_at" datetime(6) NOT NULL, "settings_json" text, "epub_cfi" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "progress_fraction" float, PRIMARY KEY ("user_id", "book_id"), CONSTRAINT "fk_rails_063fbcdc58"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 , CONSTRAINT "fk_rails_57da0b7b28"
@@ -116,6 +116,7 @@ FOREIGN KEY ("user_id")
 CREATE UNIQUE INDEX "index_user_preferences_on_user_id" ON "user_preferences" ("user_id") /*application='Bookwall'*/;
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260528140000'),
+('20260528043120'),
 ('20260528000000'),
 ('20260527000009'),
 ('20260527000008'),

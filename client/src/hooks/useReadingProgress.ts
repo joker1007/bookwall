@@ -4,6 +4,8 @@ import type { ReaderSettings, ReadingProgress } from "@/types/api";
 
 export interface UpdateProgressInput {
   current_page?: number;
+  epub_cfi?: string;
+  progress_fraction?: number;
   settings?: ReaderSettings;
 }
 
