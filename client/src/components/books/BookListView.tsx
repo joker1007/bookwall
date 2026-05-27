@@ -18,7 +18,7 @@ import { BookRow } from "./BookRow";
 interface BookListViewProps {
   title: string;
   description?: string;
-  baseParams?: Omit<BookListParams, "page" | "sort" | "q">;
+  baseParams?: Omit<BookListParams, "page" | "sort">;
   emptyMessage?: string;
 }
 

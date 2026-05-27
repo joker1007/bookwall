@@ -11,6 +11,7 @@ import AuthorDetailPage from "@/routes/authors.detail";
 import TagDetailPage from "@/routes/tags.detail";
 import FavoritesPage from "@/routes/favorites";
 import BookDetailPage from "@/routes/books.detail";
+import SearchPage from "@/routes/search";
 import { Placeholder } from "@/components/Placeholder";
 import { SessionBootstrap } from "@/components/SessionBootstrap";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -40,7 +41,7 @@ export default function App() {
             <Route path="tags" element={<Placeholder title="タグ" />} />
             <Route path="tags/:id" element={<TagDetailPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
-            <Route path="search" element={<Placeholder title="検索結果" />} />
+            <Route path="search" element={<SearchPage />} />
             <Route path="books/:id" element={<BookDetailPage />} />
             <Route
               path="settings/libraries"
