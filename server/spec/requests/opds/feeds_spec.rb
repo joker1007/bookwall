@@ -155,6 +155,36 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(titles).not_to include("PlainBook.epub")
     end
 
+    it "emits placeholder cover + thumbnail links when the book has no attached cover" do
+      create(:book, library: library, file_format: :epub,
+        file_path: "/mnt/books/no-cover.epub", title: "NoCover")
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      entry = doc.at_xpath(
+        "//atom:entry[atom:title='NoCover']",
+        "atom" => "http://www.w3.org/2005/Atom"
+      )
+      image = entry.at_xpath(
+        "atom:link[@rel='http://opds-spec.org/image']",
+        "atom" => "http://www.w3.org/2005/Atom"
+      )
+      thumb = entry.at_xpath(
+        "atom:link[@rel='http://opds-spec.org/image/thumbnail']",
+        "atom" => "http://www.w3.org/2005/Atom"
+      )
+      expect(image["href"]).to eq("/opds/placeholder-cover.jpg")
+      expect(image["type"]).to eq("image/jpeg")
+      expect(thumb["href"]).to eq("/opds/placeholder-thumb.jpg")
+      expect(thumb["type"]).to eq("image/jpeg")
+    end
+
+    it "ships actual placeholder files in the public directory" do
+      expect(Rails.public_path.join("opds/placeholder-cover.jpg")).to exist
+      expect(Rails.public_path.join("opds/placeholder-thumb.jpg")).to exist
+    end
+
     it "omits dc:format for image_dir but still emits atom:content" do
       create(:book,
         library: library,
