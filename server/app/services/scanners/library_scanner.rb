@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "find"
 require "retriable"
 
 module Scanners
@@ -68,38 +67,86 @@ module Scanners
       Books::FtsSyncJob.perform_later(upserted_ids, "upsert")
     end
 
-    def discover(root)
-      out = []
-      Find.find(root) do |path|
-        next if path == root
-        basename = File.basename(path)
-        Find.prune if basename.start_with?(".")
+    BOOK_FORMAT_GLOBS = {
+      cbz: "**/*.cbz",
+      epub: "**/*.epub",
+      pdf: "**/*.pdf"
+    }.freeze
+    IMAGE_FORMAT_GLOBS = Parsers::IMAGE_EXTENSIONS.map { |ext| "**/*#{ext}" }.freeze
 
-        if File.directory?(path)
-          if image_dir?(path)
-            out << {path: path.dup.freeze, format: :image_dir}.freeze
-            Find.prune
+    # Discover all books under the library root using two C-level
+    # globs:
+    #   1. Find every image file and treat its parent directory as an
+    #      image_dir book. Replaces the per-directory `Dir.children`
+    #      check that the old `Find.find`-based walker did.
+    #   2. Find every CBZ / EPUB / PDF. Files that live inside an
+    #      already-identified image_dir are skipped so the
+    #      "image_dir wins, prune everything below it" semantics of
+    #      the old walker is preserved.
+    # `File::FNM_CASEFOLD` matches `.JPG` / `.EPUB` etc. so users
+    # don't have to normalise their library by hand.
+    def discover(root)
+      root = File.expand_path(root)
+
+      image_dirs = collect_image_dirs(root)
+      jobs = image_dirs.map do |dir|
+        # mtime is left nil and resolved lazily in diff_against_db
+        # only when an existing row needs to be compared — first-scan
+        # image dirs avoid the per-child stat.
+        {path: dir.freeze, format: :image_dir, mtime: nil}.freeze
+      end
+
+      BOOK_FORMAT_GLOBS.each do |fmt, pattern|
+        Dir.glob(pattern, File::FNM_CASEFOLD, base: root) do |rel|
+          next if hidden_path?(rel)
+          full = File.join(root, rel)
+          next if inside_image_dir?(full, image_dirs)
+          stat = begin
+            File.stat(full)
+          rescue SystemCallError
+            next
           end
-        else
-          fmt = format_from_extension(path)
-          out << {path: path.dup.freeze, format: fmt}.freeze if fmt
+          next unless stat.file?
+          jobs << {path: full.freeze, format: fmt, mtime: stat.mtime}.freeze
         end
       end
-      out
+
+      jobs
     end
 
-    def format_from_extension(path)
-      case File.extname(path).downcase
-      when ".cbz" then :cbz
-      when ".epub" then :epub
-      when ".pdf" then :pdf
+    def collect_image_dirs(root)
+      dirs = Set.new
+      IMAGE_FORMAT_GLOBS.each do |pattern|
+        Dir.glob(pattern, File::FNM_CASEFOLD, base: root) do |rel|
+          next if hidden_path?(rel)
+          parent_rel = File.dirname(rel)
+          # Library root itself is never a book, even if loose images
+          # got dropped there.
+          next if parent_rel == "."
+          dirs << File.join(root, parent_rel)
+        end
       end
+      dirs
     end
 
-    def image_dir?(dir)
-      Dir.children(dir).any? do |f|
-        Parsers::IMAGE_EXTENSIONS.include?(File.extname(f).downcase)
+    def hidden_path?(rel)
+      rel.split(File::SEPARATOR).any? { |seg| seg.start_with?(".") }
+    end
+
+    def inside_image_dir?(path, image_dirs)
+      image_dirs.any? { |d| path.start_with?("#{d}/") }
+    end
+
+    def max_child_mtime(dir)
+      best = nil
+      Dir.each_child(dir) do |name|
+        m = File.mtime(File.join(dir, name))
+      rescue Errno::ENOENT, SystemCallError
+        next
+      else
+        best = m if best.nil? || m > best
       end
+      best || Time.at(0)
     end
 
     def diff_against_db(jobs)
@@ -117,25 +164,15 @@ module Scanners
         scanned_at = existing[job[:path]]
         if scanned_at.nil?
           to_add << job
-        elsif modified_since?(job[:path], scanned_at)
-          to_update << job
+        else
+          mtime = job[:mtime] || max_child_mtime(job[:path])
+          to_update << job if mtime > scanned_at
         end
       end
 
       # Deleted files are handled by a separate cleanup job; the scan
       # itself only adds and updates.
       {add: to_add, update: to_update}
-    end
-
-    def modified_since?(path, scanned_at)
-      mtime =
-        if File.directory?(path)
-          times = Dir.children(path).map { |f| File.mtime(File.join(path, f)) }
-          times.max || Time.at(0)
-        else
-          File.mtime(path)
-        end
-      mtime > scanned_at
     end
 
     def parse_parallel(jobs)
