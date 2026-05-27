@@ -14,8 +14,8 @@ RSpec.describe "Opds::Pages", type: :request do
              page_count: 4)
     end
 
-    it "returns the requested page as image bytes" do
-      get "/opds/books/#{book.id}/pages/1", headers: {"Authorization" => auth_header}
+    it "returns pageNumber=0 as the first page (OPDS-PSE numbers from 0)" do
+      get "/opds/books/#{book.id}/pages/0", headers: {"Authorization" => auth_header}
 
       expect(response).to have_http_status(:ok)
       expect(response.media_type).to eq("image/jpeg")
@@ -27,8 +27,13 @@ RSpec.describe "Opds::Pages", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    it "rejects negative page numbers with 400" do
+      get "/opds/books/#{book.id}/pages/-1", headers: {"Authorization" => auth_header}
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "requires authentication" do
-      get "/opds/books/#{book.id}/pages/1"
+      get "/opds/books/#{book.id}/pages/0"
       expect(response).to have_http_status(:unauthorized)
     end
   end

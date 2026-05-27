@@ -9,6 +9,13 @@ module Opds
     THUMB_REL = "http://opds-spec.org/image/thumbnail".freeze
     PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream".freeze
 
+    # OPDS-PSE clients (Chunky, Panels, KyBook, ...) substitute the literal
+    # "{pageNumber}" token in the link href with a real page number. Rails
+    # path helpers percent-encode `{` / `}` so we route the helper through a
+    # URL-safe sentinel and swap it back to preserve the literal token.
+    PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER".freeze
+    PSE_TEMPLATE_TOKEN = "{pageNumber}".freeze
+
     def self.navigation(title:, id:, self_url:, entries:)
       build_feed do |xml|
         xml.title title
@@ -60,7 +67,7 @@ module Opds
             if book.page_count.to_i > 0
               xml.send(:"pse:link",
                        rel: PSE_STREAM_REL,
-                       href: helpers.opds_book_page_path(book_id: book.id, n: "{pageNumber}"),
+                       href: pse_stream_href(book, helpers),
                        type: "image/jpeg",
                        "pse:count" => book.page_count)
             end
@@ -76,6 +83,11 @@ module Opds
         end
       end
       doc.to_xml
+    end
+
+    def self.pse_stream_href(book, helpers)
+      helpers.opds_book_page_path(book_id: book.id, n: PSE_TEMPLATE_SENTINEL)
+             .sub(PSE_TEMPLATE_SENTINEL, PSE_TEMPLATE_TOKEN)
     end
 
     def self.thumb_variant(book)

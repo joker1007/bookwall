@@ -41,6 +41,22 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(response.body).to include('pse:count="24"')
       expect(response.body).to include("opds-pse/stream")
     end
+
+    it "emits the OPDS-PSE href with a literal {pageNumber} template" do
+      book = create(:book, library: library, page_count: 5)
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      pse = doc.at_xpath(
+        "//atom:entry/pse:link[@rel='http://vaemendis.net/opds-pse/stream']",
+        "atom" => "http://www.w3.org/2005/Atom",
+        "pse" => "http://vaemendis.net/opds-pse/ns"
+      )
+      expect(pse).not_to be_nil
+      expect(pse["href"]).to eq("/opds/books/#{book.id}/pages/{pageNumber}")
+      expect(pse["href"]).not_to include("%7B")
+      expect(pse["href"]).not_to include("%7D")
+    end
   end
 
   describe "GET /opds/libraries/:id" do
