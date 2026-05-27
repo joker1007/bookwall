@@ -74,5 +74,42 @@ RSpec.describe Books::Search do
     it "sorts by title descending" do
       expect(described_class.new(sort: "title_desc").relation.pluck(:title)).to eq(["Moby Dick", "Alice in Wonderland"])
     end
+
+    it "sorts by the alphabetically-first author when each book has one" do
+      moby.authors << create(:author, name: "Herman Melville")
+      # Herman (H) < Lewis (L) → moby first
+      expect(described_class.new(sort: "author_asc").relation.pluck(:title))
+        .to eq(["Moby Dick", "Alice in Wonderland"])
+    end
+
+    it "puts books with no author at the bottom of an author sort" do
+      # alice already has Lewis Carroll; moby has no author.
+      titles = described_class.new(sort: "author_asc").relation.pluck(:title)
+      expect(titles.first).to eq("Alice in Wonderland")
+      expect(titles.last).to eq("Moby Dick")
+    end
+
+    it "uses MIN(authors.name) when a book has multiple authors" do
+      alice.authors << create(:author, name: "Aaron Author")  # Aaron < Lewis
+      moby.authors << create(:author, name: "Mary Melville")
+      # alice MIN = Aaron, moby MIN = Mary → alice first
+      expect(described_class.new(sort: "author_asc").relation.pluck(:title))
+        .to eq(["Alice in Wonderland", "Moby Dick"])
+    end
+
+    it "sorts by author descending, putting unauthored books last" do
+      moby.authors << create(:author, name: "Herman Melville")
+      # Lewis (L) > Herman (H) → alice first descending; moby (no author)
+      # would come last but here moby has Herman so order is alice, moby
+      titles = described_class.new(sort: "author_desc").relation.pluck(:title)
+      expect(titles).to eq(["Alice in Wonderland", "Moby Dick"])
+    end
+
+    it "keeps unauthored books last when sorting author descending" do
+      # alice has Lewis Carroll, moby has none
+      titles = described_class.new(sort: "author_desc").relation.pluck(:title)
+      expect(titles.first).to eq("Alice in Wonderland")
+      expect(titles.last).to eq("Moby Dick")
+    end
   end
 end

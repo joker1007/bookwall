@@ -126,7 +126,9 @@
       "added_at_asc": "登録日順 (古い順)",
       "title_asc": "タイトル昇順",
       "title_desc": "タイトル降順",
-      "series_asc": "シリーズ順"
+      "series_asc": "シリーズ順",
+      "author_asc": "著者順",
+      "author_desc": "著者順 (降順)"
     },
     "pager": {
       "label": "ページ送り",

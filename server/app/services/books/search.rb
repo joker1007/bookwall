@@ -2,7 +2,7 @@
 
 module Books
   class Search
-    SORTS = %w[title_asc title_desc added_at_asc added_at_desc series_asc].freeze
+    SORTS = %w[title_asc title_desc added_at_asc added_at_desc series_asc author_asc author_desc].freeze
 
     def initialize(
       query: nil,
@@ -58,8 +58,22 @@ module Books
       when "title_desc" then scope.order(title: :desc)
       when "added_at_asc" then scope.order(:added_at)
       when "series_asc" then scope.left_joins(:series).order(Arel.sql("series.name NULLS LAST"), :volume)
+      when "author_asc" then scope.order(Arel.sql("#{AUTHOR_SORT_KEY} ASC NULLS LAST"), :title)
+      when "author_desc" then scope.order(Arel.sql("#{AUTHOR_SORT_KEY} DESC NULLS LAST"), :title)
       else scope.order(added_at: :desc)
       end
     end
+
+    # Books have many authors, so left-joining and ordering by authors.name
+    # would multiply rows and break pagination. Use a correlated subquery
+    # to pull the alphabetically-first author per book as a single sort key
+    # — same key used for both asc and desc so multi-author books order
+    # consistently across the two directions.
+    AUTHOR_SORT_KEY = <<~SQL.squish.freeze
+      (SELECT MIN(authors.name)
+         FROM book_authors
+         INNER JOIN authors ON authors.id = book_authors.author_id
+         WHERE book_authors.book_id = books.id)
+    SQL
   end
 end

@@ -126,7 +126,9 @@
       "added_at_asc": "Oldest first",
       "title_asc": "Title (A→Z)",
       "title_desc": "Title (Z→A)",
-      "series_asc": "Series order"
+      "series_asc": "Series order",
+      "author_asc": "Author (A→Z)",
+      "author_desc": "Author (Z→A)"
     },
     "pager": {
       "label": "Pagination",

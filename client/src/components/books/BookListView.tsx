@@ -31,6 +31,8 @@ const SORT_VALUES = [
   "title_asc",
   "title_desc",
   "series_asc",
+  "author_asc",
+  "author_desc",
 ] as const;
 
 export function BookListView({
