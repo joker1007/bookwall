@@ -19,19 +19,23 @@ test:
   <<: *default
   database: storage/test.sqlite3
 
+# Production stores every SQLite database under BOOKWALL_DATA_DIR so
+# the Docker image can mount a single /config volume that captures
+# both Active Storage attachments and the databases. Falls back to
+# the in-tree `storage/` directory for ad-hoc bare-metal runs.
 production:
   primary:
     <<: *default
-    database: storage/production.sqlite3
+    database: <%= ENV.fetch("BOOKWALL_DATA_DIR", "storage") %>/production.sqlite3
   cache:
     <<: *default
-    database: storage/production_cache.sqlite3
+    database: <%= ENV.fetch("BOOKWALL_DATA_DIR", "storage") %>/production_cache.sqlite3
     migrations_paths: db/cache_migrate
   queue:
     <<: *default
-    database: storage/production_queue.sqlite3
+    database: <%= ENV.fetch("BOOKWALL_DATA_DIR", "storage") %>/production_queue.sqlite3
     migrations_paths: db/queue_migrate
   cable:
     <<: *default
-    database: storage/production_cable.sqlite3
+    database: <%= ENV.fetch("BOOKWALL_DATA_DIR", "storage") %>/production_cable.sqlite3
     migrations_paths: db/cable_migrate

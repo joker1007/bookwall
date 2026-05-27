@@ -5,9 +5,19 @@
 # both client/ and server/ are available:
 #
 #   docker build -t bookwall .
-#   docker run -d -p 80:80 -e RAILS_MASTER_KEY=$(cat server/config/master.key) bookwall
+#   docker run -d -p 8237:8237 \
+#     -e RAILS_MASTER_KEY=$(cat server/config/master.key) \
+#     -v bookwall-config:/config \
+#     bookwall
 #
-# Thruster listens on $PORT (80) and proxies to Falcon on TARGET_PORT (3000).
+# /config holds the SQLite databases and the Active Storage attachments —
+# mount it as a named volume (or bind-mount a host path) so the data
+# survives container replacement.
+#
+# Thruster listens on $PORT (8237) and proxies to Falcon on TARGET_PORT
+# (3000). 8237 was chosen to stay clear of the usual 80 / 8080 / 8000
+# self-hosted soup so the container can sit alongside other services
+# without a port-mapping dance.
 
 ARG RUBY_VERSION=4.0.3
 
@@ -59,7 +69,15 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 FROM server_base
 
 RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
+    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+    mkdir -p /config && \
+    chown rails:rails /config
+
+# Both Active Storage and every SQLite database live under /config so a
+# single mounted volume captures the entire writable state of the app.
+ENV BOOKWALL_DATA_DIR=/config
+VOLUME ["/config"]
+
 USER 1000:1000
 
 COPY --chown=rails:rails --from=server_build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
@@ -67,6 +85,7 @@ COPY --chown=rails:rails --from=server_build /rails /rails
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-ENV TARGET_PORT="3000"
-EXPOSE 80
+ENV PORT="8237" \
+    TARGET_PORT="3000"
+EXPOSE 8237
 CMD ["./bin/thrust", "bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]

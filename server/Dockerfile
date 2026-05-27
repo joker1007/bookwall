@@ -3,7 +3,7 @@
 
 # This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
 # docker build -t bookwall .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name bookwall bookwall
+# docker run -d -p 8237:8237 -e RAILS_MASTER_KEY=<value from config/master.key> --name bookwall bookwall
 
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
@@ -72,8 +72,10 @@ COPY --chown=rails:rails --from=build /rails /rails
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Front Falcon with Thruster (HTTP/2 + asset caching + X-Sendfile). Thruster
-# listens on $PORT (default 80) and proxies to its child on TARGET_PORT.
+# listens on $PORT (8237 — out of the way of common 80 / 8080 / 8000
+# defaults) and proxies to its child on TARGET_PORT.
 # Override CMD with `./bin/jobs` etc. for the SolidQueue worker container.
-ENV TARGET_PORT="3000"
-EXPOSE 80
+ENV PORT="8237" \
+    TARGET_PORT="3000"
+EXPOSE 8237
 CMD ["./bin/thrust", "bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]
