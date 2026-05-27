@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rails_helper"
+require "zip"
 
 RSpec.describe Parsers::EpubParser do
   let(:path) { Rails.root.join("spec/fixtures/files/sample.epub").to_s }
@@ -17,6 +18,84 @@ RSpec.describe Parsers::EpubParser do
       expect(parser.metadata[:page_count]).to eq(parser.page_count)
       expect(parser.page_count).to be > 0
     end
+
+    it "maps dc:subject entries to tags" do
+      expect(parser.metadata[:tags]).to contain_exactly(
+        "Fantasy fiction",
+        "Children's stories",
+        "Imaginary places -- Juvenile fiction",
+        "Alice (Fictitious character from Carroll) -- Juvenile fiction"
+      )
+    end
+  end
+
+  describe "#metadata with calibre series tags" do
+    let(:tmpdir) { Dir.mktmpdir("bookwall-epub-calibre-") }
+    let(:path) do
+      inject_opf2_meta(
+        Rails.root.join("spec/fixtures/files/sample.epub").to_s,
+        File.join(tmpdir, "calibre.epub"),
+        {"calibre:series" => "Wonderland Series", "calibre:series_index" => "3.0"}
+      )
+    end
+
+    after { FileUtils.remove_entry(tmpdir) }
+
+    it "extracts series and volume from calibre meta" do
+      meta = parser.metadata
+      expect(meta[:series]).to eq("Wonderland Series")
+      expect(meta[:volume]).to eq(3)
+    end
+
+    context "when calibre:series_index is missing" do
+      let(:path) do
+        inject_opf2_meta(
+          Rails.root.join("spec/fixtures/files/sample.epub").to_s,
+          File.join(tmpdir, "calibre.epub"),
+          {"calibre:series" => "Wonderland Series"}
+        )
+      end
+
+      it "still surfaces the series but leaves volume nil" do
+        expect(parser.metadata[:series]).to eq("Wonderland Series")
+        expect(parser.metadata[:volume]).to be_nil
+      end
+    end
+
+    context "when calibre:series_index is non-numeric" do
+      let(:path) do
+        inject_opf2_meta(
+          Rails.root.join("spec/fixtures/files/sample.epub").to_s,
+          File.join(tmpdir, "calibre.epub"),
+          {"calibre:series" => "Foo", "calibre:series_index" => "abc"}
+        )
+      end
+
+      it "treats the volume as absent" do
+        expect(parser.metadata[:volume]).to be_nil
+      end
+    end
+  end
+
+  # Copy `source` to `dest`, then patch the OPF inside the EPUB zip with
+  # extra OPF2-style `<meta name=... content=.../>` entries so we can
+  # cheaply exercise calibre-specific fields without shipping another
+  # fixture file.
+  def inject_opf2_meta(source, dest, meta_attrs)
+    FileUtils.cp(source, dest)
+    Zip::File.open(dest) do |zip|
+      opf_entry = zip.glob("**/*.opf").first
+      raise "no .opf in #{source}" unless opf_entry
+
+      content = opf_entry.get_input_stream.read
+      injection = meta_attrs.map { |name, value|
+        %(<meta name="#{name}" content="#{value}"/>)
+      }.join("\n")
+      patched = content.sub("</metadata>", "#{injection}\n</metadata>")
+
+      zip.get_output_stream(opf_entry.name) { |io| io.write(patched) }
+    end
+    dest
   end
 
   describe "#page_bytes" do

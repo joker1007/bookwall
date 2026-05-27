@@ -46,13 +46,38 @@ module Parsers
     def build_metadata
       {
         title: title_text.presence || basename_without_ext,
-        series: nil,
-        volume: nil,
+        series: calibre_meta_value("calibre:series"),
+        volume: parse_series_index(calibre_meta_value("calibre:series_index")),
         authors: creator_names,
-        tags: [],
+        tags: subjects,
         published_at: publication_date,
         page_count: page_count
       }
+    end
+
+    def subjects
+      list = book.subject_list rescue []
+      list.map { |meta| meta.content.to_s.strip }.reject(&:empty?).uniq
+    end
+
+    # Reads a legacy OPF2-style `<meta name="..." content="..."/>` value.
+    # Calibre stores series info this way regardless of the EPUB version,
+    # so it's the right hook for both calibre:series and
+    # calibre:series_index. The value lives in the `content=` attribute,
+    # not in element text — so we go through Meta#[] rather than #content.
+    def calibre_meta_value(name)
+      metadata = book.metadata rescue nil
+      entries = metadata&.oldstyle_meta || []
+      meta = entries.find { |m| m["name"].to_s == name }
+      meta&.[]("content").to_s.strip.presence
+    end
+
+    # Calibre writes the index as "1.0" / "2.5"; books.volume is an
+    # integer column, so truncate and treat zero / unparseable as absent.
+    def parse_series_index(raw)
+      return nil if raw.blank?
+      n = Float(raw, exception: false)&.to_i
+      n if n&.positive?
     end
 
     def title_text
