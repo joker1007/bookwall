@@ -38,29 +38,30 @@
 - SQLite 3 (FTS5 が有効なビルド)
 - `libvips`、`poppler-utils` (`pdftocairo` を使う)
 
-### 2. server を起動
+### 2. 依存をインストール
+
+```sh
+(cd server && bundle install && bin/rails db:setup)
+(cd client && npm install)
+```
+
+### 3. 開発サーバを一括起動
 
 ```sh
 cd server
-bundle install
-bin/rails db:setup
-bin/dev          # foreman 経由で Falcon (http://0.0.0.0:3000)
-# あるいは bundle exec falcon serve --bind http://0.0.0.0:3000 を直接
+bin/dev          # foreman 経由で web (Falcon, :3000) と client (Vite, :5173) を同時起動
 ```
 
-`rails s` は `--binding=localhost` が default で IPv6 が無効な環境では失敗するため、
-`bin/dev` か `falcon serve --bind http://0.0.0.0:3000` を推奨。
+`server/Procfile.dev` は `web` (Rails + Falcon) と `client` (Vite) を定義しており、
+`bin/dev` はその両方を foreman で立ち上げて出力をマルチプレックスする。foreman は
+初回 `bin/dev` 実行時に自動で `gem install` される。
 
-### 3. client を起動
+ブラウザは `http://localhost:5173/ui/` を開く。Vite の dev server は `/api`
+`/opds` `/rails` `/up` を `http://localhost:3000` に proxy するので、Cookie は
+透過する。
 
-```sh
-cd client
-npm install
-npm run dev      # Vite (http://localhost:5173)
-```
-
-Vite の dev server は `/api` `/opds` `/rails` `/up` を `http://localhost:3000` に proxy
-するので、ブラウザは `http://localhost:5173/ui/` だけ見ればよい。
+`rails s` (引数なし) は IPv6 無効環境で `Errno::EADDRNOTAVAIL` を起こすので、
+`bin/dev` または `bundle exec falcon serve --bind http://0.0.0.0:3000` を推奨。
 
 ## クイックスタート (本番 / Docker)
 

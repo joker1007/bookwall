@@ -1,2 +1,3 @@
 web: bundle exec falcon serve --bind http://0.0.0.0:3000 --count 1
+client: cd ../client && npm run dev
 # jobs: bundle exec rake solid_queue:start  # enable when running solid_queue in development

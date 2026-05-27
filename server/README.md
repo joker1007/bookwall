@@ -30,10 +30,16 @@ bin/rails db:setup
 開発時:
 
 ```sh
-bin/dev  # Procfile.dev 経由で Falcon を起動 (foreman が必要、自動インストール)
+bin/dev  # foreman 経由で web (Falcon, :3000) と client (Vite, :5173) を同時起動
+         # foreman は初回実行時に自動で gem install される
 ```
 
-または直接:
+`Procfile.dev` には `web` (Falcon) と `client` (`cd ../client && npm run dev`) の
+2 プロセスが定義されており、開発中は `../client` の Vite dev server も合わせて
+立ち上がる。ブラウザは `http://localhost:5173/ui/` を開く (`/api` `/opds` `/rails`
+`/up` は Vite が proxy する)。
+
+Rails だけ単独で動かしたいときは:
 
 ```sh
 bundle exec falcon serve --bind http://0.0.0.0:3000

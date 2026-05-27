@@ -18,7 +18,11 @@ Bookwall の Web UI。`/ui` prefix の下に乗る React SPA で、書籍一覧 
 
 ## 開発
 
-リポジトリルートの README にあるとおり、server を別途起動した上で:
+通常は server 側の `bin/dev` を叩けば foreman が Rails (Falcon) と Vite を
+両方起動してくれるので、こちらを直接触る必要はない。詳しくはルートの
+[README](../README.md#3-開発サーバを一括起動) を参照。
+
+client だけ単独で動かしたいときは:
 
 ```sh
 npm install
