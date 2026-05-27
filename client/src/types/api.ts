@@ -31,6 +31,7 @@ export interface Book {
   series_name: string | null;
   authors: { id: number; name: string }[];
   tags: { id: number; name: string }[];
+  favorited: boolean;
   cover: CoverInfo | null;
 }
 

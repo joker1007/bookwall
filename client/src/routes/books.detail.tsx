@@ -51,10 +51,7 @@ export default function BookDetailPage() {
   }
 
   const book = query.data;
-  // We don't have a "is favorited by current user" flag in the API yet —
-  // until then the heart toggle does a POST that's idempotent server-side
-  // (Favorite.find_or_create_by!) and a DELETE that's a no-op when missing.
-  const isFavorited = false;
+  const isFavorited = book.favorited;
 
   const handleDelete = () => {
     if (!window.confirm(`「${book.title}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?`)) return;
@@ -141,8 +138,11 @@ export default function BookDetailPage() {
               disabled={!user || favorite.isPending}
               className="gap-2"
             >
-              <Heart className="size-4" aria-hidden />
-              お気に入り
+              <Heart
+                className={`size-4 ${isFavorited ? "fill-current" : ""}`}
+                aria-hidden
+              />
+              {isFavorited ? "お気に入り済み" : "お気に入り"}
             </Button>
             <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-2">
               <Pencil className="size-4" aria-hidden />

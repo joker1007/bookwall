@@ -14,13 +14,13 @@ module Api
       )
       pagy, books = pagy(:offset, search.relation.includes(:authors, :tags, :series))
       render json: {
-        books: BookSerializer.new(books).serializable_hash,
+        books: serialize_books(books),
         pagination: pagy_metadata(pagy)
       }
     end
 
     def show
-      render json: BookSerializer.new(@book).serializable_hash
+      render json: serialize_book(@book)
     end
 
     def update
@@ -28,7 +28,7 @@ module Api
         update_authors if params.key?(:author_names)
         update_tags if params.key?(:tag_names)
         @book.reload
-        render json: BookSerializer.new(@book).serializable_hash
+        render json: serialize_book(@book)
       else
         render json: {errors: @book.errors.full_messages}, status: :unprocessable_content
       end
@@ -41,7 +41,7 @@ module Api
 
     def favorite
       Favorite.find_or_create_by!(user: Current.user, book: @book)
-      render json: BookSerializer.new(@book).serializable_hash, status: :created
+      render json: serialize_book(@book), status: :created
     end
 
     def unfavorite
@@ -61,6 +61,26 @@ module Api
 
     def favorites_only?
       ActiveModel::Type::Boolean.new.cast(params[:favorites_only])
+    end
+
+    def serialize_book(book)
+      BookSerializer.new(
+        book,
+        params: {favorite_book_ids: favorite_book_ids([book.id])}
+      ).serializable_hash
+    end
+
+    def serialize_books(books)
+      ids = books.map(&:id)
+      BookSerializer.new(
+        books,
+        params: {favorite_book_ids: favorite_book_ids(ids)}
+      ).serializable_hash
+    end
+
+    def favorite_book_ids(book_ids)
+      return [] if book_ids.empty?
+      Favorite.where(user_id: Current.user.id, book_id: book_ids).pluck(:book_id)
     end
 
     def update_authors

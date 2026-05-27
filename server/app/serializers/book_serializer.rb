@@ -17,6 +17,10 @@ class BookSerializer
     b.tags.map { |t| {id: t.id, name: t.name} }
   end
 
+  attribute :favorited do |b|
+    Array(params[:favorite_book_ids]).include?(b.id)
+  end
+
   attribute :cover do |b|
     next nil unless b.cover.attached?
     helpers = Rails.application.routes.url_helpers
