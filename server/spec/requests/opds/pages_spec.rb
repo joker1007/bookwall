@@ -48,5 +48,15 @@ RSpec.describe "Opds::Pages", type: :request do
       get "/opds/books/#{book.id}/pages/0"
       expect(response).to have_http_status(:unauthorized)
     end
+
+    it "returns 304 when If-None-Match matches the page ETag" do
+      get "/opds/books/#{book.id}/pages/0", headers: {"Authorization" => auth_header}
+      etag = response.headers["ETag"]
+      expect(etag).to be_present
+
+      get "/opds/books/#{book.id}/pages/0",
+        headers: {"Authorization" => auth_header, "If-None-Match" => etag}
+      expect(response).to have_http_status(:not_modified)
+    end
   end
 end

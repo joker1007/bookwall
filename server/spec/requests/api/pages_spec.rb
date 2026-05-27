@@ -45,6 +45,31 @@ RSpec.describe "Api::Pages", type: :request do
         get "/api/books/#{book.id}/pages/9999"
         expect(response).to have_http_status(:not_found)
       end
+
+      it "responds with Cache-Control and ETag headers" do
+        get "/api/books/#{book.id}/pages/0"
+
+        expect(response.headers["Cache-Control"]).to include("private", "max-age=31536000", "immutable")
+        expect(response.headers["ETag"]).to be_present
+      end
+
+      it "returns 304 when If-None-Match matches the page ETag" do
+        get "/api/books/#{book.id}/pages/0"
+        etag = response.headers["ETag"]
+
+        get "/api/books/#{book.id}/pages/0", headers: {"If-None-Match" => etag}
+        expect(response).to have_http_status(:not_modified)
+        expect(response.body).to be_empty
+      end
+
+      it "returns 200 with bytes for a different ETag (e.g. another page)" do
+        get "/api/books/#{book.id}/pages/0"
+        etag = response.headers["ETag"]
+
+        get "/api/books/#{book.id}/pages/1", headers: {"If-None-Match" => etag}
+        expect(response).to have_http_status(:ok)
+        expect(response.body.bytesize).to be > 1000
+      end
     end
   end
 end

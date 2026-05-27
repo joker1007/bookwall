@@ -27,5 +27,16 @@ module Books
     rescue Parsers::Error
       Result.new(status: :not_found)
     end
+
+    # ETag for a single page. Same book + same file_hash + same page index
+    # ⇒ same bytes, so we can cache aggressively in the browser. file_hash
+    # changes whenever the scanner re-ingests the file (different content
+    # ⇒ different hash), which invalidates the ETag automatically. Falls
+    # back to updated_at when file_hash hasn't been computed yet
+    # (e.g. image_dir books, where no archive hash is recorded).
+    def self.etag_for(book, page_num)
+      version = book.file_hash.presence || book.updated_at.to_i
+      "#{version}-#{page_num}"
+    end
   end
 end
