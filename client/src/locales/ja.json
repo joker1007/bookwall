@@ -193,6 +193,23 @@
     },
     "saveAsDefaults": "デフォルトとして保存",
     "saveAsDefaultsHint": "まだ開いたことのない書籍に適用されます。",
+    "epubFontSize": "フォントサイズ",
+    "theme": {
+      "label": "テーマ",
+      "light": "ライト",
+      "dark": "ダーク",
+      "sepia": "セピア"
+    },
+    "writingMode": {
+      "label": "書字方向",
+      "horizontal": "横書き",
+      "vertical": "縦書き"
+    },
+    "toc": {
+      "title": "目次",
+      "description": "章をタップしてジャンプします。",
+      "empty": "目次がありません。"
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "書籍を読み込めませんでした。",
     "unsupportedFormat": "この形式のリーダーはまだ用意されていません。"

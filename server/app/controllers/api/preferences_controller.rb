@@ -19,7 +19,10 @@ module Api
     private
 
     def preference_params
-      params.permit(reader_defaults: %i[spread direction scale preload_ahead])
+      params.permit(reader_defaults: %i[
+        spread direction scale preload_ahead
+        font_size theme writing_mode
+      ])
     end
 
     def serialize_preferences

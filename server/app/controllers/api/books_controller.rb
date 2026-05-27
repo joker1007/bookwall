@@ -2,7 +2,13 @@
 
 module Api
   class BooksController < BaseController
-    before_action :set_book, only: %i[show update destroy favorite unfavorite]
+    EXTENSION_FOR_FORMAT = {
+      "cbz" => ".cbz",
+      "epub" => ".epub",
+      "pdf" => ".pdf"
+    }.freeze
+
+    before_action :set_book, only: %i[show update destroy favorite unfavorite file]
 
     def index
       search = Books::Search.new(
@@ -51,7 +57,38 @@ module Api
       head :no_content
     end
 
+    # GET /api/books/:id/file
+    # Streams the raw book file (.epub / .cbz / .pdf) to the SPA, used by
+    # the in-browser EPUB reader (foliate-js) and any other download flow.
+    # image_dir books aren't single files, so they 404.
+    def file
+      return head :not_found if @book.file_format == "image_dir"
+
+      resolved = File.expand_path(@book.file_path)
+      library_root = File.expand_path(@book.library.path)
+      unless resolved == library_root || resolved.start_with?("#{library_root}/")
+        return head :forbidden
+      end
+
+      # File bytes are immutable as long as file_hash is unchanged.
+      etag = @book.file_hash.presence || @book.updated_at.to_i.to_s
+      response.set_header("Cache-Control", "private, max-age=31536000, immutable")
+      return unless stale?(etag: etag)
+
+      send_file resolved,
+        type: Opds::FeedBuilder.download_mime(@book),
+        disposition: "attachment",
+        filename: download_filename(@book)
+    end
+
     private
+
+    def download_filename(book)
+      ext = EXTENSION_FOR_FORMAT.fetch(book.file_format.to_s, "")
+      raw = book.title.to_s.strip.presence || "book-#{book.id}"
+      base = raw.gsub(/[\x00-\x1f\x7f"\/\\]/, "_")
+      "#{base}#{ext}"
+    end
 
     def set_book
       @book = Book.find(params[:id])

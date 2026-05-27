@@ -34,11 +34,23 @@ import {
 } from "@/hooks/useUserPreferences";
 import { ApiError } from "@/lib/api";
 import {
+  READER_FONT_SIZE_DEFAULT,
+  READER_FONT_SIZE_MAX,
+  READER_FONT_SIZE_MIN,
+  READER_FONT_SIZE_STEP,
   READER_PRELOAD_AHEAD_DEFAULT,
   READER_PRELOAD_AHEAD_OPTIONS,
   READER_SCALE_VALUES,
+  READER_THEME_VALUES,
+  READER_WRITING_MODE_VALUES,
 } from "@/types/api";
-import type { Library, ReaderScale, ReaderSettings } from "@/types/api";
+import type {
+  Library,
+  ReaderScale,
+  ReaderSettings,
+  ReaderTheme,
+  ReaderWritingMode,
+} from "@/types/api";
 
 export default function LibrariesSettings() {
   const { t } = useTranslation();
@@ -309,6 +321,9 @@ function ReaderDefaultsSection() {
   const direction = (defaults.direction ?? "ltr") as "ltr" | "rtl";
   const scale = (defaults.scale ?? "fit") as ReaderScale;
   const preloadAhead = defaults.preload_ahead ?? READER_PRELOAD_AHEAD_DEFAULT;
+  const fontSize = defaults.font_size ?? READER_FONT_SIZE_DEFAULT;
+  const theme = (defaults.theme ?? "light") as ReaderTheme;
+  const writingMode = (defaults.writing_mode ?? "horizontal") as ReaderWritingMode;
 
   const save = (patch: ReaderSettings) => {
     update.mutate({
@@ -317,6 +332,9 @@ function ReaderDefaultsSection() {
         direction,
         scale,
         preload_ahead: preloadAhead,
+        font_size: fontSize,
+        theme,
+        writing_mode: writingMode,
         ...patch,
       },
     });
@@ -430,6 +448,85 @@ function ReaderDefaultsSection() {
             <p className="text-xs text-muted-foreground">
               {t("settings.readerDefaults.preloadAheadHint")}
             </p>
+          </div>
+
+          <div className="grid gap-2 pt-2">
+            <Label>{t("reader.epubFontSize")}</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => save({ font_size: Math.max(READER_FONT_SIZE_MIN, fontSize - READER_FONT_SIZE_STEP) })}
+                disabled={update.isPending || fontSize <= READER_FONT_SIZE_MIN}
+              >
+                -
+              </Button>
+              <span className="min-w-12 text-center text-sm tabular-nums">
+                {fontSize}%
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => save({ font_size: Math.min(READER_FONT_SIZE_MAX, fontSize + READER_FONT_SIZE_STEP) })}
+                disabled={update.isPending || fontSize >= READER_FONT_SIZE_MAX}
+              >
+                +
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("reader.theme.label")}</Label>
+            <ToggleGroup
+              type="single"
+              value={theme}
+              onValueChange={(v) => {
+                if (READER_THEME_VALUES.includes(v as ReaderTheme)) {
+                  save({ theme: v as ReaderTheme });
+                }
+              }}
+              variant="outline"
+              className="flex-wrap justify-start"
+              disabled={update.isPending}
+            >
+              {READER_THEME_VALUES.map((value) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  aria-label={t(`reader.theme.${value}`)}
+                >
+                  {t(`reader.theme.${value}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("reader.writingMode.label")}</Label>
+            <ToggleGroup
+              type="single"
+              value={writingMode}
+              onValueChange={(v) => {
+                if (READER_WRITING_MODE_VALUES.includes(v as ReaderWritingMode)) {
+                  save({ writing_mode: v as ReaderWritingMode });
+                }
+              }}
+              variant="outline"
+              className="flex-wrap justify-start"
+              disabled={update.isPending}
+            >
+              {READER_WRITING_MODE_VALUES.map((value) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  aria-label={t(`reader.writingMode.${value}`)}
+                >
+                  {t(`reader.writingMode.${value}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </div>
         </div>
       )}

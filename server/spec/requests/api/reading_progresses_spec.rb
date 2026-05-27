@@ -58,6 +58,16 @@ RSpec.describe "Api::ReadingProgresses", type: :request do
         as: :json
     end
 
+    it "round-trips epub_cfi" do
+      patch "/api/books/#{book.id}/progress",
+        params: {epub_cfi: "epubcfi(/6/4!/4/12/1:0)"},
+        as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["epub_cfi"]).to eq("epubcfi(/6/4!/4/12/1:0)")
+      expect(book.reading_progresses.find_by(user: user).epub_cfi).to eq("epubcfi(/6/4!/4/12/1:0)")
+    end
+
     it "creates progress when none exists" do
       expect {
         patch "/api/books/#{book.id}/progress",

@@ -96,7 +96,19 @@ export type ReaderScale = (typeof READER_SCALE_VALUES)[number];
 export const READER_PRELOAD_AHEAD_OPTIONS = [0, 2, 4, 8] as const;
 export const READER_PRELOAD_AHEAD_DEFAULT = 4;
 
+export const READER_THEME_VALUES = ["light", "dark", "sepia"] as const;
+export type ReaderTheme = (typeof READER_THEME_VALUES)[number];
+
+export const READER_WRITING_MODE_VALUES = ["horizontal", "vertical"] as const;
+export type ReaderWritingMode = (typeof READER_WRITING_MODE_VALUES)[number];
+
+export const READER_FONT_SIZE_DEFAULT = 100;
+export const READER_FONT_SIZE_MIN = 50;
+export const READER_FONT_SIZE_MAX = 300;
+export const READER_FONT_SIZE_STEP = 10;
+
 export interface ReaderSettings {
+  // CBZ-side
   spread?: boolean;
   direction?: "ltr" | "rtl";
   scale?: ReaderScale;
@@ -104,11 +116,16 @@ export interface ReaderSettings {
   // browser cache. Only meaningful as a user-wide default — per-book
   // settings ignore this field.
   preload_ahead?: number;
+  // EPUB-side
+  font_size?: number;            // percent, default 100
+  theme?: ReaderTheme;
+  writing_mode?: ReaderWritingMode;
 }
 
 export interface ReadingProgress {
   current_page: number;
   last_read_at: string | null;
+  epub_cfi: string | null;
   settings: ReaderSettings;
 }
 

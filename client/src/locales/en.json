@@ -193,6 +193,23 @@
     },
     "saveAsDefaults": "Save as default",
     "saveAsDefaultsHint": "Applied to books that haven't been opened yet.",
+    "epubFontSize": "Font size",
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "sepia": "Sepia"
+    },
+    "writingMode": {
+      "label": "Writing mode",
+      "horizontal": "Horizontal",
+      "vertical": "Vertical"
+    },
+    "toc": {
+      "title": "Table of contents",
+      "description": "Jump to a chapter.",
+      "empty": "No chapters available."
+    },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "Could not load this book.",
     "unsupportedFormat": "Reader is not available for this format yet."

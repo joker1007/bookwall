@@ -99,4 +99,60 @@ RSpec.describe "Api::Books", type: :request do
       expect(Favorite.where(user: user, book: book)).to be_empty
     end
   end
+
+  describe "GET /api/books/:id/file" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
+
+    it "requires authentication" do
+      book = create(:book, library: lib, file_format: :epub,
+        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+      get "/api/books/#{book.id}/file"
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "streams an EPUB with the correct MIME and filename" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :epub, title: "Sample Book",
+        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+
+      get "/api/books/#{book.id}/file"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("application/epub+zip")
+      expect(response.headers["Content-Disposition"]).to include('filename="Sample Book.epub"')
+      expect(response.headers["Cache-Control"]).to include("immutable")
+      expect(response.headers["ETag"]).to be_present
+    end
+
+    it "returns 304 when If-None-Match matches the ETag" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :epub,
+        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+
+      get "/api/books/#{book.id}/file"
+      etag = response.headers["ETag"]
+      expect(etag).to be_present
+
+      get "/api/books/#{book.id}/file", headers: {"If-None-Match" => etag}
+      expect(response).to have_http_status(:not_modified)
+    end
+
+    it "returns 404 for image_dir books (not a single file)" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :image_dir,
+        file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
+
+      get "/api/books/#{book.id}/file"
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "refuses to serve paths outside the library root" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :epub,
+        file_path: Rails.root.join("README.md").to_s)
+
+      get "/api/books/#{book.id}/file"
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
 end

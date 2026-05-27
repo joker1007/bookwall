@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, BookOpen, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { EpubReaderView } from "@/components/reader/EpubReaderView";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -232,15 +233,7 @@ export default function ReaderPage() {
   }
 
   if (book.data.file_format === "epub") {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black text-white">
-        <BookOpen className="size-12 opacity-50" aria-hidden />
-        <p>{t("reader.unsupportedFormat")}</p>
-        <Button variant="secondary" onClick={() => navigate(`/books/${id}`)}>
-          {t("reader.back")}
-        </Button>
-      </div>
-    );
+    return <EpubReaderView book={book.data} />;
   }
 
   return (

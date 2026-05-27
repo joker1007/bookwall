@@ -143,8 +143,6 @@ export default function BookDetailPage() {
             <Button
               variant="default"
               onClick={() => navigate(`/books/${book.id}/read`)}
-              disabled={book.file_format === "epub"}
-              title={book.file_format === "epub" ? t("reader.unsupportedFormat") : undefined}
               className="gap-2"
             >
               <BookOpen className="size-4" aria-hidden />

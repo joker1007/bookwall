@@ -3,7 +3,7 @@
 class ReadingProgressSerializer
   include Alba::Resource
 
-  attributes :current_page, :last_read_at
+  attributes :current_page, :last_read_at, :epub_cfi
 
   attribute :settings do |progress|
     progress.settings

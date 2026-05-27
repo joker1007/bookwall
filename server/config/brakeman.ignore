@@ -20,6 +20,27 @@
       "confidence": "Weak",
       "cwe_id": [22],
       "note": "Book.file_path is set by the library scanner from disk discovery, never by user input. The controller restricts the resolved path to the owning library root before send_file. The filename argument is built from Book#title via download_filename, which strips control chars, path separators, and quotes so the value cannot break the Content-Disposition header."
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "cd483ccbf802f360548bb7dc78c9ca9e1a7528a296c3d9200047b8a409e25cf5",
+      "check_name": "SendFile",
+      "message": "Model attribute used in file name",
+      "file": "app/controllers/api/books_controller.rb",
+      "line": 78,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "send_file(File.expand_path(Book.find(params[:id]).file_path), :type => Opds::FeedBuilder.download_mime(Book.find(params[:id])), :disposition => \"attachment\", :filename => download_filename(Book.find(params[:id])))",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::BooksController",
+        "method": "file"
+      },
+      "user_input": "Book.find(params[:id]).file_path",
+      "confidence": "Weak",
+      "cwe_id": [22],
+      "note": "Same constraints as the OPDS variant: Book.file_path comes from the library scanner, the controller verifies the resolved path stays under the owning library root before send_file, and the filename is sanitized via download_filename. The endpoint serves the EPUB / CBZ / PDF bytes to the in-app reader (Cookie auth)."
     }
   ],
   "brakeman_version": "8.0.4"

@@ -31,6 +31,19 @@ RSpec.describe UserPreference, type: :model do
       pref = build(:user_preference, reader_preload_ahead: nil)
       expect(pref).to be_valid
     end
+
+    it "accepts integer 50..300 for reader_font_size" do
+      expect(build(:user_preference, reader_font_size: 50)).to be_valid
+      expect(build(:user_preference, reader_font_size: 300)).to be_valid
+    end
+
+    it "rejects out-of-range reader_font_size" do
+      expect(build(:user_preference, reader_font_size: 49)).to be_invalid
+      expect(build(:user_preference, reader_font_size: 301)).to be_invalid
+    end
+
+    it { is_expected.to validate_inclusion_of(:reader_theme).in_array(%w[light dark sepia]).allow_nil }
+    it { is_expected.to validate_inclusion_of(:reader_writing_mode).in_array(%w[horizontal vertical]).allow_nil }
   end
 
   describe "#reader_defaults" do
@@ -44,7 +57,8 @@ RSpec.describe UserPreference, type: :model do
     it "round-trips a full set of reader settings through the writer" do
       pref = UserPreference.new(user: user)
       pref.reader_defaults = {
-        spread: false, direction: "rtl", scale: "fit_height", preload_ahead: 6
+        spread: false, direction: "rtl", scale: "fit_height", preload_ahead: 6,
+        font_size: 130, theme: "dark", writing_mode: "vertical"
       }
       pref.save!
       expect(pref.reload.reader_defaults).to eq(
@@ -52,6 +66,9 @@ RSpec.describe UserPreference, type: :model do
         "direction" => "rtl",
         "scale" => "fit_height",
         "preload_ahead" => 6,
+        "font_size" => 130,
+        "theme" => "dark",
+        "writing_mode" => "vertical",
       )
     end
 
