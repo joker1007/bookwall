@@ -11,6 +11,10 @@ class CreateReadingProgresses < ActiveRecord::Migration[8.1]
       # Reader settings (spread, direction, ...) stored as JSON text for
       # per-book customization.
       t.text :settings_json
+      # EPUB position. Saved as the canonical fragment identifier
+      # returned by foliate-js's `relocate` event so we can restore the
+      # reader exactly where the user left off.
+      t.string :epub_cfi
       t.timestamps
     end
     add_index :reading_progresses, :book_id, name: "index_reading_progresses_on_book_id_only"

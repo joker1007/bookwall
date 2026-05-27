@@ -18,7 +18,10 @@ class CreateBooks < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
-    add_index :books, :file_path, unique: true
+    # file_path is stored relative to the owning library's root, so the
+    # uniqueness scope has to include library_id (two libraries can
+    # legitimately hold a file with the same basename).
+    add_index :books, %i[library_id file_path], unique: true
     add_index :books, :file_hash
     add_index :books, :added_at
     add_index :books, [:library_id, :series_id, :volume]
