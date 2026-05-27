@@ -22,7 +22,7 @@
 ARG RUBY_VERSION=4.0.3
 
 # -------- Stage 1: build the React client --------
-FROM node:22-slim AS client_build
+FROM node:26-slim AS client_build
 WORKDIR /client
 COPY client/package*.json ./
 RUN npm ci
