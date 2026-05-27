@@ -105,7 +105,7 @@ RSpec.describe "Api::Books", type: :request do
 
     it "requires authentication" do
       book = create(:book, library: lib, file_format: :epub,
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
       get "/api/books/#{book.id}/file"
       expect(response).to have_http_status(:unauthorized)
     end
@@ -113,7 +113,7 @@ RSpec.describe "Api::Books", type: :request do
     it "streams an EPUB with the correct MIME and filename" do
       sign_in!
       book = create(:book, library: lib, file_format: :epub, title: "Sample Book",
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
 
       get "/api/books/#{book.id}/file"
 
@@ -127,7 +127,7 @@ RSpec.describe "Api::Books", type: :request do
     it "returns 304 when If-None-Match matches the ETag" do
       sign_in!
       book = create(:book, library: lib, file_format: :epub,
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
 
       get "/api/books/#{book.id}/file"
       etag = response.headers["ETag"]
@@ -140,7 +140,7 @@ RSpec.describe "Api::Books", type: :request do
     it "returns 404 for image_dir books (not a single file)" do
       sign_in!
       book = create(:book, library: lib, file_format: :image_dir,
-        file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
+        file_path: "sample_image_dir")
 
       get "/api/books/#{book.id}/file"
       expect(response).to have_http_status(:not_found)
@@ -148,8 +148,9 @@ RSpec.describe "Api::Books", type: :request do
 
     it "refuses to serve paths outside the library root" do
       sign_in!
+      # A relative path that climbs above the library root resolves outside it.
       book = create(:book, library: lib, file_format: :epub,
-        file_path: Rails.root.join("README.md").to_s)
+        file_path: "../../README.md")
 
       get "/api/books/#{book.id}/file"
       expect(response).to have_http_status(:forbidden)

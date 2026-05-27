@@ -26,10 +26,18 @@ class Book < ApplicationRecord
   end
 
   validates :title, presence: true
-  validates :file_path, presence: true, uniqueness: true
+  validates :file_path, presence: true, uniqueness: {scope: :library_id}
   validates :file_format, presence: true
   validates :file_size, numericality: {greater_than_or_equal_to: 0}
   validates :file_hash, length: {is: 64}, allow_nil: true
+
+  # The on-disk path resolved against the owning library's root. Stored
+  # `file_path` is relative (so libraries can be remounted) and consumers
+  # who need to actually open the file go through this method.
+  def absolute_path
+    return file_path if library.nil?
+    File.expand_path(File.join(library.path, file_path))
+  end
 
   before_save :ensure_added_at
   # FTS sync runs out-of-band so the writing transaction (API update etc.)

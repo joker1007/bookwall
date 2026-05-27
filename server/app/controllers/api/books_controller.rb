@@ -64,7 +64,7 @@ module Api
     def file
       return head :not_found if @book.file_format == "image_dir"
 
-      resolved = File.expand_path(@book.file_path)
+      resolved = @book.absolute_path
       library_root = File.expand_path(@book.library.path)
       unless resolved == library_root || resolved.start_with?("#{library_root}/")
         return head :forbidden

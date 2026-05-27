@@ -15,7 +15,7 @@ RSpec.describe Book, type: :model do
     subject { build(:book) }
 
     it { is_expected.to validate_presence_of(:title) }
-    it { is_expected.to validate_uniqueness_of(:file_path) }
+    it { is_expected.to validate_uniqueness_of(:file_path).scoped_to(:library_id) }
   end
 
   describe "enum file_format" do

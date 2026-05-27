@@ -18,7 +18,7 @@ module Books
     def self.fetch(book, page_num)
       return Result.new(status: :bad_request) if page_num.negative?
 
-      parser = Parsers.for(book.file_path)
+      parser = Parsers.for(book.absolute_path)
       Result.new(
         bytes: parser.page_bytes(page_num),
         content_type: parser.page_content_type(page_num),

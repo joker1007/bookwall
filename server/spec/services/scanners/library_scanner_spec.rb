@@ -63,7 +63,7 @@ RSpec.describe Scanners::LibraryScanner do
       # The scan no longer prunes books whose files have disappeared — that
       # belongs to a dedicated cleanup job, keeping the scan's writer-lock
       # window short.
-      expect(library.books.where(file_path: File.join(tmpdir, "sample.epub"))).to exist
+      expect(library.books.where(file_path: "sample.epub")).to exist
       expect(log.removed_count).to eq(0)
     end
 
@@ -128,9 +128,9 @@ RSpec.describe Scanners::LibraryScanner do
       it "rolls back the per-book transaction if any step fails" do
         # Make the cover attach blow up for one specific book; that book
         # must not leave half-written rows behind.
-        broken_path = File.join(tmpdir, "sample.cbz")
+        broken_relative = "sample.cbz"
         allow(Covers::Extractor).to receive(:attach).and_wrap_original do |original, book, bytes|
-          raise "boom" if book.file_path == broken_path
+          raise "boom" if book.file_path == broken_relative
           original.call(book, bytes)
         end
 
@@ -140,7 +140,7 @@ RSpec.describe Scanners::LibraryScanner do
 
         # The broken book's row must not exist (transaction rolled back),
         # nor should its tag / author joins be left behind.
-        expect(library.books.where(file_path: broken_path)).to be_empty
+        expect(library.books.where(file_path: broken_relative)).to be_empty
       end
 
       it "resets the thread-local skip flag even when the scan fails" do
@@ -164,14 +164,14 @@ RSpec.describe Scanners::LibraryScanner do
 
         described_class.new(library).call
 
-        nested_book = library.books.find_by(file_path: File.join(nested_dir, "sample.epub"))
+        nested_book = library.books.find_by(file_path: "Wonderland Series/sample.epub")
         expect(nested_book.series&.name).to eq("Wonderland Series")
       end
 
       it "leaves books at the library root with no series" do
         described_class.new(library).call
 
-        root_epub = library.books.find_by(file_path: File.join(tmpdir, "sample.epub"))
+        root_epub = library.books.find_by(file_path: "sample.epub")
         expect(root_epub.series).to be_nil
       end
     end
@@ -184,7 +184,7 @@ RSpec.describe Scanners::LibraryScanner do
       it "records a ScanLog but does not fail the whole run" do
         log = described_class.new(library).call
         expect(log.status).to eq("succeeded")
-        expect(library.books.find_by(file_path: File.join(tmpdir, "broken.cbz"))).to be_nil
+        expect(library.books.find_by(file_path: "broken.cbz")).to be_nil
       end
     end
   end

@@ -15,7 +15,7 @@ RSpec.describe "Opds::Downloads", type: :request do
         library: library,
         file_format: :epub,
         title: "Sample EPUB",
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
 
       get "/opds/books/#{book.id}/file.epub", headers: {"Authorization" => auth_header}
 
@@ -29,7 +29,7 @@ RSpec.describe "Opds::Downloads", type: :request do
         library: library,
         file_format: :cbz,
         title: "Sample CBZ",
-        file_path: Rails.root.join("spec/fixtures/files/sample.cbz").to_s)
+        file_path: "sample.cbz")
 
       get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
 
@@ -42,7 +42,7 @@ RSpec.describe "Opds::Downloads", type: :request do
       book = create(:book,
         library: library,
         file_format: :epub,
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
 
       get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
 
@@ -54,7 +54,7 @@ RSpec.describe "Opds::Downloads", type: :request do
         library: library,
         file_format: :image_dir,
         title: "Image Dir Book",
-        file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
+        file_path: "sample_image_dir")
 
       get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
 
@@ -73,7 +73,7 @@ RSpec.describe "Opds::Downloads", type: :request do
       book = create(:book,
         library: library,
         file_format: :image_dir,
-        file_path: Rails.root.join("spec/fixtures/files/sample_image_dir").to_s)
+        file_path: "sample_image_dir")
 
       get "/opds/books/#{book.id}/file.epub", headers: {"Authorization" => auth_header}
 
@@ -84,7 +84,7 @@ RSpec.describe "Opds::Downloads", type: :request do
       book = create(:book,
         library: library,
         file_format: :epub,
-        file_path: Rails.root.join("spec/fixtures/files/sample.epub").to_s)
+        file_path: "sample.epub")
 
       get "/opds/books/#{book.id}/file.epub"
       expect(response).to have_http_status(:unauthorized)

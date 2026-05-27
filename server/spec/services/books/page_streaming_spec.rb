@@ -3,12 +3,12 @@
 require "rails_helper"
 
 RSpec.describe Books::PageStreaming do
-  let(:library) { create(:library) }
+  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
   let(:book) do
     create(:book,
       library: library,
       file_format: :cbz,
-      file_path: Rails.root.join("spec/fixtures/files/sample.cbz").to_s,
+      file_path: "sample.cbz",
       page_count: 4)
   end
 

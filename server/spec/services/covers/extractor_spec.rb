@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Covers::Extractor do
-  let(:library) { create(:library) }
+  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
 
   describe ".attach" do
     it "attaches JPEG bytes to a book" do
@@ -48,8 +48,7 @@ RSpec.describe Covers::Extractor do
       image_dir: "sample_image_dir"
     }.each do |format, filename|
       context "with a #{format} fixture" do
-        let(:source_path) { Rails.root.join("spec/fixtures/files", filename).to_s }
-        let(:book) { create(:book, library: library, file_path: source_path, file_format: format) }
+        let(:book) { create(:book, library: library, file_path: filename, file_format: format) }
 
         it "attaches a cover" do
           described_class.call(book)
@@ -61,9 +60,9 @@ RSpec.describe Covers::Extractor do
 
     it "warns and skips for a corrupted file" do
       tmp = Dir.mktmpdir("bookwall-cover-broken-")
-      broken = File.join(tmp, "broken.pdf")
-      File.write(broken, "not a pdf")
-      book = create(:book, library: library, file_path: broken, file_format: :pdf)
+      broken_library = create(:library, path: tmp)
+      File.write(File.join(tmp, "broken.pdf"), "not a pdf")
+      book = create(:book, library: broken_library, file_path: "broken.pdf", file_format: :pdf)
 
       expect(Rails.logger).to receive(:warn).with(/no cover/)
       described_class.call(book)

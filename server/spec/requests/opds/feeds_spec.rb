@@ -65,7 +65,7 @@ RSpec.describe "Opds::Feeds", type: :request do
         library: library,
         title: "EpubBook",
         file_format: :epub,
-        file_path: "/mnt/books/epub-only.epub",
+        file_path: "epub-only.epub",
         page_count: 12)
       get "/opds/recent", headers: {"Authorization" => auth_header}
 
@@ -81,9 +81,9 @@ RSpec.describe "Opds::Feeds", type: :request do
 
     it "puts the file extension on the acquisition href so readers can sniff EPUB" do
       epub = create(:book, library: library, file_format: :epub,
-        file_path: "/mnt/books/x.epub", title: "EpubLink")
+        file_path: "x.epub", title: "EpubLink")
       cbz = create(:book, library: library, file_format: :cbz,
-        file_path: "/mnt/books/x.cbz", title: "CbzLink")
+        file_path: "x.cbz", title: "CbzLink")
 
       get "/opds/recent", headers: {"Authorization" => auth_header}
 
@@ -102,7 +102,7 @@ RSpec.describe "Opds::Feeds", type: :request do
 
     it "advertises image_dir books as CBZ acquisitions (packaged on the fly at download)" do
       book = create(:book, library: library, file_format: :image_dir,
-        file_path: "/mnt/books/some-dir", title: "DirOnly")
+        file_path: "some-dir", title: "DirOnly")
 
       get "/opds/recent", headers: {"Authorization" => auth_header}
 
@@ -120,7 +120,7 @@ RSpec.describe "Opds::Feeds", type: :request do
       create(:book,
         library: library,
         file_format: :epub,
-        file_path: "/mnt/books/format-hints.epub",
+        file_path: "format-hints.epub",
         title: "FormatHints",
         file_size: 4_300_000,
         page_count: 320)
@@ -146,7 +146,7 @@ RSpec.describe "Opds::Feeds", type: :request do
       # Format detection must rely on acquisition link @type + dc:format +
       # atom:content instead.
       create(:book, library: library, file_format: :epub,
-        file_path: "/mnt/books/plain.epub", title: "PlainBook")
+        file_path: "plain.epub", title: "PlainBook")
 
       get "/opds/recent", headers: {"Authorization" => auth_header}
 
@@ -161,7 +161,7 @@ RSpec.describe "Opds::Feeds", type: :request do
 
     it "emits placeholder cover + thumbnail links when the book has no attached cover" do
       create(:book, library: library, file_format: :epub,
-        file_path: "/mnt/books/no-cover.epub", title: "NoCover")
+        file_path: "no-cover.epub", title: "NoCover")
 
       get "/opds/recent", headers: {"Authorization" => auth_header}
 
@@ -193,7 +193,7 @@ RSpec.describe "Opds::Feeds", type: :request do
       create(:book,
         library: library,
         file_format: :image_dir,
-        file_path: "/mnt/books/imgdir",
+        file_path: "imgdir",
         title: "ImgDirContent",
         page_count: 18)
 

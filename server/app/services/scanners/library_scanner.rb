@@ -103,7 +103,13 @@ module Scanners
     end
 
     def diff_against_db(jobs)
-      existing = library.books.pluck(:file_path, :scanned_at).to_h
+      # Files on disk are seen as absolute paths during discovery, but
+      # the DB now holds them library-relative. Re-absolutise the DB
+      # rows for the comparison so existing-record lookup still works.
+      root = File.expand_path(library.path)
+      existing = library.books.pluck(:file_path, :scanned_at).to_h do |rel, scanned_at|
+        [File.expand_path(File.join(root, rel)), scanned_at]
+      end
 
       to_add = []
       to_update = []
@@ -193,7 +199,8 @@ module Scanners
       series_name = meta[:series].presence || fallback_series_from_path(result[:path])
       series_record = ensure_series(series_name)
 
-      book = library.books.find_or_initialize_by(file_path: result[:path])
+      relative_path = relative_to_library(result[:path])
+      book = library.books.find_or_initialize_by(file_path: relative_path)
       book.assign_attributes(
         series: series_record,
         title: meta[:title].presence || File.basename(result[:path], ".*"),
@@ -232,9 +239,23 @@ module Scanners
     # sense.
     def fallback_series_from_path(path)
       parent = File.expand_path(File.dirname(path))
-      root = File.expand_path(library.path)
-      return nil if parent == root
+      return nil if parent == library_root
       File.basename(parent).presence
+    end
+
+    # Strip the library root prefix off an absolute discovered path so we
+    # can store it relative in the DB. Anything that doesn't sit under
+    # the library root is returned unchanged — that's a configuration
+    # bug worth surfacing rather than papering over.
+    def relative_to_library(path)
+      absolute = File.expand_path(path)
+      prefix = "#{library_root}/"
+      return absolute unless absolute.start_with?(prefix)
+      absolute[prefix.length..]
+    end
+
+    def library_root
+      @library_root ||= File.expand_path(library.path)
     end
   end
 end

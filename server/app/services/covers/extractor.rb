@@ -28,7 +28,7 @@ module Covers
     # Convenience for code paths that already have a persisted book and want
     # the cover extracted synchronously (used by tests and one-off rake tasks).
     def call(book)
-      parser = Parsers.for(book.file_path)
+      parser = Parsers.for(book.absolute_path)
       attach(book, parser.cover_bytes)
     rescue Parsers::CoverNotFound, Parsers::InvalidFile => e
       Rails.logger.warn("[Covers::Extractor] no cover for book #{book.id}: #{e.message}")

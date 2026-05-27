@@ -45,13 +45,12 @@ RSpec.describe Series, type: :model do
 
     it "leaves the underlying file on disk untouched" do
       library = create(:library, path: Rails.root.join("spec/fixtures/files").to_s)
-      file_path = "#{library.path}/sample.cbz"
       series = Series.create!(library: library, name: "Disk Safety")
-      create(:book, library: library, series: series, file_path: file_path)
+      book = create(:book, library: library, series: series, file_path: "sample.cbz")
 
-      expect(File).to exist(file_path)
+      expect(File).to exist(book.absolute_path)
       series.destroy!
-      expect(File).to exist(file_path)
+      expect(File).to exist(book.absolute_path)
     end
   end
 end

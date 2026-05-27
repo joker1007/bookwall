@@ -46,7 +46,6 @@ FOREIGN KEY ("series_id")
 );
 CREATE INDEX "index_books_on_library_id" ON "books" ("library_id") /*application='Bookwall'*/;
 CREATE INDEX "index_books_on_series_id" ON "books" ("series_id") /*application='Bookwall'*/;
-CREATE UNIQUE INDEX "index_books_on_file_path" ON "books" ("file_path") /*application='Bookwall'*/;
 CREATE INDEX "index_books_on_file_hash" ON "books" ("file_hash") /*application='Bookwall'*/;
 CREATE INDEX "index_books_on_added_at" ON "books" ("added_at") /*application='Bookwall'*/;
 CREATE INDEX "index_books_on_library_id_and_series_id_and_volume" ON "books" ("library_id", "series_id", "volume") /*application='Bookwall'*/;
@@ -97,24 +96,26 @@ CREATE TABLE IF NOT EXISTS 'books_fts_idx'(segid, term, pgno, PRIMARY KEY(segid,
 CREATE TABLE IF NOT EXISTS 'books_fts_content'(id INTEGER PRIMARY KEY, c0, c1, c2);
 CREATE TABLE IF NOT EXISTS 'books_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB);
 CREATE TABLE IF NOT EXISTS 'books_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS "reading_progresses" ("user_id" integer NOT NULL, "book_id" integer NOT NULL, "current_page" integer DEFAULT 0 NOT NULL, "last_read_at" datetime(6) NOT NULL, "settings_json" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "epub_cfi" varchar, PRIMARY KEY ("user_id", "book_id"), CONSTRAINT "fk_rails_063fbcdc58"
+CREATE TABLE IF NOT EXISTS "reading_progresses" ("user_id" integer NOT NULL, "book_id" integer NOT NULL, "current_page" integer DEFAULT 0 NOT NULL, "last_read_at" datetime(6) NOT NULL, "settings_json" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "epub_cfi" varchar /*application='Bookwall'*/, PRIMARY KEY ("user_id", "book_id"), CONSTRAINT "fk_rails_063fbcdc58"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 , CONSTRAINT "fk_rails_57da0b7b28"
 FOREIGN KEY ("book_id")
   REFERENCES "books" ("id")
 );
-CREATE INDEX "index_reading_progresses_on_user_id" ON "reading_progresses" ("user_id");
-CREATE INDEX "index_reading_progresses_on_book_id" ON "reading_progresses" ("book_id");
-CREATE INDEX "index_reading_progresses_on_book_id_only" ON "reading_progresses" ("book_id");
+CREATE INDEX "index_reading_progresses_on_user_id" ON "reading_progresses" ("user_id") /*application='Bookwall'*/;
+CREATE INDEX "index_reading_progresses_on_book_id" ON "reading_progresses" ("book_id") /*application='Bookwall'*/;
+CREATE INDEX "index_reading_progresses_on_book_id_only" ON "reading_progresses" ("book_id") /*application='Bookwall'*/;
 CREATE TABLE IF NOT EXISTS "users" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "email_address" varchar NOT NULL, "password_digest" varchar NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
-CREATE UNIQUE INDEX "index_users_on_email_address" ON "users" ("email_address");
-CREATE TABLE IF NOT EXISTS "user_preferences" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "reader_spread" boolean, "reader_direction" varchar, "reader_scale" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "reader_preload_ahead" integer, "reader_font_size" integer, "reader_theme" varchar, "reader_writing_mode" varchar, CONSTRAINT "fk_rails_a69bfcfd81"
+CREATE UNIQUE INDEX "index_users_on_email_address" ON "users" ("email_address") /*application='Bookwall'*/;
+CREATE TABLE IF NOT EXISTS "user_preferences" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "reader_spread" boolean, "reader_direction" varchar, "reader_scale" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "reader_preload_ahead" integer /*application='Bookwall'*/, "reader_font_size" integer /*application='Bookwall'*/, "reader_theme" varchar /*application='Bookwall'*/, "reader_writing_mode" varchar /*application='Bookwall'*/, CONSTRAINT "fk_rails_a69bfcfd81"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 );
-CREATE UNIQUE INDEX "index_user_preferences_on_user_id" ON "user_preferences" ("user_id");
+CREATE UNIQUE INDEX "index_user_preferences_on_user_id" ON "user_preferences" ("user_id") /*application='Bookwall'*/;
+CREATE UNIQUE INDEX "index_books_on_library_id_and_file_path" ON "books" ("library_id", "file_path") /*application='Bookwall'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20260528160000'),
 ('20260528151500'),
 ('20260528150000'),
 ('20260528140000'),
