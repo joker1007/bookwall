@@ -1,8 +1,10 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+# Prepare the database before booting any web or worker process.
+case "$1" in
+  ./bin/rails | ./bin/thrust | ./bin/jobs | bundle)
+    ./bin/rails db:prepare
+    ;;
+esac
 
 exec "${@}"

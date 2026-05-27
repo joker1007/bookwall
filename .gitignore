@@ -1,5 +1,6 @@
 # Claude Code local-only settings (skills are checked in)
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # playwright-cli runtime artifacts (snapshots / console logs)
 **/.playwright-cli/

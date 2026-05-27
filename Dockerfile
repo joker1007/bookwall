@@ -9,6 +9,8 @@
 #
 # Thruster listens on $PORT (80) and proxies to Falcon on TARGET_PORT (3000).
 
+ARG RUBY_VERSION=4.0.3
+
 # -------- Stage 1: build the React client --------
 FROM node:22-slim AS client_build
 WORKDIR /client
@@ -18,7 +20,6 @@ COPY client/ ./
 RUN npm run build
 
 # -------- Stage 2: prepare Rails server --------
-ARG RUBY_VERSION=4.0.3
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS server_base
 WORKDIR /rails
 
@@ -38,7 +39,7 @@ FROM server_base AS server_build
 
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
-      build-essential git libvips libyaml-dev pkg-config && \
+      build-essential git libvips libyaml-dev libssl-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY server/Gemfile server/Gemfile.lock ./
