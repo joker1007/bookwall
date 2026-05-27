@@ -11,7 +11,7 @@ module Opds
 
       parser = Parsers.for(book.file_path)
       bytes = parser.page_bytes(page_num)
-      send_data bytes, type: "image/jpeg", disposition: "inline"
+      send_data bytes, type: parser.page_content_type(page_num), disposition: "inline"
     rescue Parsers::Error
       head :not_found
     end

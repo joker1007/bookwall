@@ -22,6 +22,16 @@ RSpec.describe "Opds::Pages", type: :request do
       expect(response.body.bytesize).to be > 1000
     end
 
+    it "uses the actual MIME type of the page (PNG entry → image/png)" do
+      # sample.cbz contains 001.jpg, 002.jpg, 003.jpg, peppercredit.png. The
+      # PNG sorts last, so index 3 should come back as image/png rather than
+      # the historical hard-coded image/jpeg.
+      get "/opds/books/#{book.id}/pages/3", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("image/png")
+    end
+
     it "returns 404 for out-of-range pages" do
       get "/opds/books/#{book.id}/pages/9999", headers: {"Authorization" => auth_header}
       expect(response).to have_http_status(:not_found)

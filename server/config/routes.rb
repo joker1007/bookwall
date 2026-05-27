@@ -34,7 +34,13 @@ Rails.application.routes.draw do
     get "/favorites", to: "feeds#favorites", as: :favorites
     get "/libraries", to: "feeds#libraries", as: :libraries
     get "/libraries/:library_id", to: "feeds#library", as: :library
-    get "/books/:book_id/file", to: "downloads#file", as: :book_file
+    # Include the format extension in the URL so OPDS readers that infer MIME
+    # from the path (rather than the link's @type attribute) recognize the
+    # downloaded book as EPUB/CBZ/PDF.
+    get "/books/:book_id/file.:format",
+      to: "downloads#file",
+      as: :book_file,
+      constraints: {format: /epub|cbz|pdf/}
     get "/books/:book_id/pages/:n", to: "pages#show", as: :book_page
   end
 end

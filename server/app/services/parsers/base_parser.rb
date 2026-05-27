@@ -27,6 +27,12 @@ module Parsers
       raise NotImplementedError
     end
 
+    # @param index [Integer] 0-based page index
+    # @return [String] MIME type of the bytes returned by #page_bytes(index)
+    def page_content_type(_index)
+      "image/jpeg"
+    end
+
     protected
 
     def basename_without_ext

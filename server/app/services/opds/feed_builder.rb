@@ -16,6 +16,11 @@ module Opds
     PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER".freeze
     PSE_TEMPLATE_TOKEN = "{pageNumber}".freeze
 
+    # OPDS-PSE streams image pages, so EPUB (reflowable XHTML/HTML) is not a
+    # valid PSE source. EPUBs are still discoverable via the regular OPDS
+    # acquisition link and downloaded whole by the reader.
+    PSE_STREAMABLE_FORMATS = %w[cbz pdf image_dir].freeze
+
     def self.navigation(title:, id:, self_url:, entries:)
       build_feed do |xml|
         xml.title title
@@ -48,14 +53,23 @@ module Opds
             xml.id_ "urn:bookwall:book:#{book.id}"
             xml.updated book.updated_at.iso8601
             book.authors.each { |a| xml.author { xml.name a.name } }
-            xml.dc_(:language, book_language(book)) if book_language(book)
+            xml["dc"].language(book_language(book)) if book_language(book)
+            # Spec-correct format identification is the acquisition link's
+            # @type attribute, but some OPDS clients additionally inspect
+            # dc:format and atom:content. Emitting both keeps EPUB recognition
+            # working when other metadata (authors / series / pages) is sparse.
+            xml["dc"].format_(download_mime(book)) if downloadable?(book)
             book.tags.each { |t| xml.category(term: t.name) }
+            content_text = entry_content(book)
+            xml.content_(type: "text") { xml.text(content_text) } if content_text.present?
 
-            xml.link(
-              rel: ACQUISITION_REL,
-              href: helpers.opds_book_file_path(book),
-              type: download_mime(book)
-            )
+            if downloadable?(book)
+              xml.link(
+                rel: ACQUISITION_REL,
+                href: helpers.opds_book_file_path(book_id: book.id, format: book.file_format.to_s),
+                type: download_mime(book)
+              )
+            end
 
             if book.cover.attached?
               xml.link(rel: IMAGE_REL, href: helpers.rails_blob_path(book.cover, only_path: true), type: book.cover.content_type)
@@ -64,7 +78,7 @@ module Opds
               end
             end
 
-            if book.page_count.to_i > 0
+            if pse_streamable?(book) && book.page_count.to_i > 0
               xml.send(:"pse:link",
                        rel: PSE_STREAM_REL,
                        href: pse_stream_href(book, helpers),
@@ -83,6 +97,17 @@ module Opds
         end
       end
       doc.to_xml
+    end
+
+    def self.pse_streamable?(book)
+      PSE_STREAMABLE_FORMATS.include?(book.file_format.to_s)
+    end
+
+    # image_dir books live on disk as a directory of images, so they cannot
+    # be served as a single downloadable file. Other formats are downloadable
+    # via the OPDS acquisition link.
+    def self.downloadable?(book)
+      book.file_format.to_s != "image_dir"
     end
 
     def self.pse_stream_href(book, helpers)
@@ -109,6 +134,38 @@ module Opds
       when "pdf" then "application/pdf"
       else "application/octet-stream"
       end
+    end
+
+    # Human-readable summary string embedded in <atom:content>. Format label
+    # comes first so clients that scan the body for "EPUB" / "CBZ" / "PDF" can
+    # latch onto it even when title/authors are minimal.
+    def self.entry_content(book)
+      parts = []
+      parts << format_label(book)
+      parts << "#{book.page_count} pages" if book.page_count.to_i.positive?
+      parts << format_file_size(book.file_size) if book.file_size.to_i.positive?
+      parts.compact.join(" · ")
+    end
+
+    def self.format_label(book)
+      case book.file_format.to_s
+      when "cbz" then "CBZ"
+      when "epub" then "EPUB"
+      when "pdf" then "PDF"
+      when "image_dir" then "Image Directory"
+      end
+    end
+
+    def self.format_file_size(bytes)
+      return nil unless bytes&.positive?
+      units = %w[B KB MB GB TB]
+      value = bytes.to_f
+      unit_index = 0
+      while value >= 1024 && unit_index < units.length - 1
+        value /= 1024
+        unit_index += 1
+      end
+      "#{value < 10 && unit_index.positive? ? format("%.1f", value) : value.to_i} #{units[unit_index]}"
     end
   end
 end

@@ -57,6 +57,123 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(pse["href"]).not_to include("%7B")
       expect(pse["href"]).not_to include("%7D")
     end
+
+    it "omits the PSE link for EPUB books (PSE is image-only)" do
+      create(:book,
+        library: library,
+        title: "EpubBook",
+        file_format: :epub,
+        file_path: "/mnt/books/epub-only.epub",
+        page_count: 12)
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      entry = doc.at_xpath(
+        "//atom:entry[atom:title='EpubBook']",
+        "atom" => "http://www.w3.org/2005/Atom"
+      )
+      expect(entry).not_to be_nil
+      pse = entry.at_xpath("pse:link", "pse" => "http://vaemendis.net/opds-pse/ns")
+      expect(pse).to be_nil
+    end
+
+    it "puts the file extension on the acquisition href so readers can sniff EPUB" do
+      epub = create(:book, library: library, file_format: :epub,
+        file_path: "/mnt/books/x.epub", title: "EpubLink")
+      cbz = create(:book, library: library, file_format: :cbz,
+        file_path: "/mnt/books/x.cbz", title: "CbzLink")
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      acq = ->(entry_title) {
+        doc.at_xpath(
+          "//atom:entry[atom:title='#{entry_title}']/atom:link[@rel='http://opds-spec.org/acquisition']",
+          "atom" => "http://www.w3.org/2005/Atom"
+        )
+      }
+      expect(acq.call("EpubLink")["href"]).to eq("/opds/books/#{epub.id}/file.epub")
+      expect(acq.call("EpubLink")["type"]).to eq("application/epub+zip")
+      expect(acq.call("CbzLink")["href"]).to eq("/opds/books/#{cbz.id}/file.cbz")
+      expect(acq.call("CbzLink")["type"]).to eq("application/x-cbz")
+    end
+
+    it "omits the acquisition link for image_dir books (no single file to download)" do
+      create(:book, library: library, file_format: :image_dir,
+        file_path: "/mnt/books/some-dir", title: "DirOnly")
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      acq = doc.at_xpath(
+        "//atom:entry[atom:title='DirOnly']/atom:link[@rel='http://opds-spec.org/acquisition']",
+        "atom" => "http://www.w3.org/2005/Atom"
+      )
+      expect(acq).to be_nil
+    end
+
+    it "exposes the file format via dc:format and atom:content for redundant detection" do
+      create(:book,
+        library: library,
+        file_format: :epub,
+        file_path: "/mnt/books/format-hints.epub",
+        title: "FormatHints",
+        file_size: 4_300_000,
+        page_count: 320)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      ns = {
+        "atom" => "http://www.w3.org/2005/Atom",
+        "dc" => "http://purl.org/dc/elements/1.1/"
+      }
+      entry = doc.at_xpath("//atom:entry[atom:title='FormatHints']", ns)
+      expect(entry.at_xpath("dc:format", ns)&.text).to eq("application/epub+zip")
+      content = entry.at_xpath("atom:content[@type='text']", ns)&.text
+      expect(content).to include("EPUB")
+      expect(content).to include("320 pages")
+      expect(content).to include("MB")
+    end
+
+    it "leaves atom:title untouched (no file extension suffix)" do
+      # Some iOS OPDS clients display the entry title and an internally-derived
+      # extension side by side, so adding ".epub" here would show up doubled.
+      # Format detection must rely on acquisition link @type + dc:format +
+      # atom:content instead.
+      create(:book, library: library, file_format: :epub,
+        file_path: "/mnt/books/plain.epub", title: "PlainBook")
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      titles = doc.xpath(
+        "//atom:entry/atom:title",
+        "atom" => "http://www.w3.org/2005/Atom"
+      ).map(&:text)
+      expect(titles).to include("PlainBook")
+      expect(titles).not_to include("PlainBook.epub")
+    end
+
+    it "omits dc:format for image_dir but still emits atom:content" do
+      create(:book,
+        library: library,
+        file_format: :image_dir,
+        file_path: "/mnt/books/imgdir",
+        title: "ImgDirContent",
+        page_count: 18)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      ns = {
+        "atom" => "http://www.w3.org/2005/Atom",
+        "dc" => "http://purl.org/dc/elements/1.1/"
+      }
+      entry = doc.at_xpath("//atom:entry[atom:title='ImgDirContent']", ns)
+      expect(entry.at_xpath("dc:format", ns)).to be_nil
+      expect(entry.at_xpath("atom:content", ns)&.text).to include("Image Directory")
+    end
   end
 
   describe "GET /opds/libraries/:id" do

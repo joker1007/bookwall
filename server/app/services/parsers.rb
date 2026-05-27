@@ -6,6 +6,18 @@ module Parsers
 
   IMAGE_EXTENSIONS = %w[.jpg .jpeg .png .webp .gif].freeze
 
+  EXTENSION_MIME_TYPES = {
+    ".jpg" => "image/jpeg",
+    ".jpeg" => "image/jpeg",
+    ".png" => "image/png",
+    ".webp" => "image/webp",
+    ".gif" => "image/gif"
+  }.freeze
+
+  def self.mime_type_for_extension(filename, default: "application/octet-stream")
+    EXTENSION_MIME_TYPES.fetch(File.extname(filename).downcase, default)
+  end
+
   module_function
 
   def for(path)

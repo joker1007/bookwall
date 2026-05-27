@@ -3,13 +3,13 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "29ea023de1e91abd24df8632df7256641a5abf43fae9f0d002658a892be6f4e4",
+      "fingerprint": "8a5052130ffdd1eb1784a7bfcae0375b347db60a3dd70a0855a06146176ab6d0",
       "check_name": "SendFile",
       "message": "Model attribute used in file name",
       "file": "app/controllers/opds/downloads_controller.rb",
-      "line": 14,
+      "line": 21,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "send_file(File.expand_path(Book.find(params[:book_id]).file_path), :type => Opds::FeedBuilder.download_mime(Book.find(params[:book_id])), :disposition => \"attachment\")",
+      "code": "send_file(File.expand_path(Book.find(params[:book_id]).file_path), :type => Opds::FeedBuilder.download_mime(Book.find(params[:book_id])), :disposition => \"attachment\", :filename => download_filename(Book.find(params[:book_id])))",
       "render_path": null,
       "location": {
         "type": "method",
@@ -19,7 +19,7 @@
       "user_input": "Book.find(params[:book_id]).file_path",
       "confidence": "Weak",
       "cwe_id": [22],
-      "note": "Book.file_path is set by the library scanner from disk discovery, never by user input. The controller also restricts the resolved path to the owning library's root before send_file."
+      "note": "Book.file_path is set by the library scanner from disk discovery, never by user input. The controller restricts the resolved path to the owning library root before send_file. The filename argument is built from Book#title via download_filename, which strips control chars, path separators, and quotes so the value cannot break the Content-Disposition header."
     }
   ],
   "brakeman_version": "8.0.4"

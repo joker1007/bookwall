@@ -27,6 +27,12 @@ module Parsers
       raise Error, "page index out of range: #{index}"
     end
 
+    def page_content_type(index)
+      Parsers.mime_type_for_extension(image_files.fetch(index), default: "image/jpeg")
+    rescue IndexError
+      "image/jpeg"
+    end
+
     private
 
     def image_files
