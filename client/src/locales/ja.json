@@ -116,6 +116,11 @@
       "grid": "グリッド表示",
       "list": "リスト表示"
     },
+    "groupMode": {
+      "label": "表示",
+      "books": "書籍",
+      "series": "シリーズ"
+    },
     "sort": {
       "added_at_desc": "新着順",
       "added_at_asc": "登録日順 (古い順)",

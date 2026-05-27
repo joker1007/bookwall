@@ -22,10 +22,28 @@ function withPage(path: string, page: number | undefined) {
   return `${path}?page=${page}`;
 }
 
-export function useSeriesList(page = 1) {
+interface SeriesListParams {
+  page?: number;
+  library_id?: number | string;
+}
+
+export function useSeriesList(params: number | SeriesListParams = {}) {
+  // Back-compat: callers used to pass `page` as a bare number.
+  const resolved: SeriesListParams =
+    typeof params === "number" ? { page: params } : params;
+  const { page = 1, library_id } = resolved;
+
+  const path = (() => {
+    const search = new URLSearchParams();
+    if (page > 1) search.set("page", String(page));
+    if (library_id !== undefined) search.set("library_id", String(library_id));
+    const qs = search.toString();
+    return qs ? `/api/series?${qs}` : "/api/series";
+  })();
+
   return useQuery<SeriesListResponse>({
-    queryKey: ["series", page],
-    queryFn: () => api<SeriesListResponse>(withPage("/api/series", page)),
+    queryKey: ["series", { page, library_id }],
+    queryFn: () => api<SeriesListResponse>(path),
   });
 }
 

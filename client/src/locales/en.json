@@ -116,6 +116,11 @@
       "grid": "Grid view",
       "list": "List view"
     },
+    "groupMode": {
+      "label": "Show",
+      "books": "Books",
+      "series": "Series"
+    },
     "sort": {
       "added_at_desc": "Newest first",
       "added_at_asc": "Oldest first",
