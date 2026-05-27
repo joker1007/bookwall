@@ -34,28 +34,28 @@ FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS server_base
 WORKDIR /rails
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      curl libjemalloc2 libvips sqlite3 poppler-utils && \
-    ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+  apt-get install --no-install-recommends -y \
+  curl libjemalloc2 libvips sqlite3 poppler-utils && \
+  ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
+  rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 ENV RAILS_ENV="production" \
-    BUNDLE_DEPLOYMENT="1" \
-    BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development:test" \
-    LD_PRELOAD="/usr/local/lib/libjemalloc.so"
+  BUNDLE_DEPLOYMENT="1" \
+  BUNDLE_PATH="/usr/local/bundle" \
+  BUNDLE_WITHOUT="development:test" \
+  LD_PRELOAD="/usr/local/lib/libjemalloc.so"
 
 FROM server_base AS server_build
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      build-essential git libvips libyaml-dev libssl-dev pkg-config && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+  apt-get install --no-install-recommends -y \
+  build-essential git libvips libyaml-dev libssl-dev pkg-config && \
+  rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY server/Gemfile server/Gemfile.lock ./
 RUN bundle install && \
-    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    bundle exec bootsnap precompile -j 1 --gemfile
+  rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
+  bundle exec bootsnap precompile -j 1 --gemfile
 
 COPY server/ ./
 
@@ -69,9 +69,9 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 FROM server_base
 
 RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    mkdir -p /config && \
-    chown rails:rails /config
+  useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+  mkdir -p /config && \
+  chown rails:rails /config
 
 # Both Active Storage and every SQLite database live under /config so a
 # single mounted volume captures the entire writable state of the app.
@@ -85,7 +85,7 @@ COPY --chown=rails:rails --from=server_build /rails /rails
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-ENV PORT="8237" \
-    TARGET_PORT="3000"
+ENV HTTP_PORT="8237" \
+  TARGET_PORT="3000"
 EXPOSE 8237
 CMD ["./bin/thrust", "bundle", "exec", "falcon", "serve", "--bind", "http://0.0.0.0:3000"]

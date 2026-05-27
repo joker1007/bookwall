@@ -1,9 +1,33 @@
 #!/bin/bash -e
 
-# Prepare the database before booting any web or worker process.
+# Prepare every Rails-managed SQLite database before booting any web /
+# worker process. The primary database uses structure.sql (SQLite FTS5);
+# the SolidQueue / SolidCache databases ship as plain schema.rb files
+# (neither gem provides migrations or a structure.sql), and `db:prepare`
+# ends up creating empty .sqlite3 files for them without loading the
+# schema. Load each one explicitly on the first boot — sqlite_master
+# is empty — so subsequent restarts skip the load and don't wipe queue
+# / cache state.
+#
+# DISABLE_DATABASE_ENVIRONMENT_CHECK=1 is required to call schema:load
+# in production; the sqlite_master guard above keeps it safe.
+# SCHEMA_FORMAT=ruby overrides the global :sql setting so Rails reads
+# db/queue_schema.rb / db/cache_schema.rb instead of looking for a
+# non-existent queue_structure.sql / cache_structure.sql.
+#
+# Cable uses Redis in production (see config/cable.yml), so even though
+# the cable connection lives in database.yml it never needs a schema.
 case "$1" in
   ./bin/rails | ./bin/thrust | ./bin/jobs | bundle)
     ./bin/rails db:prepare
+    for db in queue cache; do
+      db_file="${BOOKWALL_DATA_DIR:-/rails/storage}/production_${db}.sqlite3"
+      if [ ! -f "$db_file" ] || [ -z "$(sqlite3 "$db_file" 'SELECT 1 FROM sqlite_master LIMIT 1;' 2>/dev/null)" ]; then
+        SCHEMA_FORMAT=ruby \
+        DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
+          ./bin/rails "db:schema:load:${db}"
+      fi
+    done
     ;;
 esac
 
