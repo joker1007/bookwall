@@ -116,6 +116,13 @@
       "grid": "グリッド表示",
       "list": "リスト表示"
     },
+    "itemSize": {
+      "label": "サイズ"
+    },
+    "perPage": {
+      "label": "1ページあたりの件数",
+      "option": "{{count}} 件"
+    },
     "groupMode": {
       "label": "表示",
       "books": "書籍",

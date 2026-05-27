@@ -17,13 +17,20 @@ interface TagsListResponse {
   pagination: Pagination;
 }
 
-function withPage(path: string, page: number | undefined) {
-  if (!page || page === 1) return path;
-  return `${path}?page=${page}`;
+function buildQuery(params: Record<string, string | number | undefined | null>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    if (key === "page" && value === 1) continue;
+    search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
 }
 
 interface SeriesListParams {
   page?: number;
+  limit?: number;
   library_id?: number | string;
 }
 
@@ -31,33 +38,46 @@ export function useSeriesList(params: number | SeriesListParams = {}) {
   // Back-compat: callers used to pass `page` as a bare number.
   const resolved: SeriesListParams =
     typeof params === "number" ? { page: params } : params;
-  const { page = 1, library_id } = resolved;
-
-  const path = (() => {
-    const search = new URLSearchParams();
-    if (page > 1) search.set("page", String(page));
-    if (library_id !== undefined) search.set("library_id", String(library_id));
-    const qs = search.toString();
-    return qs ? `/api/series?${qs}` : "/api/series";
-  })();
+  const { page = 1, limit, library_id } = resolved;
+  const qs = buildQuery({ page, limit, library_id });
 
   return useQuery<SeriesListResponse>({
-    queryKey: ["series", { page, library_id }],
-    queryFn: () => api<SeriesListResponse>(path),
+    queryKey: ["series", { page, limit, library_id }],
+    queryFn: () => api<SeriesListResponse>(`/api/series${qs}`),
   });
 }
 
-export function useAuthorsList(page = 1) {
+interface AuthorsListParams {
+  page?: number;
+  limit?: number;
+}
+
+export function useAuthorsList(params: number | AuthorsListParams = {}) {
+  const resolved: AuthorsListParams =
+    typeof params === "number" ? { page: params } : params;
+  const { page = 1, limit } = resolved;
+  const qs = buildQuery({ page, limit });
+
   return useQuery<AuthorsListResponse>({
-    queryKey: ["authors", page],
-    queryFn: () => api<AuthorsListResponse>(withPage("/api/authors", page)),
+    queryKey: ["authors", { page, limit }],
+    queryFn: () => api<AuthorsListResponse>(`/api/authors${qs}`),
   });
 }
 
-export function useTagsList(page = 1) {
+interface TagsListParams {
+  page?: number;
+  limit?: number;
+}
+
+export function useTagsList(params: number | TagsListParams = {}) {
+  const resolved: TagsListParams =
+    typeof params === "number" ? { page: params } : params;
+  const { page = 1, limit } = resolved;
+  const qs = buildQuery({ page, limit });
+
   return useQuery<TagsListResponse>({
-    queryKey: ["tags", page],
-    queryFn: () => api<TagsListResponse>(withPage("/api/tags", page)),
+    queryKey: ["tags", { page, limit }],
+    queryFn: () => api<TagsListResponse>(`/api/tags${qs}`),
   });
 }
 

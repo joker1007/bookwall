@@ -116,6 +116,13 @@
       "grid": "Grid view",
       "list": "List view"
     },
+    "itemSize": {
+      "label": "Size"
+    },
+    "perPage": {
+      "label": "Items per page",
+      "option": "{{count}} / page"
+    },
     "groupMode": {
       "label": "Show",
       "books": "Books",

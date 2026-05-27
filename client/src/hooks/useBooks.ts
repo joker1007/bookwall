@@ -12,6 +12,7 @@ export interface BookListParams {
   favorites_only?: boolean;
   sort?: string;
   page?: number;
+  limit?: number;
 }
 
 export interface BookListResponse {

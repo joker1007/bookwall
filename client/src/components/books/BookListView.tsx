@@ -12,7 +12,13 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUiStore } from "@/stores/uiStore";
+import {
+  useUiStore,
+  PER_PAGE_OPTIONS,
+  ITEM_SIZE_MIN,
+  ITEM_SIZE_MAX,
+  type PerPage,
+} from "@/stores/uiStore";
 import { useBookList, type BookListParams } from "@/hooks/useBooks";
 import { BookCard } from "./BookCard";
 import { BookRow } from "./BookRow";
@@ -20,7 +26,7 @@ import { BookRow } from "./BookRow";
 interface BookListViewProps {
   title: string;
   description?: string;
-  baseParams?: Omit<BookListParams, "page" | "sort">;
+  baseParams?: Omit<BookListParams, "page" | "sort" | "limit">;
   emptyMessage?: string;
   headerActions?: ReactNode;
 }
@@ -48,6 +54,10 @@ export function BookListView({
   const setDisplayMode = useUiStore((s) => s.setDisplayMode);
   const sortOrder = useUiStore((s) => s.sortOrder);
   const setSortOrder = useUiStore((s) => s.setSortOrder);
+  const itemSize = useUiStore((s) => s.itemSize);
+  const setItemSize = useUiStore((s) => s.setItemSize);
+  const perPage = useUiStore((s) => s.perPage);
+  const setPerPage = useUiStore((s) => s.setPerPage);
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   // URL `?sort=` wins so a shared link reproduces the exact view; with
@@ -59,6 +69,7 @@ export function BookListView({
     ...baseParams,
     sort,
     page,
+    limit: perPage,
   });
 
   const updateParam = (key: string, value: string | null) => {
@@ -68,11 +79,20 @@ export function BookListView({
     setSearchParams(next, { replace: false });
   };
 
+  const handlePerPageChange = (value: string) => {
+    const next = Number(value) as PerPage;
+    if (!PER_PAGE_OPTIONS.includes(next)) return;
+    setPerPage(next);
+    // Page-size changes shift what's on each page, so resetting to
+    // page 1 keeps the "what am I looking at" anchor stable.
+    if (page !== 1) updateParam("page", null);
+  };
+
   const data = query.data;
   const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
   return (
-    <section className="mx-auto flex max-w-[1920px] flex-col gap-4 px-4 py-6">
+    <section className="flex flex-col gap-4 px-3 py-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
@@ -105,6 +125,23 @@ export function BookListView({
           </SelectContent>
         </Select>
 
+        <Select value={String(perPage)} onValueChange={handlePerPageChange}>
+          <SelectTrigger className="h-10 w-28" aria-label={t("books.perPage.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PER_PAGE_OPTIONS.map((n) => (
+              <SelectItem key={n} value={String(n)}>
+                {t("books.perPage.option", { count: n })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {displayMode === "grid" ? (
+          <ItemSizeSlider value={itemSize} onChange={setItemSize} />
+        ) : null}
+
         <ToggleGroup
           type="single"
           value={displayMode}
@@ -132,7 +169,7 @@ export function BookListView({
       </div>
 
       {query.isPending ? (
-        <BookListSkeleton mode={displayMode} />
+        <BookListSkeleton mode={displayMode} itemSize={itemSize} />
       ) : query.isError ? (
         <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
       ) : data && data.books.length === 0 ? (
@@ -142,7 +179,12 @@ export function BookListView({
       ) : (
         <>
           {displayMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+            <div
+              className="grid gap-3"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`,
+              }}
+            >
               {data!.books.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
@@ -165,6 +207,36 @@ export function BookListView({
         </>
       )}
     </section>
+  );
+}
+
+interface ItemSizeSliderProps {
+  value: number;
+  onChange: (next: number) => void;
+}
+
+function ItemSizeSlider({ value, onChange }: ItemSizeSliderProps) {
+  const { t } = useTranslation();
+  return (
+    <label className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
+      <span className="text-muted-foreground">{t("books.itemSize.label")}</span>
+      <input
+        type="range"
+        min={ITEM_SIZE_MIN}
+        max={ITEM_SIZE_MAX}
+        step={8}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={t("books.itemSize.label")}
+        className="h-2 w-32 cursor-pointer appearance-none rounded-full bg-muted
+          [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none
+          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-foreground/60
+          [&::-webkit-slider-thumb]:bg-foreground
+          [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full
+          [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-foreground/60 [&::-moz-range-thumb]:bg-foreground"
+      />
+      <span className="w-12 text-right tabular-nums text-muted-foreground">{value}px</span>
+    </label>
   );
 }
 
@@ -209,10 +281,21 @@ function Pagination({ page, pages, onPageChange }: PaginationProps) {
   );
 }
 
-function BookListSkeleton({ mode }: { mode: "grid" | "list" }) {
+function BookListSkeleton({
+  mode,
+  itemSize,
+}: {
+  mode: "grid" | "list";
+  itemSize: number;
+}) {
   if (mode === "grid") {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+      <div
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`,
+        }}
+      >
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="flex flex-col gap-2 p-2">
             <Skeleton className="aspect-[2/3] w-full rounded-md" />
