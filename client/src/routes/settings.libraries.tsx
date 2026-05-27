@@ -356,7 +356,11 @@ function ReaderDefaultsSection() {
       ) : preferences.isError ? (
         <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
+          <div className="grid gap-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("settings.readerDefaults.cbzGroup")}
+            </h3>
           <div className="flex items-center justify-between gap-3">
             <Label htmlFor="reader-default-spread">{t("reader.spread")}</Label>
             <Toggle
@@ -449,8 +453,13 @@ function ReaderDefaultsSection() {
               {t("settings.readerDefaults.preloadAheadHint")}
             </p>
           </div>
+          </div>
 
-          <div className="grid gap-2 pt-2">
+          <div className="grid gap-4 border-t border-border pt-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("settings.readerDefaults.epubGroup")}
+            </h3>
+          <div className="grid gap-2">
             <Label>{t("reader.epubFontSize")}</Label>
             <div className="flex items-center gap-2">
               <Button
@@ -527,6 +536,7 @@ function ReaderDefaultsSection() {
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
+          </div>
           </div>
         </div>
       )}

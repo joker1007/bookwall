@@ -23,7 +23,10 @@ import {
   useReadingProgress,
   useUpdateReadingProgress,
 } from "@/hooks/useReadingProgress";
-import { useUserPreferences } from "@/hooks/useUserPreferences";
+import {
+  useUserPreferences,
+  useUpdateUserPreferences,
+} from "@/hooks/useUserPreferences";
 import {
   READER_FONT_SIZE_DEFAULT,
   READER_FONT_SIZE_MAX,
@@ -165,6 +168,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const progress = useReadingProgress(book.id);
   const update = useUpdateReadingProgress(book.id);
   const preferences = useUserPreferences();
+  const updatePreferences = useUpdateUserPreferences();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -652,6 +656,30 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
                   })}
                 </p>
               ) : null}
+            </div>
+            <div className="grid gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updatePreferences.mutate({
+                    reader_defaults: {
+                      font_size: fontSize,
+                      theme,
+                      writing_mode: writingMode,
+                    },
+                  })
+                }
+                disabled={updatePreferences.isPending}
+              >
+                {updatePreferences.isPending
+                  ? t("common.saving")
+                  : t("reader.saveAsDefaults")}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {t("reader.saveAsDefaultsHint")}
+              </p>
             </div>
           </div>
         </SheetContent>
