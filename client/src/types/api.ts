@@ -44,6 +44,34 @@ export interface Library {
   updated_at: string;
 }
 
+export interface Series {
+  id: number;
+  name: string;
+  library_id: number;
+  book_count: number;
+  sample_cover_thumb_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Author {
+  id: number;
+  name: string;
+  book_count: number;
+  sample_cover_thumb_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  book_count: number;
+  sample_cover_thumb_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiToken {
   id: number;
   name: string;

@@ -75,6 +75,29 @@
   "placeholder": {
     "description": "このページは次の UI Phase で実装されます。"
   },
+  "series": {
+    "title": "シリーズ",
+    "description": "ライブラリ内のすべてのシリーズ。",
+    "empty": "シリーズはまだありません。ライブラリを追加してスキャンしてみてください。",
+    "bookCount_one": "{{count}} 冊",
+    "bookCount_other": "{{count}} 冊",
+    "delete": "シリーズを削除",
+    "deleteConfirmTitle": "シリーズ「{{name}}」を削除しますか?",
+    "deleteConfirmDescription_one": "このシリーズには {{count}} 冊の書籍が含まれます。Bookwall 上のメタデータは削除されますが、ディスク上の実ファイルはそのまま残ります。続行しますか?",
+    "deleteConfirmDescription_other": "このシリーズには {{count}} 冊の書籍が含まれます。Bookwall 上のメタデータは削除されますが、ディスク上の実ファイルはそのまま残ります。続行しますか?"
+  },
+  "authors": {
+    "title": "著者",
+    "description": "ライブラリ内に書籍を持つ著者の一覧。",
+    "empty": "著者はまだ登録されていません。",
+    "bookCount_one": "{{count}} 冊",
+    "bookCount_other": "{{count}} 冊"
+  },
+  "tags": {
+    "title": "タグ",
+    "description": "書籍に付けられたタグの一覧。",
+    "empty": "タグはまだありません。"
+  },
   "search": {
     "title": "検索",
     "prompt": "上の検索バーにタイトル / 著者 / タグを入力して Enter してください。",

@@ -75,6 +75,29 @@
   "placeholder": {
     "description": "This page will be filled in by a later UI phase."
   },
+  "series": {
+    "title": "Series",
+    "description": "All series in your library.",
+    "empty": "No series yet. Add a library and run a scan.",
+    "bookCount_one": "{{count}} book",
+    "bookCount_other": "{{count}} books",
+    "delete": "Delete series",
+    "deleteConfirmTitle": "Delete series \"{{name}}\"?",
+    "deleteConfirmDescription_one": "This series contains {{count}} book. Its Bookwall metadata will be removed, but the underlying file on disk is left untouched. Continue?",
+    "deleteConfirmDescription_other": "This series contains {{count}} books. Their Bookwall metadata will be removed, but the underlying files on disk are left untouched. Continue?"
+  },
+  "authors": {
+    "title": "Authors",
+    "description": "Authors with at least one book in your library.",
+    "empty": "No authors yet.",
+    "bookCount_one": "{{count}} book",
+    "bookCount_other": "{{count}} books"
+  },
+  "tags": {
+    "title": "Tags",
+    "description": "Tags attached to books in your library.",
+    "empty": "No tags yet."
+  },
   "search": {
     "title": "Search",
     "prompt": "Type a title / author / tag in the search bar above and press Enter.",

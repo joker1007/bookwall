@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
@@ -21,6 +22,7 @@ interface BookListViewProps {
   description?: string;
   baseParams?: Omit<BookListParams, "page" | "sort">;
   emptyMessage?: string;
+  headerActions?: ReactNode;
 }
 
 const SORT_VALUES = [
@@ -36,6 +38,7 @@ export function BookListView({
   description,
   baseParams,
   emptyMessage,
+  headerActions,
 }: BookListViewProps) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,10 +66,15 @@ export function BookListView({
 
   return (
     <section className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-        {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        {headerActions ? (
+          <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
         ) : null}
       </header>
 

@@ -6,8 +6,11 @@ import HomePage from "@/routes/home";
 import LoginPage from "@/routes/login";
 import SignupPage from "@/routes/signup";
 import LibraryDetailPage from "@/routes/libraries.detail";
+import SeriesIndexPage from "@/routes/series";
 import SeriesDetailPage from "@/routes/series.detail";
+import AuthorsIndexPage from "@/routes/authors";
 import AuthorDetailPage from "@/routes/authors.detail";
+import TagsIndexPage from "@/routes/tags";
 import TagDetailPage from "@/routes/tags.detail";
 import FavoritesPage from "@/routes/favorites";
 import BookDetailPage from "@/routes/books.detail";
@@ -36,11 +39,11 @@ export default function App() {
             <Route index element={<HomePage />} />
             <Route path="libraries" element={<Placeholder title="ライブラリ" />} />
             <Route path="libraries/:id" element={<LibraryDetailPage />} />
-            <Route path="series" element={<Placeholder title="シリーズ" />} />
+            <Route path="series" element={<SeriesIndexPage />} />
             <Route path="series/:id" element={<SeriesDetailPage />} />
-            <Route path="authors" element={<Placeholder title="著者" />} />
+            <Route path="authors" element={<AuthorsIndexPage />} />
             <Route path="authors/:id" element={<AuthorDetailPage />} />
-            <Route path="tags" element={<Placeholder title="タグ" />} />
+            <Route path="tags" element={<TagsIndexPage />} />
             <Route path="tags/:id" element={<TagDetailPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="search" element={<SearchPage />} />
