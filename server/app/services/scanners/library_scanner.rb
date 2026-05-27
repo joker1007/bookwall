@@ -37,8 +37,7 @@ module Scanners
       # work belongs to a dedicated cleanup job (to be added) so the scan
       # only does add / update writes and keeps the writer-lock window
       # short.
-      results = parse_parallel(diff[:add] + diff[:update])
-      upserted_ids = apply_results(results)
+      upserted_ids = parse_and_apply(diff[:add] + diff[:update])
 
       library.update!(last_scanned_at: Time.current)
       log.update!(
@@ -178,33 +177,41 @@ module Scanners
       {add: to_add, update: to_update}
     end
 
-    def parse_parallel(jobs)
+    # Pipeline parse and DB write so the main thread can start upserting
+    # the first book while later books are still being parsed. Workers
+    # on a FixedThreadPool open / parse / cover-extract each file and
+    # push the result onto a queue; the caller (this main thread)
+    # consumes the queue and applies each result through the same
+    # per-book transaction that apply_results used to drive. Total wall
+    # time approaches max(parse_time, write_time) instead of their sum.
+    #
+    # Returns the ids of books that were created or updated so the
+    # caller can dispatch the FTS sync in bulk.
+    def parse_and_apply(jobs)
       return [] if jobs.empty?
-      size = [@pool_size, jobs.size].min
-      pool = Concurrent::FixedThreadPool.new(size)
+
+      pool_size = [@pool_size, jobs.size].min
+      pool = Concurrent::FixedThreadPool.new(pool_size)
+      result_q = Queue.new
+
+      jobs.each do |job|
+        pool.post { result_q.push(Scanners::ParseWorker.parse(job)) }
+      end
+
+      upserted_ids = []
       begin
-        futures = jobs.map do |job|
-          Concurrent::Future.execute(executor: pool) { Scanners::ParseWorker.parse(job) }
+        jobs.size.times do
+          result = result_q.pop
+          next if result[:error]
+          book = with_busy_retry do
+            ActiveRecord::Base.transaction { upsert_book(result) }
+          end
+          upserted_ids << book.id if book
         end
-        futures.map(&:value!)
+        upserted_ids
       ensure
         pool.shutdown
-        pool.wait_for_termination(30)
-      end
-    end
-
-    # Returns the ids of books that were created or updated so the caller
-    # can dispatch the FTS sync in bulk. Each book's writes (taxonomy
-    # upserts, the book row, join replacements, and the cover attachment)
-    # run inside a single transaction so the SQLite writer lock is
-    # acquired once per book rather than once per statement, and so the
-    # whole set rolls back together on failure.
-    def apply_results(results)
-      results.filter_map do |result|
-        next if result[:error]
-        with_busy_retry do
-          ActiveRecord::Base.transaction { upsert_book(result) }
-        end&.id
+        pool.wait_for_termination(60)
       end
     end
 

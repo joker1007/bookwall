@@ -132,7 +132,7 @@ RSpec.describe Scanners::LibraryScanner do
 
       it "resets the thread-local skip flag even when the scan fails" do
         Thread.current[:bookwall_skip_fts_callback] = nil
-        allow_any_instance_of(described_class).to receive(:apply_results).and_raise("boom")
+        allow_any_instance_of(described_class).to receive(:parse_and_apply).and_raise("boom")
 
         begin
           described_class.new(library).call
