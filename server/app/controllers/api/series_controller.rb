@@ -8,8 +8,12 @@ module Api
       scope = Series.all
       scope = scope.where(library_id: params[:library_id]) if params[:library_id].present?
       pagy, items = pagy(:offset, scope.order(:name))
+      first_books = Books::FirstBookPreloader.for_series(items)
       render json: {
-        series: SeriesSerializer.new(items).serializable_hash,
+        series: SeriesSerializer.new(
+          items,
+          params: {first_books: first_books}
+        ).serializable_hash,
         pagination: pagy_metadata(pagy)
       }
     end

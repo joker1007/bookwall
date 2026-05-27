@@ -10,6 +10,7 @@ class TagSerializer
   end
 
   attribute :sample_cover_thumb_url do |t|
-    CoverUrlHelper.cover_thumb_url(t.first_book)
+    book = params[:first_books]&.fetch(t.id, nil) || t.first_book
+    CoverUrlHelper.cover_thumb_url(book)
   end
 end

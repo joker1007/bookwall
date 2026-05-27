@@ -6,8 +6,12 @@ module Api
 
     def index
       pagy, items = pagy(:offset, Tag.order(:name))
+      first_books = Books::FirstBookPreloader.for_tags(items)
       render json: {
-        tags: TagSerializer.new(items).serializable_hash,
+        tags: TagSerializer.new(
+          items,
+          params: {first_books: first_books}
+        ).serializable_hash,
         pagination: pagy_metadata(pagy)
       }
     end

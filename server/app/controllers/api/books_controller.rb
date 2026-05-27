@@ -20,7 +20,12 @@ module Api
         favorite_user_id: favorites_only? ? Current.user.id : nil,
         sort: params[:sort]
       )
-      pagy, books = pagy(:offset, search.relation.includes(:authors, :tags, :series))
+      pagy, books = pagy(
+        :offset,
+        search.relation
+          .includes(:authors, :tags, :series)
+          .with_attached_cover
+      )
       render json: {
         books: serialize_books(books),
         pagination: pagy_metadata(pagy)

@@ -18,7 +18,9 @@ module Opds
     end
 
     def recent
-      books = Book.order(added_at: :desc).limit(100).includes(:authors, :tags)
+      books = Book.order(added_at: :desc).limit(100)
+                  .includes(:authors, :tags)
+                  .with_attached_cover
       render_acquisition_feed("Recent", "urn:bookwall:recent", view_context_helpers.opds_recent_path, books)
     end
 
@@ -26,6 +28,7 @@ module Opds
       user = Current.user
       books = Book.joins(:favorites).where(favorites: {user_id: user.id})
                   .includes(:authors, :tags)
+                  .with_attached_cover
       render_acquisition_feed("Favorites", "urn:bookwall:favorites", view_context_helpers.opds_favorites_path, books)
     end
 
@@ -45,7 +48,7 @@ module Opds
 
     def library
       lib = Library.find(params[:library_id])
-      books = lib.books.includes(:authors, :tags).order(:title)
+      books = lib.books.includes(:authors, :tags).with_attached_cover.order(:title)
       render_acquisition_feed(lib.name, "urn:bookwall:library:#{lib.id}",
                               view_context_helpers.opds_library_path(library_id: lib.id), books)
     end

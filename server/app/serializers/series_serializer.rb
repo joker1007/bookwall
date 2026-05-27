@@ -10,6 +10,10 @@ class SeriesSerializer
   end
 
   attribute :sample_cover_thumb_url do |s|
-    CoverUrlHelper.cover_thumb_url(s.first_book)
+    # Index endpoints batch-preload the first book per series into
+    # params[:first_books] so we don't trigger one cover lookup per
+    # row. Falls back to s.first_book for #show, which is one record.
+    book = params[:first_books]&.fetch(s.id, nil) || s.first_book
+    CoverUrlHelper.cover_thumb_url(book)
   end
 end
