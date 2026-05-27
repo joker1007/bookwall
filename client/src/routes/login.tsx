@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useLogin } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const status = useAuthStore((s) => s.status);
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,15 +36,13 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Bookwall にログイン</CardTitle>
-          <CardDescription>
-            登録済みのメールアドレスとパスワードでログインします。
-          </CardDescription>
+          <CardTitle>{t("auth.loginTitle")}</CardTitle>
+          <CardDescription>{t("auth.loginDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">メールアドレス</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -53,7 +53,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">パスワード</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -64,15 +64,15 @@ export default function LoginPage() {
               />
             </div>
             {login.error ? (
-              <p className="text-sm text-destructive">{formatLoginError(login.error)}</p>
+              <p className="text-sm text-destructive">{formatLoginError(login.error, t)}</p>
             ) : null}
             <Button type="submit" disabled={login.isPending} className="min-h-11">
-              {login.isPending ? "ログイン中…" : "ログイン"}
+              {login.isPending ? t("auth.loginInProgress") : t("auth.loginButton")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              アカウント未登録の方は{" "}
+              {t("auth.signupPrompt")}{" "}
               <Link to="/signup" className="text-foreground underline-offset-4 hover:underline">
-                サインアップ
+                {t("auth.signupLink")}
               </Link>
             </p>
           </form>
@@ -88,9 +88,9 @@ function resolveRedirect(search: string) {
   return from;
 }
 
-function formatLoginError(error: unknown) {
+function formatLoginError(error: unknown, t: (key: string) => string) {
   if (error instanceof ApiError && error.status === 401) {
-    return "メールアドレスまたはパスワードが正しくありません。";
+    return t("auth.invalidCredentials");
   }
-  return "ログインに失敗しました。時間をおいて再度お試しください。";
+  return t("common.loginFailed");
 }

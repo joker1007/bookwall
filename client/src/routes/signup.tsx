@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useRegister } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 
 export default function SignupPage() {
+  const { t } = useTranslation();
   const status = useAuthStore((s) => s.status);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -42,13 +44,13 @@ export default function SignupPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Bookwall にサインアップ</CardTitle>
-          <CardDescription>新しいアカウントを作成します。</CardDescription>
+          <CardTitle>{t("auth.signupTitle")}</CardTitle>
+          <CardDescription>{t("auth.signupDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">メールアドレス</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -59,7 +61,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">パスワード (8 文字以上)</Label>
+              <Label htmlFor="password">{t("auth.passwordWithHint")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -71,7 +73,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password_confirmation">パスワード (確認)</Label>
+              <Label htmlFor="password_confirmation">{t("auth.passwordConfirm")}</Label>
               <Input
                 id="password_confirmation"
                 type="password"
@@ -82,23 +84,23 @@ export default function SignupPage() {
                 onChange={(e) => setConfirm(e.target.value)}
               />
               {mismatch ? (
-                <p className="text-xs text-destructive">パスワードが一致しません。</p>
+                <p className="text-xs text-destructive">{t("auth.passwordMismatch")}</p>
               ) : null}
             </div>
             {register.error ? (
-              <p className="text-sm text-destructive">{formatSignupError(register.error)}</p>
+              <p className="text-sm text-destructive">{formatSignupError(register.error, t)}</p>
             ) : null}
             <Button
               type="submit"
               disabled={register.isPending || mismatch}
               className="min-h-11"
             >
-              {register.isPending ? "登録中…" : "アカウントを作成"}
+              {register.isPending ? t("auth.signupInProgress") : t("auth.signupButton")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              既にアカウントをお持ちの方は{" "}
+              {t("auth.loginPrompt")}{" "}
               <Link to="/login" className="text-foreground underline-offset-4 hover:underline">
-                ログイン
+                {t("auth.loginLink")}
               </Link>
             </p>
           </form>
@@ -108,10 +110,10 @@ export default function SignupPage() {
   );
 }
 
-function formatSignupError(error: unknown) {
+function formatSignupError(error: unknown, t: (key: string) => string) {
   if (error instanceof ApiError) {
     const body = error.body as { errors?: string[] } | undefined;
     if (body?.errors?.length) return body.errors.join(" / ");
   }
-  return "登録に失敗しました。入力内容を確認してください。";
+  return t("auth.signupFailed");
 }

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { BookCover } from "./BookCover";
 import type { Book } from "@/types/api";
 
@@ -7,7 +8,8 @@ interface BookCardProps {
 }
 
 export function BookCard({ book }: BookCardProps) {
-  const volumeSuffix = book.volume ? ` 第 ${book.volume} 巻` : "";
+  const { t } = useTranslation();
+  const volumeSuffix = book.volume ? t("books.volumeSuffix", { volume: book.volume }) : "";
   return (
     <Link
       to={`/books/${book.id}`}

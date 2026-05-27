@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
 export function AppShell() {
+  const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
@@ -24,7 +26,7 @@ export function AppShell() {
             className="w-72 border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
           >
             <SheetHeader className="px-4 py-3">
-              <SheetTitle>ナビゲーション</SheetTitle>
+              <SheetTitle>{t("app.navLabel")}</SheetTitle>
             </SheetHeader>
             <Sidebar onNavigate={() => setMobileNavOpen(false)} />
           </SheetContent>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { useBook, useFavoriteBook } from "@/hooks/useBooks";
 import { useDeleteBook } from "@/hooks/useBookMutation";
@@ -9,16 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookCover } from "@/components/books/BookCover";
 import { BookEditDialog } from "@/components/books/BookEditDialog";
-import type { Book } from "@/types/api";
-
-const FORMAT_LABELS: Record<Book["file_format"], string> = {
-  cbz: "CBZ",
-  epub: "EPUB",
-  pdf: "PDF",
-  image_dir: "Image Directory",
-};
 
 export default function BookDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const query = useBook(id);
@@ -45,7 +39,7 @@ export default function BookDetailPage() {
   if (query.isError || !query.data) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-6">
-        <p className="text-sm text-destructive">書籍の取得に失敗しました。</p>
+        <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
       </section>
     );
   }
@@ -54,7 +48,7 @@ export default function BookDetailPage() {
   const isFavorited = book.favorited;
 
   const handleDelete = () => {
-    if (!window.confirm(`「${book.title}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?`)) return;
+    if (!window.confirm(t("books.detail.deleteConfirm", { title: book.title }))) return;
     remove.mutate(book.id, {
       onSuccess: () => navigate("/", { replace: true }),
     });
@@ -64,7 +58,7 @@ export default function BookDetailPage() {
     <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
       <div>
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2 px-2">
-          <ArrowLeft className="size-4" aria-hidden /> 戻る
+          <ArrowLeft className="size-4" aria-hidden /> {t("common.back")}
         </Button>
       </div>
 
@@ -77,11 +71,15 @@ export default function BookDetailPage() {
           <header className="flex flex-col gap-2">
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
               {book.title}
-              {book.volume ? <span className="ml-2 text-base text-muted-foreground">第 {book.volume} 巻</span> : null}
+              {book.volume ? (
+                <span className="ml-2 text-base text-muted-foreground">
+                  {t("books.volumeSuffix", { volume: book.volume })}
+                </span>
+              ) : null}
             </h1>
             {book.series_name && book.series_id ? (
               <p className="text-sm">
-                シリーズ:{" "}
+                {t("books.detail.seriesLabel")}{" "}
                 <Link
                   to={`/series/${book.series_id}`}
                   className="text-foreground underline-offset-4 hover:underline"
@@ -92,7 +90,7 @@ export default function BookDetailPage() {
             ) : null}
             {book.authors.length > 0 ? (
               <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground">
-                <span>著者:</span>
+                <span>{t("books.detail.authorsLabel")}</span>
                 {book.authors.map((a) => (
                   <Link
                     key={a.id}
@@ -106,10 +104,10 @@ export default function BookDetailPage() {
             ) : null}
             {book.tags.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {book.tags.map((t) => (
-                  <Link key={t.id} to={`/tags/${t.id}`}>
+                {book.tags.map((tag) => (
+                  <Link key={tag.id} to={`/tags/${tag.id}`}>
                     <Badge variant="secondary" className="cursor-pointer">
-                      {t.name}
+                      {tag.name}
                     </Badge>
                   </Link>
                 ))}
@@ -118,13 +116,25 @@ export default function BookDetailPage() {
           </header>
 
           <dl className="grid gap-2 rounded-lg border border-border bg-card p-3 text-sm sm:grid-cols-2">
-            <Field label="形式" value={FORMAT_LABELS[book.file_format]} />
-            <Field label="ページ数" value={book.page_count?.toString() ?? "—"} />
-            <Field label="出版日" value={book.published_at ?? "—"} />
-            <Field label="登録日" value={book.added_at?.slice(0, 10) ?? "—"} />
-            <Field label="ファイルサイズ" value={formatSize(book.file_size)} />
+            <Field label={t("books.detail.formatLabel")} value={t(`books.formats.${book.file_format}`)} />
             <Field
-              label="ファイルパス"
+              label={t("books.detail.pageCountLabel")}
+              value={book.page_count?.toString() ?? t("common.never")}
+            />
+            <Field
+              label={t("books.detail.publishedAtLabel")}
+              value={book.published_at ?? t("common.never")}
+            />
+            <Field
+              label={t("books.detail.addedAtLabel")}
+              value={book.added_at?.slice(0, 10) ?? t("common.never")}
+            />
+            <Field
+              label={t("books.detail.fileSizeLabel")}
+              value={formatSize(book.file_size, t("common.never"))}
+            />
+            <Field
+              label={t("books.detail.filePathLabel")}
               value={<span className="break-all font-mono text-xs">{book.file_path}</span>}
             />
           </dl>
@@ -142,11 +152,11 @@ export default function BookDetailPage() {
                 className={`size-4 ${isFavorited ? "fill-current" : ""}`}
                 aria-hidden
               />
-              {isFavorited ? "お気に入り済み" : "お気に入り"}
+              {isFavorited ? t("books.detail.favorited") : t("books.detail.favorite")}
             </Button>
             <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-2">
               <Pencil className="size-4" aria-hidden />
-              編集
+              {t("books.detail.edit")}
             </Button>
             <Button
               variant="ghost"
@@ -155,7 +165,7 @@ export default function BookDetailPage() {
               className="gap-2 text-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" aria-hidden />
-              メタデータを削除
+              {t("books.detail.deleteMeta")}
             </Button>
           </div>
         </div>
@@ -175,8 +185,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function formatSize(bytes: number) {
-  if (!bytes) return "—";
+function formatSize(bytes: number, emptyLabel: string) {
+  if (!bytes) return emptyLabel;
   const units = ["B", "KB", "MB", "GB"];
   let value = bytes;
   let i = 0;

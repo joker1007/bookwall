@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { BookCover } from "./BookCover";
 import type { Book } from "@/types/api";
@@ -8,7 +9,8 @@ interface BookRowProps {
 }
 
 export function BookRow({ book }: BookRowProps) {
-  const volumeSuffix = book.volume ? ` 第 ${book.volume} 巻` : "";
+  const { t } = useTranslation();
+  const volumeSuffix = book.volume ? t("books.volumeSuffix", { volume: book.volume }) : "";
   return (
     <Link
       to={`/books/${book.id}`}
@@ -34,9 +36,9 @@ export function BookRow({ book }: BookRowProps) {
         ) : null}
         {book.tags.length > 0 ? (
           <div className="mt-1 flex flex-wrap gap-1">
-            {book.tags.slice(0, 4).map((t) => (
-              <Badge key={t.id} variant="secondary" className="text-[10px]">
-                {t.name}
+            {book.tags.slice(0, 4).map((tag) => (
+              <Badge key={tag.id} variant="secondary" className="text-[10px]">
+                {tag.name}
               </Badge>
             ))}
           </div>

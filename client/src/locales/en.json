@@ -1,0 +1,205 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "issuing": "Issuing…",
+    "loggingOut": "Logging out…",
+    "scanning": "Scan",
+    "show": "Show",
+    "copy": "Copy",
+    "noUnusedAt": "Never",
+    "never": "—",
+    "fetchFailed": "Failed to load.",
+    "saveFailed": "Save failed.",
+    "loginFailed": "Login failed. Please try again later."
+  },
+  "language": {
+    "label": "Language",
+    "ja": "日本語",
+    "en": "English"
+  },
+  "app": {
+    "title": "Bookwall",
+    "navLabel": "Navigation",
+    "openNav": "Open navigation",
+    "search": "Search books",
+    "searchPlaceholder": "Search by title / author / tag",
+    "userMenu": "User menu"
+  },
+  "nav": {
+    "home": "Home",
+    "libraries": "Libraries",
+    "series": "Series",
+    "authors": "Authors",
+    "tags": "Tags",
+    "favorites": "Favorites",
+    "settings": "Settings",
+    "settingsLibraries": "Library settings",
+    "settingsApiTokens": "API tokens",
+    "logout": "Log out"
+  },
+  "auth": {
+    "loginTitle": "Sign in to Bookwall",
+    "loginDescription": "Use your registered email and password.",
+    "loginButton": "Log in",
+    "loginInProgress": "Logging in…",
+    "signupPrompt": "No account yet?",
+    "signupLink": "Sign up",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Log in",
+    "signupTitle": "Create a Bookwall account",
+    "signupDescription": "Set up a new account.",
+    "signupButton": "Create account",
+    "signupInProgress": "Creating…",
+    "email": "Email address",
+    "password": "Password",
+    "passwordWithHint": "Password (at least 8 characters)",
+    "passwordConfirm": "Password (confirm)",
+    "passwordMismatch": "Passwords do not match.",
+    "invalidCredentials": "Incorrect email or password.",
+    "signupFailed": "Sign-up failed. Please check your input.",
+    "loggedInAs": "Logged in as {{email}}"
+  },
+  "home": {
+    "title": "Home",
+    "description": "Recently added books.",
+    "empty": "No books yet. Add a library in settings and run a scan."
+  },
+  "placeholder": {
+    "description": "This page will be filled in by a later UI phase."
+  },
+  "search": {
+    "title": "Search",
+    "prompt": "Type a title / author / tag in the search bar above and press Enter.",
+    "resultsTitle": "Results for: {{q}}",
+    "resultsDescription": "AND-searching title, series name, and authors.",
+    "empty": "No matching books found."
+  },
+  "books": {
+    "listEmpty": "No books yet.",
+    "coverMissing": "Cover for {{title}} (not available)",
+    "coverAlt": "Cover for {{title}}",
+    "volumeSuffix": " Vol. {{volume}}",
+    "displayMode": {
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "sort": {
+      "added_at_desc": "Newest first",
+      "added_at_asc": "Oldest first",
+      "title_asc": "Title (A→Z)",
+      "title_desc": "Title (Z→A)",
+      "series_asc": "Series order"
+    },
+    "pager": {
+      "label": "Pagination",
+      "prev": "Previous page",
+      "next": "Next page",
+      "status": "{{page}} / {{pages}}"
+    },
+    "detail": {
+      "loadFailed": "Failed to load the book.",
+      "seriesLabel": "Series:",
+      "authorsLabel": "Authors:",
+      "formatLabel": "Format",
+      "pageCountLabel": "Pages",
+      "publishedAtLabel": "Published",
+      "addedAtLabel": "Added",
+      "fileSizeLabel": "File size",
+      "filePathLabel": "File path",
+      "favorite": "Favorite",
+      "favorited": "Favorited",
+      "edit": "Edit",
+      "deleteMeta": "Delete metadata",
+      "deleteConfirm": "Delete Bookwall metadata for \"{{title}}\"? The original file will not be removed. Continue?"
+    },
+    "formats": {
+      "cbz": "CBZ",
+      "epub": "EPUB",
+      "pdf": "PDF",
+      "image_dir": "Image Directory"
+    },
+    "edit": {
+      "title": "Edit book metadata",
+      "description": "Only Bookwall's own metadata is updated. The underlying file is left alone.",
+      "fields": {
+        "title": "Title",
+        "volume": "Volume",
+        "publishedAt": "Published date",
+        "authors": "Authors (comma-separated)",
+        "authorsPlaceholder": "Natsume Soseki, Akutagawa Ryunosuke",
+        "tags": "Tags (comma-separated)",
+        "tagsPlaceholder": "modern, short story"
+      }
+    },
+    "list": {
+      "byLibrary": "Library",
+      "bySeries": "Books in series",
+      "byAuthor": "Books by author",
+      "byTag": "Books with tag",
+      "favorites": "Favorites",
+      "favoritesEmpty": "You haven't favorited any books yet."
+    }
+  },
+  "settings": {
+    "libraries": {
+      "title": "Library settings",
+      "description": "Manage the directories that Bookwall scans for books.",
+      "add": "Add",
+      "columns": {
+        "name": "Name",
+        "path": "Path",
+        "lastScannedAt": "Last scan",
+        "actions": "Actions"
+      },
+      "empty": "No libraries yet.",
+      "deleteConfirm": "Delete \"{{name}}\"? All its book metadata will be removed too. Continue?",
+      "dialog": {
+        "createTitle": "Add a library",
+        "editTitle": "Edit library",
+        "name": "Name",
+        "namePlaceholder": "Home NAS",
+        "path": "Path (absolute path as visible from the server)",
+        "pathPlaceholder": "/mnt/books"
+      }
+    },
+    "apiTokens": {
+      "title": "API tokens",
+      "description": "Issue long-lived tokens for OPDS readers and CLIs. Each token can be re-revealed any time via the Show button.",
+      "issue": "Issue",
+      "columns": {
+        "name": "Name",
+        "lastUsedAt": "Last used",
+        "createdAt": "Issued",
+        "actions": "Actions"
+      },
+      "empty": "No tokens issued yet.",
+      "revokeConfirm": "Revoke \"{{name}}\"? Continue?",
+      "show": "Show token",
+      "revoke": "Revoke",
+      "dialog": {
+        "title": "Issue a new API token",
+        "description": "Give it a descriptive name. e.g. \"OPDS reader on iPad\".",
+        "name": "Name",
+        "namePlaceholder": "iPad / OPDS"
+      },
+      "reveal": {
+        "issuedHeading": "Token issued",
+        "showHeading": "Token",
+        "description": "Send it to OPDS readers via the Authorization header (<code>Bearer …</code>) or HTTP Basic.",
+        "tokenLabel": "Token",
+        "tokenCopy": "Copy token",
+        "opdsLabel": "OPDS URL",
+        "opdsCopy": "Copy OPDS URL"
+      },
+      "issueFailed": "Issue failed."
+    }
+  }
+}

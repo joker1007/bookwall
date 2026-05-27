@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   Library as LibraryIcon,
@@ -13,19 +14,19 @@ import { cn } from "@/lib/utils";
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
   end?: boolean;
 }
 
 const NAV: NavItem[] = [
-  { to: "/", label: "ホーム", icon: Home, end: true },
-  { to: "/libraries", label: "ライブラリ", icon: LibraryIcon },
-  { to: "/series", label: "シリーズ", icon: Layers },
-  { to: "/authors", label: "著者", icon: Users },
-  { to: "/tags", label: "タグ", icon: TagIcon },
-  { to: "/favorites", label: "お気に入り", icon: Heart },
-  { to: "/settings/libraries", label: "設定", icon: Settings },
+  { to: "/", labelKey: "nav.home", icon: Home, end: true },
+  { to: "/libraries", labelKey: "nav.libraries", icon: LibraryIcon },
+  { to: "/series", labelKey: "nav.series", icon: Layers },
+  { to: "/authors", labelKey: "nav.authors", icon: Users },
+  { to: "/tags", labelKey: "nav.tags", icon: TagIcon },
+  { to: "/favorites", labelKey: "nav.favorites", icon: Heart },
+  { to: "/settings/libraries", labelKey: "nav.settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -33,11 +34,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onNavigate }: SidebarProps) {
+  const { t } = useTranslation();
   return (
     <nav className="flex h-full flex-col gap-1 px-3 py-4">
       <div className="px-2 pb-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/60">
-          Bookwall
+          {t("app.title")}
         </p>
       </div>
       {NAV.map((item) => (
@@ -55,7 +57,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           }
         >
           <item.icon className="size-4 shrink-0" aria-hidden />
-          <span>{item.label}</span>
+          <span>{t(item.labelKey)}</span>
         </NavLink>
       ))}
     </nav>

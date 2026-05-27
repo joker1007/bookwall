@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,20 +23,21 @@ interface BookListViewProps {
   emptyMessage?: string;
 }
 
-const SORT_OPTIONS = [
-  { value: "added_at_desc", label: "新着順" },
-  { value: "added_at_asc", label: "登録日順 (古い順)" },
-  { value: "title_asc", label: "タイトル昇順" },
-  { value: "title_desc", label: "タイトル降順" },
-  { value: "series_asc", label: "シリーズ順" },
+const SORT_VALUES = [
+  "added_at_desc",
+  "added_at_asc",
+  "title_asc",
+  "title_desc",
+  "series_asc",
 ] as const;
 
 export function BookListView({
   title,
   description,
   baseParams,
-  emptyMessage = "書籍はまだありません。",
+  emptyMessage,
 }: BookListViewProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const displayMode = useUiStore((s) => s.displayMode);
   const setDisplayMode = useUiStore((s) => s.setDisplayMode);
@@ -57,6 +59,7 @@ export function BookListView({
   };
 
   const data = query.data;
+  const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
   return (
     <section className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-6">
@@ -73,9 +76,9 @@ export function BookListView({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+            {SORT_VALUES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`books.sort.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -90,10 +93,18 @@ export function BookListView({
           variant="outline"
           className="ml-auto"
         >
-          <ToggleGroupItem value="grid" aria-label="グリッド表示" className="size-10">
+          <ToggleGroupItem
+            value="grid"
+            aria-label={t("books.displayMode.grid")}
+            className="size-10"
+          >
             <LayoutGrid className="size-4" />
           </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label="リスト表示" className="size-10">
+          <ToggleGroupItem
+            value="list"
+            aria-label={t("books.displayMode.list")}
+            className="size-10"
+          >
             <List className="size-4" />
           </ToggleGroupItem>
         </ToggleGroup>
@@ -102,12 +113,10 @@ export function BookListView({
       {query.isPending ? (
         <BookListSkeleton mode={displayMode} />
       ) : query.isError ? (
-        <p className="text-sm text-destructive">
-          書籍の読み込みに失敗しました。
-        </p>
+        <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
       ) : data && data.books.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {emptyMessage}
+          {resolvedEmpty}
         </p>
       ) : (
         <>
@@ -145,10 +154,11 @@ interface PaginationProps {
 }
 
 function Pagination({ page, pages, onPageChange }: PaginationProps) {
+  const { t } = useTranslation();
   if (pages <= 1) return null;
   return (
     <nav
-      aria-label="ページ送り"
+      aria-label={t("books.pager.label")}
       className="mt-4 flex items-center justify-center gap-2 text-sm"
     >
       <Button
@@ -156,20 +166,20 @@ function Pagination({ page, pages, onPageChange }: PaginationProps) {
         size="sm"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        aria-label="前のページ"
+        aria-label={t("books.pager.prev")}
         className="min-h-10"
       >
         <ChevronLeft className="size-4" />
       </Button>
       <span className="text-muted-foreground">
-        {page} / {pages}
+        {t("books.pager.status", { page, pages })}
       </span>
       <Button
         variant="outline"
         size="sm"
         disabled={page >= pages}
         onClick={() => onPageChange(page + 1)}
-        aria-label="次のページ"
+        aria-label={t("books.pager.next")}
         className="min-h-10"
       >
         <ChevronRight className="size-4" />

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { ScanLine, Trash2, Pencil, Plus, Check, X } from "lucide-react";
 import {
   Table,
@@ -29,6 +30,7 @@ import { ApiError } from "@/lib/api";
 import type { Library } from "@/types/api";
 
 export default function LibrariesSettings() {
+  const { t } = useTranslation();
   const list = useLibraries();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Library | null>(null);
@@ -47,38 +49,42 @@ export default function LibrariesSettings() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            ライブラリ設定
+            {t("settings.libraries.title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            スキャン対象のディレクトリを管理します。
+            {t("settings.libraries.description")}
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="size-4" aria-hidden />
-          追加
+          {t("settings.libraries.add")}
         </Button>
       </header>
 
       {list.isPending ? (
-        <p className="text-sm text-muted-foreground">読み込み中…</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : list.isError ? (
-        <p className="text-sm text-destructive">取得に失敗しました。</p>
+        <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-40">名前</TableHead>
-                <TableHead>パス</TableHead>
-                <TableHead className="w-44 whitespace-nowrap">最終スキャン</TableHead>
-                <TableHead className="w-48 text-right">操作</TableHead>
+                <TableHead className="w-40">{t("settings.libraries.columns.name")}</TableHead>
+                <TableHead>{t("settings.libraries.columns.path")}</TableHead>
+                <TableHead className="w-44 whitespace-nowrap">
+                  {t("settings.libraries.columns.lastScannedAt")}
+                </TableHead>
+                <TableHead className="w-48 text-right">
+                  {t("settings.libraries.columns.actions")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {list.data!.libraries.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                    ライブラリはまだありません。
+                    {t("settings.libraries.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -110,6 +116,7 @@ interface LibraryRowProps {
 }
 
 function LibraryRow({ library, onEdit }: LibraryRowProps) {
+  const { t } = useTranslation();
   const scan = useScanLibrary();
   const remove = useDeleteLibrary();
   const [scanned, setScanned] = useState(false);
@@ -125,7 +132,7 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`「${library.name}」を削除します。書籍メタもまとめて削除されます。よろしいですか?`)) return;
+    if (!window.confirm(t("settings.libraries.deleteConfirm", { name: library.name }))) return;
     remove.mutate(library.id);
   };
 
@@ -134,7 +141,9 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
       <TableCell className="font-medium">{library.name}</TableCell>
       <TableCell className="break-all font-mono text-xs">{library.path}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {library.last_scanned_at ? library.last_scanned_at.slice(0, 16).replace("T", " ") : "—"}
+        {library.last_scanned_at
+          ? library.last_scanned_at.slice(0, 16).replace("T", " ")
+          : t("common.never")}
       </TableCell>
       <TableCell>
         <div className="flex justify-end gap-1">
@@ -146,9 +155,9 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
             className="gap-1"
           >
             {scanned ? <Check className="size-4" /> : <ScanLine className="size-4" />}
-            スキャン
+            {t("common.scanning")}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onEdit} aria-label="編集">
+          <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t("common.edit")}>
             <Pencil className="size-4" />
           </Button>
           <Button
@@ -156,7 +165,7 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
             variant="ghost"
             onClick={handleDelete}
             disabled={remove.isPending}
-            aria-label="削除"
+            aria-label={t("common.delete")}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="size-4" />
@@ -174,14 +183,14 @@ interface LibraryDialogProps {
 }
 
 function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
+  const { t } = useTranslation();
   const create = useCreateLibrary();
   const update = useUpdateLibrary();
   const isEdit = !!library;
   const [name, setName] = useState(library?.name ?? "");
   const [path, setPath] = useState(library?.path ?? "");
 
-  // Reset state when the dialog opens for a different target
-  if (open && library && (library.name !== name && name === "")) {
+  if (open && library && library.name !== name && name === "") {
     setName(library.name);
     setPath(library.path);
   }
@@ -220,31 +229,35 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "ライブラリを編集" : "ライブラリを追加"}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? t("settings.libraries.dialog.editTitle")
+              : t("settings.libraries.dialog.createTitle")}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="lib-name">名前</Label>
+            <Label htmlFor="lib-name">{t("settings.libraries.dialog.name")}</Label>
             <Input
               id="lib-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="自宅 NAS"
+              placeholder={t("settings.libraries.dialog.namePlaceholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="lib-path">パス (サーバから見える絶対パス)</Label>
+            <Label htmlFor="lib-path">{t("settings.libraries.dialog.path")}</Label>
             <Input
               id="lib-path"
               value={path}
               onChange={(e) => setPath(e.target.value)}
               required
-              placeholder="/mnt/books"
+              placeholder={t("settings.libraries.dialog.pathPlaceholder")}
             />
           </div>
           {error ? (
-            <p className="text-sm text-destructive">{formatError(error)}</p>
+            <p className="text-sm text-destructive">{formatError(error, t)}</p>
           ) : null}
           <DialogFooter className="gap-2">
             <Button
@@ -253,10 +266,10 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
               onClick={() => onOpenChange(false)}
               disabled={pending}
             >
-              <X className="size-4" /> キャンセル
+              <X className="size-4" /> {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "保存中…" : "保存"}
+              {pending ? t("common.saving") : t("common.save")}
             </Button>
           </DialogFooter>
         </form>
@@ -265,10 +278,10 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
   );
 }
 
-function formatError(error: unknown) {
+function formatError(error: unknown, t: (key: string) => string) {
   if (error instanceof ApiError) {
     const body = error.body as { errors?: string[] } | undefined;
     if (body?.errors?.length) return body.errors.join(" / ");
   }
-  return "保存に失敗しました。";
+  return t("common.saveFailed");
 }

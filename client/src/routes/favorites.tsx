@@ -1,11 +1,13 @@
+import { useTranslation } from "react-i18next";
 import { BookListView } from "@/components/books/BookListView";
 
 export default function FavoritesPage() {
+  const { t } = useTranslation();
   return (
     <BookListView
-      title="お気に入り"
+      title={t("books.list.favorites")}
       baseParams={{ favorites_only: true }}
-      emptyMessage="お気に入りに追加した書籍はまだありません。"
+      emptyMessage={t("books.list.favoritesEmpty")}
     />
   );
 }

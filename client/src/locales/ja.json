@@ -1,0 +1,205 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "back": "戻る",
+    "loading": "読み込み中…",
+    "saving": "保存中…",
+    "deleting": "削除中…",
+    "issuing": "発行中…",
+    "loggingOut": "ログアウト中…",
+    "scanning": "スキャン",
+    "show": "表示",
+    "copy": "コピー",
+    "noUnusedAt": "未使用",
+    "never": "—",
+    "fetchFailed": "取得に失敗しました。",
+    "saveFailed": "保存に失敗しました。",
+    "loginFailed": "ログインに失敗しました。時間をおいて再度お試しください。"
+  },
+  "language": {
+    "label": "言語",
+    "ja": "日本語",
+    "en": "English"
+  },
+  "app": {
+    "title": "Bookwall",
+    "navLabel": "ナビゲーション",
+    "openNav": "ナビゲーションを開く",
+    "search": "書籍を検索",
+    "searchPlaceholder": "タイトル / 著者 / タグで検索",
+    "userMenu": "ユーザーメニュー"
+  },
+  "nav": {
+    "home": "ホーム",
+    "libraries": "ライブラリ",
+    "series": "シリーズ",
+    "authors": "著者",
+    "tags": "タグ",
+    "favorites": "お気に入り",
+    "settings": "設定",
+    "settingsLibraries": "ライブラリ設定",
+    "settingsApiTokens": "API トークン",
+    "logout": "ログアウト"
+  },
+  "auth": {
+    "loginTitle": "Bookwall にログイン",
+    "loginDescription": "登録済みのメールアドレスとパスワードでログインします。",
+    "loginButton": "ログイン",
+    "loginInProgress": "ログイン中…",
+    "signupPrompt": "アカウント未登録の方は",
+    "signupLink": "サインアップ",
+    "loginPrompt": "既にアカウントをお持ちの方は",
+    "loginLink": "ログイン",
+    "signupTitle": "Bookwall にサインアップ",
+    "signupDescription": "新しいアカウントを作成します。",
+    "signupButton": "アカウントを作成",
+    "signupInProgress": "登録中…",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "passwordWithHint": "パスワード (8 文字以上)",
+    "passwordConfirm": "パスワード (確認)",
+    "passwordMismatch": "パスワードが一致しません。",
+    "invalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "signupFailed": "登録に失敗しました。入力内容を確認してください。",
+    "loggedInAs": "ログイン中: {{email}}"
+  },
+  "home": {
+    "title": "ホーム",
+    "description": "最近追加された書籍。",
+    "empty": "まだ書籍がありません。設定からライブラリを追加してスキャンしてみてください。"
+  },
+  "placeholder": {
+    "description": "このページは次の UI Phase で実装されます。"
+  },
+  "search": {
+    "title": "検索",
+    "prompt": "上の検索バーにタイトル / 著者 / タグを入力して Enter してください。",
+    "resultsTitle": "検索結果: {{q}}",
+    "resultsDescription": "タイトル・シリーズ名・著者名から AND 検索しています。",
+    "empty": "該当する書籍が見つかりませんでした。"
+  },
+  "books": {
+    "listEmpty": "書籍はまだありません。",
+    "coverMissing": "{{title}} の表紙 (未取得)",
+    "coverAlt": "{{title}} の表紙",
+    "volumeSuffix": " 第 {{volume}} 巻",
+    "displayMode": {
+      "grid": "グリッド表示",
+      "list": "リスト表示"
+    },
+    "sort": {
+      "added_at_desc": "新着順",
+      "added_at_asc": "登録日順 (古い順)",
+      "title_asc": "タイトル昇順",
+      "title_desc": "タイトル降順",
+      "series_asc": "シリーズ順"
+    },
+    "pager": {
+      "label": "ページ送り",
+      "prev": "前のページ",
+      "next": "次のページ",
+      "status": "{{page}} / {{pages}}"
+    },
+    "detail": {
+      "loadFailed": "書籍の取得に失敗しました。",
+      "seriesLabel": "シリーズ:",
+      "authorsLabel": "著者:",
+      "formatLabel": "形式",
+      "pageCountLabel": "ページ数",
+      "publishedAtLabel": "出版日",
+      "addedAtLabel": "登録日",
+      "fileSizeLabel": "ファイルサイズ",
+      "filePathLabel": "ファイルパス",
+      "favorite": "お気に入り",
+      "favorited": "お気に入り済み",
+      "edit": "編集",
+      "deleteMeta": "メタデータを削除",
+      "deleteConfirm": "「{{title}}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?"
+    },
+    "formats": {
+      "cbz": "CBZ",
+      "epub": "EPUB",
+      "pdf": "PDF",
+      "image_dir": "Image Directory"
+    },
+    "edit": {
+      "title": "書籍メタデータを編集",
+      "description": "このメタは Bookwall 内のものだけが変更されます。元のファイルは触りません。",
+      "fields": {
+        "title": "タイトル",
+        "volume": "巻数",
+        "publishedAt": "出版日",
+        "authors": "著者 (カンマ区切り)",
+        "authorsPlaceholder": "夏目漱石, 芥川龍之介",
+        "tags": "タグ (カンマ区切り)",
+        "tagsPlaceholder": "近代文学, 短編"
+      }
+    },
+    "list": {
+      "byLibrary": "ライブラリ",
+      "bySeries": "シリーズの書籍",
+      "byAuthor": "著者の書籍",
+      "byTag": "タグの書籍",
+      "favorites": "お気に入り",
+      "favoritesEmpty": "お気に入りに追加した書籍はまだありません。"
+    }
+  },
+  "settings": {
+    "libraries": {
+      "title": "ライブラリ設定",
+      "description": "スキャン対象のディレクトリを管理します。",
+      "add": "追加",
+      "columns": {
+        "name": "名前",
+        "path": "パス",
+        "lastScannedAt": "最終スキャン",
+        "actions": "操作"
+      },
+      "empty": "ライブラリはまだありません。",
+      "deleteConfirm": "「{{name}}」を削除します。書籍メタもまとめて削除されます。よろしいですか?",
+      "dialog": {
+        "createTitle": "ライブラリを追加",
+        "editTitle": "ライブラリを編集",
+        "name": "名前",
+        "namePlaceholder": "自宅 NAS",
+        "path": "パス (サーバから見える絶対パス)",
+        "pathPlaceholder": "/mnt/books"
+      }
+    },
+    "apiTokens": {
+      "title": "API トークン",
+      "description": "OPDS リーダーや CLI から認証するための長寿命トークンを発行します。 各トークンは発行後も「表示」ボタンから何度でも再表示できます。",
+      "issue": "発行",
+      "columns": {
+        "name": "名前",
+        "lastUsedAt": "最終使用",
+        "createdAt": "発行日",
+        "actions": "操作"
+      },
+      "empty": "トークンはまだ発行されていません。",
+      "revokeConfirm": "「{{name}}」を失効させます。よろしいですか?",
+      "show": "トークンを表示",
+      "revoke": "失効",
+      "dialog": {
+        "title": "新しい API トークンを発行",
+        "description": "用途が分かる名前を付けます。例: 「iPad の OPDS リーダー」",
+        "name": "名前",
+        "namePlaceholder": "iPad / OPDS"
+      },
+      "reveal": {
+        "issuedHeading": "トークンを発行しました",
+        "showHeading": "トークンを表示",
+        "description": "OPDS リーダーには Authorization ヘッダ <code>Bearer …</code> または HTTP Basic で渡してください。",
+        "tokenLabel": "トークン",
+        "tokenCopy": "トークンをコピー",
+        "opdsLabel": "OPDS URL",
+        "opdsCopy": "OPDS URL をコピー"
+      },
+      "issueFailed": "発行に失敗しました。"
+    }
+  }
+}
