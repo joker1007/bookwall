@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
 } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ListTree, Settings as SettingsIcon } from "lucide-react";
@@ -496,13 +495,9 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev, goBack, settingsOpen, tocOpen, effectiveDirection]);
 
-  const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isLeftHalf = e.clientX - rect.left < rect.width / 2;
-    // LTR: left half = prev / right half = next; RTL inverts.
-    const goingPrev = effectiveDirection === "ltr" ? isLeftHalf : !isLeftHalf;
-    (goingPrev ? goPrev : goNext)();
-  };
+  // LTR: left half = prev / right half = next. RTL inverts.
+  const onLeftHalfClick = effectiveDirection === "ltr" ? goPrev : goNext;
+  const onRightHalfClick = effectiveDirection === "ltr" ? goNext : goPrev;
 
   const goToToc = async (href: string) => {
     setTocOpen(false);
@@ -550,17 +545,32 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
 
       <div
         role="presentation"
-        onClick={handleViewportClick}
-        className="relative flex-1 cursor-pointer select-none overflow-hidden bg-white"
+        className="relative flex-1 select-none overflow-hidden bg-white"
       >
         <div ref={containerRef} className="absolute inset-0" />
+        {/* Click hot-zones — limited to the outer ~12% margins on each
+            side so the column in the middle stays selectable (text
+            copy still works). Direction-aware, so the labels and
+            behaviour follow the book's effective writing direction. */}
+        <button
+          type="button"
+          aria-label={t("reader.pager.prev")}
+          onClick={onLeftHalfClick}
+          className="absolute inset-y-0 left-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-black/[0.06] focus-visible:bg-black/[0.06] focus:outline-none"
+        />
+        <button
+          type="button"
+          aria-label={t("reader.pager.next")}
+          onClick={onRightHalfClick}
+          className="absolute inset-y-0 right-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-black/[0.06] focus-visible:bg-black/[0.06] focus:outline-none"
+        />
         {loadStatus === "loading" ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 text-white">
             {t("common.loading")}
           </div>
         ) : null}
         {loadStatus === "error" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 text-white">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/90 text-white">
             <p>{t("reader.loadFailed")}</p>
             <Button variant="secondary" onClick={goBack}>
               {t("reader.back")}

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
@@ -156,13 +155,9 @@ export default function ReaderPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev, goBack, settingsOpen, direction]);
 
-  const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isLeftHalf = e.clientX - rect.left < rect.width / 2;
-    // LTR: left → prev, right → next; RTL inverts
-    const goingPrev = direction === "ltr" ? isLeftHalf : !isLeftHalf;
-    (goingPrev ? goPrev : goNext)();
-  };
+  // LTR: left half = prev / right half = next. RTL inverts.
+  const onLeftHalfClick = direction === "ltr" ? goPrev : goNext;
+  const onRightHalfClick = direction === "ltr" ? goNext : goPrev;
 
   const visiblePages = useMemo(() => {
     if (total === 0) return [];
@@ -288,8 +283,7 @@ export default function ReaderPage() {
 
       <div
         role="presentation"
-        onClick={handleViewportClick}
-        className="relative flex flex-1 cursor-pointer select-none items-center justify-center overflow-hidden"
+        className="relative flex flex-1 select-none items-center justify-center overflow-hidden"
       >
         {visiblePages.length === 0 ? (
           <p className="text-white/60">{t("reader.loadFailed")}</p>
@@ -312,6 +306,23 @@ export default function ReaderPage() {
             ))}
           </div>
         )}
+        {/* Click hot-zones — limited to the outer ~12% margins on each
+            side, leaving the middle of the page free for a future
+            zoom / context-menu / overlay UI. RTL inverts the mapping
+            (see onLeftHalfClick / onRightHalfClick above). */}
+        <button
+          type="button"
+          aria-label={t("reader.pager.prev")}
+          onClick={onLeftHalfClick}
+          className="absolute inset-y-0 left-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-white/10 focus-visible:bg-white/10 focus:outline-none"
+        />
+        <button
+          type="button"
+          aria-label={t("reader.pager.next")}
+          onClick={onRightHalfClick}
+          className="absolute inset-y-0 right-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-white/10 focus-visible:bg-white/10 focus:outline-none"
+        />
+
         {/* Hidden preload pool — keeps the next few pages (and the page
             we just left) warm in the browser cache so navigation feels
             instant. position:absolute + size 0 keeps it out of layout
