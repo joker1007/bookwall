@@ -29,7 +29,7 @@ export default function BookDetailPage() {
 
   if (query.isPending) {
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
         <Skeleton className="h-6 w-24" />
         <div className="grid gap-6 md:grid-cols-[240px,1fr]">
           <Skeleton className="aspect-[2/3] w-60" />
@@ -64,7 +64,7 @@ export default function BookDetailPage() {
   };
 
   return (
-    <section className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6">
+    <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
       <div>
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2 px-2">
           <ArrowLeft className="size-4" aria-hidden /> 戻る

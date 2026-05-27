@@ -59,7 +59,7 @@ export function BookListView({
   const data = query.data;
 
   return (
-    <section className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6">
+    <section className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
         {description ? (

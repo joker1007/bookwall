@@ -7,7 +7,7 @@ export default function SearchPage() {
 
   if (!q) {
     return (
-      <section className="mx-auto max-w-3xl px-4 py-8">
+      <section className="mx-auto max-w-5xl px-4 py-8">
         <h1 className="text-2xl font-semibold tracking-tight">検索</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           上の検索バーにタイトル / 著者 / タグを入力して Enter してください。

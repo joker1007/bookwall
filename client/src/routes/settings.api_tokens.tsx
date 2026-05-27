@@ -33,7 +33,7 @@ export default function ApiTokensSettings() {
   const [revealed, setRevealed] = useState<IssuedApiToken | null>(null);
 
   return (
-    <section className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6">
+    <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
