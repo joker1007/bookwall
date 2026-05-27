@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
@@ -33,6 +33,17 @@ export default function ReaderPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  // Pop the entry that brought us here so a deep stack
+  // (list → detail → reader) collapses back to the list when the user
+  // taps back twice. Falls back to the detail page on a deep link.
+  const navType = useNavigationType();
+  const goBack = useCallback(() => {
+    if (navType === "PUSH" || navType === "REPLACE") {
+      navigate(-1);
+    } else {
+      navigate(`/books/${id}`, { replace: true });
+    }
+  }, [navType, navigate, id]);
   const book = useBook(id);
   const progress = useReadingProgress(id);
   const update = useUpdateReadingProgress(id ?? "");
@@ -136,14 +147,14 @@ export default function ReaderPage() {
       } else if (e.key === "Backspace") {
         e.preventDefault();
         goPrev();
-      } else if (e.key === "Escape" && id) {
+      } else if (e.key === "Escape") {
         e.preventDefault();
-        navigate(`/books/${id}`);
+        goBack();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, navigate, id, settingsOpen, direction]);
+  }, [goNext, goPrev, goBack, settingsOpen, direction]);
 
   const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -235,7 +246,7 @@ export default function ReaderPage() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black text-white">
         <p>{t("reader.loadFailed")}</p>
-        <Button variant="secondary" onClick={() => navigate(`/books/${id}`)}>
+        <Button variant="secondary" onClick={goBack}>
           {t("reader.back")}
         </Button>
       </div>
@@ -253,7 +264,7 @@ export default function ReaderPage() {
           variant="ghost"
           size="icon"
           aria-label={t("reader.back")}
-          onClick={() => navigate(`/books/${id}`)}
+          onClick={goBack}
           className="text-white hover:bg-white/10 hover:text-white"
         >
           <ArrowLeft className="size-5" />

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useCallback, useState } from "react";
+import { Link, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { useBook, useFavoriteBook } from "@/hooks/useBooks";
@@ -15,6 +15,18 @@ export default function BookDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  // Pop back to whichever list / search page brought the user here.
+  // navigate(-1) alone would also unwind through any reader push, which
+  // is why the reader's own back uses goBack — but a deep-link entry
+  // still needs a sensible fallback (home).
+  const navType = useNavigationType();
+  const goBack = useCallback(() => {
+    if (navType === "PUSH" || navType === "REPLACE") {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+  }, [navType, navigate]);
   const query = useBook(id);
   const favorite = useFavoriteBook();
   const remove = useDeleteBook();
@@ -57,7 +69,7 @@ export default function BookDetailPage() {
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
       <div>
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2 px-2">
+        <Button variant="ghost" size="sm" onClick={goBack} className="gap-2 px-2">
           <ArrowLeft className="size-4" aria-hidden /> {t("common.back")}
         </Button>
       </div>

@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ListTree, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -150,6 +150,18 @@ function buildBookStyles({
 export function EpubReaderView({ book }: EpubReaderViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // Pop the history entry that brought us here so the user lands back
+  // on whatever list / search page opened the detail page in the
+  // first place. Falls back to the detail page itself on a deep-link
+  // entry where there's no in-app history to pop.
+  const navType = useNavigationType();
+  const goBack = useCallback(() => {
+    if (navType === "PUSH" || navType === "REPLACE") {
+      navigate(-1);
+    } else {
+      navigate(`/books/${book.id}`, { replace: true });
+    }
+  }, [navType, navigate, book.id]);
   const progress = useReadingProgress(book.id);
   const update = useUpdateReadingProgress(book.id);
   const preferences = useUserPreferences();
@@ -473,12 +485,12 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         goPrev();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        navigate(`/books/${book.id}`);
+        goBack();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, navigate, book.id, settingsOpen, tocOpen, effectiveDirection]);
+  }, [goNext, goPrev, goBack, settingsOpen, tocOpen, effectiveDirection]);
 
   const handleViewportClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -504,7 +516,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           variant="ghost"
           size="icon"
           aria-label={t("reader.back")}
-          onClick={() => navigate(`/books/${book.id}`)}
+          onClick={goBack}
           className="text-white hover:bg-white/10 hover:text-white"
         >
           <ArrowLeft className="size-5" />
@@ -546,7 +558,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         {loadStatus === "error" ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 text-white">
             <p>{t("reader.loadFailed")}</p>
-            <Button variant="secondary" onClick={() => navigate(`/books/${book.id}`)}>
+            <Button variant="secondary" onClick={goBack}>
               {t("reader.back")}
             </Button>
           </div>
