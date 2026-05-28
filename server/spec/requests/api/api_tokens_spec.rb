@@ -6,12 +6,6 @@ RSpec.describe "Api::ApiTokens", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
 
-  def sign_in!(user)
-    post "/api/session",
-         params: {email_address: user.email_address, password: password},
-         as: :json
-  end
-
   describe "POST /api/api_tokens" do
     it "requires authentication" do
       post "/api/api_tokens", params: {name: "reader"}, as: :json

@@ -6,11 +6,6 @@ RSpec.describe "Api::Filesystem", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
 
-  def sign_in!
-    post "/api/session", params: {email_address: user.email_address, password: password}
-    expect(response).to have_http_status(:created)
-  end
-
   describe "GET /api/filesystem/browse" do
     it "requires authentication" do
       get "/api/filesystem/browse"

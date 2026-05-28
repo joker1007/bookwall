@@ -7,11 +7,6 @@ RSpec.describe "Api::RecentFavorites", type: :request do
   let(:user) { create(:user, password: password) }
   let(:library) { create(:library, owner: user) }
 
-  def sign_in!
-    post "/api/session", params: {email_address: user.email_address, password: password}
-    expect(response).to have_http_status(:created)
-  end
-
   describe "GET /api/recent_favorites" do
     it "requires authentication" do
       get "/api/recent_favorites"

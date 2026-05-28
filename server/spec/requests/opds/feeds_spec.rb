@@ -7,7 +7,7 @@ RSpec.describe "Opds::Feeds", type: :request do
   PSE_NS = "http://vaemendis.net/opds-pse/ns"
 
   let(:user) { create(:user, password: "password123") }
-  let(:auth_header) { ActionController::HttpAuthentication::Basic.encode_credentials(user.email_address, "password123") }
+  let(:auth_header) { basic_auth_header }
   let(:library) { create(:library, owner: user) }
 
   def pse_link(body)

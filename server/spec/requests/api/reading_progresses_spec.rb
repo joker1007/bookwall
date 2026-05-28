@@ -15,11 +15,7 @@ RSpec.describe "Api::ReadingProgresses", type: :request do
     end
 
     context "when logged in" do
-      before do
-        post "/api/session",
-          params: {email_address: user.email_address, password: password},
-          as: :json
-      end
+      before { sign_in! }
 
       it "returns a blank progress when none is stored" do
         get "/api/books/#{book.id}/progress"
@@ -52,11 +48,7 @@ RSpec.describe "Api::ReadingProgresses", type: :request do
   end
 
   describe "PATCH /api/books/:book_id/progress" do
-    before do
-      post "/api/session",
-        params: {email_address: user.email_address, password: password},
-        as: :json
-    end
+    before { sign_in! }
 
     it "round-trips epub_cfi" do
       patch "/api/books/#{book.id}/progress",

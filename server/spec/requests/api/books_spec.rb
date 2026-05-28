@@ -7,12 +7,6 @@ RSpec.describe "Api::Books", type: :request do
   let(:user) { create(:user, password: password) }
   let(:library) { create(:library, owner: user) }
 
-  def sign_in!
-    post "/api/session",
-         params: {email_address: user.email_address, password: password},
-         as: :json
-  end
-
   describe "GET /api/books" do
     it "requires authentication" do
       get "/api/books"
