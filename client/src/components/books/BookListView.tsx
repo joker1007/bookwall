@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LayoutGrid, List } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,13 +11,10 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useUiStore,
-  PER_PAGE_OPTIONS,
-  ITEM_SIZE_MIN,
-  ITEM_SIZE_MAX,
-  type PerPage,
-} from "@/stores/uiStore";
+import { ItemSizeSlider } from "@/components/common/ItemSizeSlider";
+import { GridSkeleton } from "@/components/common/GridSkeleton";
+import { Pagination } from "@/components/common/Pagination";
+import { useUiStore, PER_PAGE_OPTIONS, type PerPage } from "@/stores/uiStore";
 import { useBookList, type BookListParams } from "@/hooks/useBooks";
 import { BookCard } from "./BookCard";
 import { BookRow } from "./BookRow";
@@ -210,77 +206,6 @@ export function BookListView({
   );
 }
 
-interface ItemSizeSliderProps {
-  value: number;
-  onChange: (next: number) => void;
-}
-
-function ItemSizeSlider({ value, onChange }: ItemSizeSliderProps) {
-  const { t } = useTranslation();
-  return (
-    <label className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
-      <span className="text-muted-foreground">{t("books.itemSize.label")}</span>
-      <input
-        type="range"
-        min={ITEM_SIZE_MIN}
-        max={ITEM_SIZE_MAX}
-        step={8}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        aria-label={t("books.itemSize.label")}
-        className="h-2 w-32 cursor-pointer appearance-none rounded-full bg-muted
-          [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none
-          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-foreground/60
-          [&::-webkit-slider-thumb]:bg-foreground
-          [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full
-          [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-foreground/60 [&::-moz-range-thumb]:bg-foreground"
-      />
-      <span className="w-12 text-right tabular-nums text-muted-foreground">{value}px</span>
-    </label>
-  );
-}
-
-interface PaginationProps {
-  page: number;
-  pages: number;
-  onPageChange: (page: number) => void;
-}
-
-function Pagination({ page, pages, onPageChange }: PaginationProps) {
-  const { t } = useTranslation();
-  if (pages <= 1) return null;
-  return (
-    <nav
-      aria-label={t("books.pager.label")}
-      className="mt-4 flex items-center justify-center gap-2 text-sm"
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        aria-label={t("books.pager.prev")}
-        className="min-h-10"
-      >
-        <ChevronLeft className="size-4" />
-      </Button>
-      <span className="text-muted-foreground">
-        {t("books.pager.status", { page, pages })}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= pages}
-        onClick={() => onPageChange(page + 1)}
-        aria-label={t("books.pager.next")}
-        className="min-h-10"
-      >
-        <ChevronRight className="size-4" />
-      </Button>
-    </nav>
-  );
-}
-
 function BookListSkeleton({
   mode,
   itemSize,
@@ -289,22 +214,7 @@ function BookListSkeleton({
   itemSize: number;
 }) {
   if (mode === "grid") {
-    return (
-      <div
-        className="grid gap-3"
-        style={{
-          gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`,
-        }}
-      >
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="flex flex-col gap-2 p-2">
-            <Skeleton className="aspect-[2/3] w-full rounded-md" />
-            <Skeleton className="h-3 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        ))}
-      </div>
-    );
+    return <GridSkeleton itemSize={itemSize} />;
   }
   return (
     <ul className="flex flex-col gap-1">

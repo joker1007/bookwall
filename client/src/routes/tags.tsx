@@ -1,9 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/common/Pagination";
 import { useTagsList } from "@/hooks/useTaxonomy";
 
 export default function TagsIndexPage() {
@@ -60,51 +59,10 @@ export default function TagsIndexPage() {
           <Pagination
             page={query.data.pagination.page}
             pages={query.data.pagination.pages}
-            onChange={updatePage}
+            onPageChange={updatePage}
           />
         </>
       )}
     </section>
-  );
-}
-
-interface PaginationProps {
-  page: number;
-  pages: number;
-  onChange: (page: number) => void;
-}
-
-function Pagination({ page, pages, onChange }: PaginationProps) {
-  const { t } = useTranslation();
-  if (pages <= 1) return null;
-  return (
-    <nav
-      aria-label={t("books.pager.label")}
-      className="mt-4 flex items-center justify-center gap-2 text-sm"
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onChange(page - 1)}
-        aria-label={t("books.pager.prev")}
-        className="min-h-10"
-      >
-        <ChevronLeft className="size-4" />
-      </Button>
-      <span className="text-muted-foreground">
-        {t("books.pager.status", { page, pages })}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= pages}
-        onClick={() => onChange(page + 1)}
-        aria-label={t("books.pager.next")}
-        className="min-h-10"
-      >
-        <ChevronRight className="size-4" />
-      </Button>
-    </nav>
   );
 }
