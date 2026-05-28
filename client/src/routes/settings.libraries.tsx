@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { ScanLine, Trash2, Pencil, Plus, X } from "lucide-react";
+import { FolderSearch, ScanLine, Trash2, Pencil, Plus, X } from "lucide-react";
+import { PathBrowserDialog } from "@/components/settings/PathBrowserDialog";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -255,6 +256,7 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
   const isEdit = !!library;
   const [name, setName] = useState(library?.name ?? "");
   const [path, setPath] = useState(library?.path ?? "");
+  const [browserOpen, setBrowserOpen] = useState(false);
 
   if (open && library && library.name !== name && name === "") {
     setName(library.name);
@@ -314,14 +316,34 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="lib-path">{t("settings.libraries.dialog.path")}</Label>
-            <Input
-              id="lib-path"
-              value={path}
-              onChange={(e) => setPath(e.target.value)}
-              required
-              placeholder={t("settings.libraries.dialog.pathPlaceholder")}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="lib-path"
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                required
+                placeholder={t("settings.libraries.dialog.pathPlaceholder")}
+                className="flex-1 font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label={t("settings.libraries.browser.open")}
+                onClick={() => setBrowserOpen(true)}
+                className="size-10"
+              >
+                <FolderSearch className="size-4" />
+              </Button>
+            </div>
           </div>
+
+          <PathBrowserDialog
+            open={browserOpen}
+            onOpenChange={setBrowserOpen}
+            initialPath={path || undefined}
+            onSelect={setPath}
+          />
           {error ? (
             <p className="text-sm text-destructive">{formatError(error, t)}</p>
           ) : null}

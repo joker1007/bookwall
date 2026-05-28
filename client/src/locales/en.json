@@ -289,6 +289,16 @@
         "namePlaceholder": "Home NAS",
         "path": "Path (absolute path as visible from the server)",
         "pathPlaceholder": "/mnt/books"
+      },
+      "browser": {
+        "open": "Browse directories",
+        "title": "Choose a directory",
+        "description": "Pick a directory that's reachable from the server.",
+        "up": "Up one level",
+        "select": "Select this directory",
+        "empty": "No subdirectories.",
+        "notFound": "That path doesn't exist.",
+        "permissionDenied": "Bookwall doesn't have permission to read this directory."
       }
     },
     "apiTokens": {

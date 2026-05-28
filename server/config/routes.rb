@@ -34,6 +34,7 @@ Rails.application.routes.draw do
     resources :tags
     resources :recent_reads, only: %i[index]
     resources :recent_favorites, only: %i[index]
+    get "filesystem/browse", to: "filesystem#browse"
   end
 
   namespace :opds do

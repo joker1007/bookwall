@@ -41,6 +41,27 @@
       "confidence": "Weak",
       "cwe_id": [22],
       "note": "Same constraints as the OPDS variant: Book#absolute_path joins library.path with the scanner-supplied file_path, the controller verifies the resolved path stays under the owning library root before send_file, and the filename is sanitized via download_filename. The endpoint serves the EPUB / CBZ / PDF bytes to the in-app reader (Cookie auth)."
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "94943eec411c50f6355c2ed9187299fd88bc078cfeb979d5c3204f64e95d367b",
+      "check_name": "FileAccess",
+      "message": "Parameter value used in file name",
+      "file": "app/controllers/api/filesystem_controller.rb",
+      "line": 14,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "Pathname.new(File.expand_path((params[:path].to_s or ENV.fetch(\"BOOKWALL_BROWSE_ROOT\", \"/\"))))",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::FilesystemController",
+        "method": "browse"
+      },
+      "user_input": "params[:path].to_s",
+      "confidence": "Weak",
+      "cwe_id": [22],
+      "note": "By design: Bookwall is a single-user self-hosted app and this endpoint exists to expose the server's filesystem to the only operator (authenticated via session cookie) so they can pick a library root from the UI. Only directory listings are returned (never file contents), the response is read-only (no write paths), and the rails process can only enumerate what its uid can already read. Path traversal isn't meaningful since the input is an absolute path the user supplies directly."
     }
   ],
   "brakeman_version": "8.0.4"

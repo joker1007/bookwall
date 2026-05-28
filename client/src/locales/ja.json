@@ -289,6 +289,16 @@
         "namePlaceholder": "自宅 NAS",
         "path": "パス (サーバから見える絶対パス)",
         "pathPlaceholder": "/mnt/books"
+      },
+      "browser": {
+        "open": "ディレクトリを参照",
+        "title": "ディレクトリを選択",
+        "description": "サーバから見えるディレクトリを選んでください。",
+        "up": "上の階層へ",
+        "select": "このディレクトリを選択",
+        "empty": "サブディレクトリがありません。",
+        "notFound": "指定されたパスは見つかりません。",
+        "permissionDenied": "このディレクトリは読み取れません。"
       }
     },
     "apiTokens": {
