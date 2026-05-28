@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "boot"
+require_relative "../lib/middleware/spa_cache_headers"
 
 require "rails"
 require "active_model/railtie"
@@ -34,6 +35,12 @@ module Bookwall
     end
 
     config.middleware.use ActionDispatch::Cookies
+
+    # Override Cache-Control on text/html responses so the SPA shell
+    # revalidates after every deploy while the hashed Vite bundles can
+    # still ride the long-cache header set in
+    # config/environments/production.rb.
+    config.middleware.use Middleware::SpaCacheHeaders
 
     config.middleware.insert_before 0, Rack::Cors do
       allow do
