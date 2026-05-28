@@ -7,10 +7,7 @@ RSpec.describe "Api::Users", type: :request do
   let(:user) { create(:user, password: password) }
 
   describe "GET /api/users" do
-    it "requires authentication" do
-      get "/api/users"
-      expect(response).to have_http_status(:unauthorized)
-    end
+    it_behaves_like "requires authentication", :get, "/api/users"
 
     it "lists users with id and email only, never the password digest" do
       other = create(:user, email_address: "other@example.com")

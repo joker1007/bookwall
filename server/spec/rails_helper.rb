@@ -68,6 +68,7 @@ RSpec.configure do |config|
 
   config.include FactoryBot::Syntax::Methods
   config.include RequestAuthHelpers, type: :request
+  config.include CoverAttachmentHelper
 
   config.filter_rails_from_backtrace!
 end

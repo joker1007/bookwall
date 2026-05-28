@@ -8,10 +8,7 @@ RSpec.describe "Api::RecentReads", type: :request do
   let(:library) { create(:library, owner: user) }
 
   describe "GET /api/recent_reads" do
-    it "requires authentication" do
-      get "/api/recent_reads"
-      expect(response).to have_http_status(:unauthorized)
-    end
+    it_behaves_like "requires authentication", :get, "/api/recent_reads"
 
     it "returns books ordered by most recent last_read_at" do
       sign_in!

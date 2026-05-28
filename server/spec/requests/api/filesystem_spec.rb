@@ -7,10 +7,7 @@ RSpec.describe "Api::Filesystem", type: :request do
   let(:user) { create(:user, password: password) }
 
   describe "GET /api/filesystem/browse" do
-    it "requires authentication" do
-      get "/api/filesystem/browse"
-      expect(response).to have_http_status(:unauthorized)
-    end
+    it_behaves_like "requires authentication", :get, "/api/filesystem/browse"
 
     it "lists subdirectories of the requested path and reports the parent" do
       sign_in!

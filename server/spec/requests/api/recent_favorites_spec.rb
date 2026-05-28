@@ -8,10 +8,7 @@ RSpec.describe "Api::RecentFavorites", type: :request do
   let(:library) { create(:library, owner: user) }
 
   describe "GET /api/recent_favorites" do
-    it "requires authentication" do
-      get "/api/recent_favorites"
-      expect(response).to have_http_status(:unauthorized)
-    end
+    it_behaves_like "requires authentication", :get, "/api/recent_favorites"
 
     it "returns books ordered by most recent favorite creation time" do
       sign_in!

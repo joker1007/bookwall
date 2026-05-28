@@ -8,10 +8,7 @@ RSpec.describe "Api::Books", type: :request do
   let(:library) { create(:library, owner: user) }
 
   describe "GET /api/books" do
-    it "requires authentication" do
-      get "/api/books"
-      expect(response).to have_http_status(:unauthorized)
-    end
+    it_behaves_like "requires authentication", :get, "/api/books"
 
     it "lists books with pagination metadata" do
       sign_in!
