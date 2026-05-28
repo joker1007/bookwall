@@ -14,6 +14,7 @@
     "scanning": "Scan",
     "show": "Show",
     "copy": "Copy",
+    "remove": "Remove",
     "noUnusedAt": "Never",
     "never": "—",
     "fetchFailed": "Failed to load.",
@@ -275,6 +276,7 @@
         "actions": "Actions"
       },
       "empty": "No libraries yet.",
+      "sharedBadge": "Shared",
       "deleteConfirm": "Delete \"{{name}}\"? All its book metadata will be removed too. Continue?",
       "scanStatus": {
         "runningProgress": "Scanning {{processed}} / {{total}}",
@@ -288,7 +290,10 @@
         "name": "Name",
         "namePlaceholder": "Home NAS",
         "path": "Path (absolute path as visible from the server)",
-        "pathPlaceholder": "/mnt/books"
+        "pathPlaceholder": "/mnt/books",
+        "shareLabel": "Share with users",
+        "sharePlaceholder": "Add a user…",
+        "shareHint": "Shared users can browse and read this library, but cannot edit, scan, or delete it."
       },
       "browser": {
         "open": "Browse directories",

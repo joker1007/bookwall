@@ -7,7 +7,7 @@ RSpec.describe "Opds::Downloads", type: :request do
   let(:user) { create(:user, password: "password123") }
   let(:auth_header) { ActionController::HttpAuthentication::Basic.encode_credentials(user.email_address, "password123") }
   let(:library_path) { Rails.root.join("spec/fixtures/files").to_s }
-  let(:library) { create(:library, path: library_path) }
+  let(:library) { create(:library, path: library_path, owner: user) }
 
   describe "GET /opds/books/:book_id/file.:format" do
     it "serves an EPUB with the .epub extension in the URL" do

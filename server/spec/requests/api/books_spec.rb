@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Api::Books", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
 
   def sign_in!
     post "/api/session",
@@ -142,7 +142,7 @@ RSpec.describe "Api::Books", type: :request do
   end
 
   describe "GET /api/books/:id/file" do
-    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
 
     it "requires authentication" do
       book = create(:book, library: lib, file_format: :epub,

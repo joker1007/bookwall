@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe "Api::Scans", type: :request do
   let(:user) { create(:user, password: "password123") }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
 
   before do
     post "/api/session",

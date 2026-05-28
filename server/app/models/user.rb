@@ -9,6 +9,15 @@ class User < ApplicationRecord
   has_many :favorite_books, through: :favorites, source: :book
   has_many :reading_progresses, dependent: :destroy
 
+  has_many :owned_libraries, class_name: "Library", foreign_key: :owner_id, dependent: :destroy
+  has_many :library_shares, dependent: :destroy
+  has_many :shared_libraries, through: :library_shares, source: :library
+
+  # Libraries this user owns or has been shared (the visibility set).
+  def accessible_libraries
+    Library.accessible_by(self)
+  end
+
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validates :email_address,

@@ -5,7 +5,7 @@ module Api
     LATEST_LIMIT = 10
 
     def create
-      library = Library.find(params[:library_id])
+      library = find_owned_library!(params[:library_id])
       ScanLibraryJob.perform_later(library.id)
       head :accepted
     end
@@ -14,7 +14,7 @@ module Api
     # status + live progress for an in-flight scan, and a brief history
     # of past runs.
     def index
-      library = Library.find(params[:library_id])
+      library = find_owned_library!(params[:library_id])
       logs = library.scan_logs.order(started_at: :desc).limit(LATEST_LIMIT)
       render json: {
         scans: ScanLogSerializer.new(logs).serializable_hash

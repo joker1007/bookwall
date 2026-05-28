@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Api::RecentFavorites", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
 
   def sign_in!
     post "/api/session", params: {email_address: user.email_address, password: password}

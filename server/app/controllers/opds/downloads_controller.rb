@@ -12,7 +12,7 @@ module Opds
     }.freeze
 
     def file
-      book = Book.find(params[:book_id])
+      book = find_accessible_book!(params[:book_id])
       head :not_found and return unless params[:format].to_s == expected_format(book)
 
       resolved = book.absolute_path

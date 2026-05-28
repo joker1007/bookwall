@@ -20,7 +20,7 @@ RSpec.describe "Api::Libraries", type: :request do
 
     it "returns paginated libraries when authenticated" do
       sign_in!
-      create_list(:library, 3)
+      create_list(:library, 3, owner: user)
 
       get "/api/libraries"
 
@@ -61,7 +61,7 @@ RSpec.describe "Api::Libraries", type: :request do
   describe "GET /api/libraries/:id" do
     it "returns the library" do
       sign_in!
-      library = create(:library)
+      library = create(:library, owner: user)
 
       get "/api/libraries/#{library.id}"
 
@@ -73,7 +73,7 @@ RSpec.describe "Api::Libraries", type: :request do
   describe "PATCH /api/libraries/:id" do
     it "updates the library" do
       sign_in!
-      library = create(:library, name: "Old")
+      library = create(:library, name: "Old", owner: user)
 
       patch "/api/libraries/#{library.id}",
             params: {name: "New"},
@@ -87,7 +87,7 @@ RSpec.describe "Api::Libraries", type: :request do
   describe "DELETE /api/libraries/:id" do
     it "deletes the library" do
       sign_in!
-      library = create(:library)
+      library = create(:library, owner: user)
 
       expect {
         delete "/api/libraries/#{library.id}"

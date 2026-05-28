@@ -9,6 +9,7 @@ module Api
     }.freeze
 
     before_action :set_book, only: %i[show update destroy favorite unfavorite file]
+    before_action :require_book_owner!, only: %i[update destroy]
 
     def index
       search = Books::Search.new(
@@ -18,7 +19,8 @@ module Api
         author_id: params[:author_id],
         tag_id: params[:tag_id],
         favorite_user_id: favorites_only? ? Current.user.id : nil,
-        sort: params[:sort]
+        sort: params[:sort],
+        base_scope: accessible_books
       )
       pagy, books = pagy(
         :offset,
@@ -97,7 +99,13 @@ module Api
     end
 
     def set_book
-      @book = Book.find(params[:id])
+      @book = find_accessible_book!(params[:id])
+    end
+
+    # Editing/deleting book metadata mutates library content — owner only.
+    # Shared (read-only) users get 403; the book is already known-visible.
+    def require_book_owner!
+      raise ManagementForbidden unless @book.library.owner_id == Current.user.id
     end
 
     def book_params

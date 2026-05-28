@@ -2,5 +2,6 @@
 
 module Api
   class BaseController < ApplicationController
+    include LibraryScoping
   end
 end

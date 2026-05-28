@@ -23,14 +23,18 @@ RSpec.describe "Api::Tags", type: :request do
   end
 
   describe "GET /api/tags" do
-    it "lists tags" do
-      create_list(:tag, 2)
+    it "lists tags that have at least one accessible book" do
+      library = create(:library, owner: user)
+      2.times do |i|
+        tag = create(:tag, name: "tag-#{i}")
+        create(:book, library: library, file_path: "b#{i}.cbz").tags << tag
+      end
       get "/api/tags"
       expect(response.parsed_body["tags"].size).to eq(2)
     end
 
     it "keeps the query count flat as more tags are listed (no N+1)" do
-      library = create(:library)
+      library = create(:library, owner: user)
       tag_with_books = ->(name) {
         tag = create(:tag, name: name)
         2.times { |j| create(:book, library: library, file_path: "#{name}-#{j}.cbz").tags << tag }
@@ -51,16 +55,20 @@ RSpec.describe "Api::Tags", type: :request do
   end
 
   describe "PATCH /api/tags/:id" do
-    it "renames a tag" do
+    it "renames a tag reachable through an owned library" do
+      library = create(:library, owner: user)
       tag = create(:tag, name: "old")
+      create(:book, library: library, file_path: "x.cbz").tags << tag
       patch "/api/tags/#{tag.id}", params: {name: "new"}, as: :json
       expect(tag.reload.name).to eq("new")
     end
   end
 
   describe "DELETE /api/tags/:id" do
-    it "removes the tag" do
+    it "removes a tag reachable through an owned library" do
+      library = create(:library, owner: user)
       tag = create(:tag)
+      create(:book, library: library, file_path: "x.cbz").tags << tag
       expect { delete "/api/tags/#{tag.id}" }.to change(Tag, :count).by(-1)
     end
   end

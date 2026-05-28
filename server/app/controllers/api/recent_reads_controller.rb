@@ -11,6 +11,7 @@ module Api
       progresses = ReadingProgress
         .where(user_id: Current.user.id)
         .where.not(last_read_at: nil)
+        .joins(:book).where(books: {library_id: accessible_library_ids})
         .order(last_read_at: :desc)
         .limit(LIMIT)
         .includes(book: [:authors, :tags, :series, {cover_attachment: :blob}])

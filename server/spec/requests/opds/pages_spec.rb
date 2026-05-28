@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Opds::Pages", type: :request do
   let(:user) { create(:user, password: "password123") }
   let(:auth_header) { ActionController::HttpAuthentication::Basic.encode_credentials(user.email_address, "password123") }
-  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
+  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
 
   describe "GET /opds/books/:book_id/pages/:n" do
     let(:book) do

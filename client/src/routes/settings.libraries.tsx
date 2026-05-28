@@ -12,8 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { UserMultiSelect } from "@/components/settings/UserMultiSelect";
 import {
   Dialog,
   DialogContent,
@@ -148,7 +150,8 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
   const { t } = useTranslation();
   const scan = useScanLibrary();
   const remove = useDeleteLibrary();
-  const scans = useLibraryScans(library.id);
+  // Only owners can scan; skip polling (which would 403) for shared libraries.
+  const scans = useLibraryScans(library.can_manage ? library.id : undefined);
   const latest = scans.data?.scans?.[0];
   const running = latest?.status === "running";
 
@@ -176,30 +179,36 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex justify-end gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleScan}
-            disabled={scan.isPending || running}
-            className="gap-1"
-          >
-            <ScanLine className={cn("size-4", running && "animate-pulse")} />
-            {t("common.scanning")}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t("common.edit")}>
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleDelete}
-            disabled={remove.isPending}
-            aria-label={t("common.delete")}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="size-4" />
-          </Button>
+        <div className="flex items-center justify-end gap-1">
+          {library.can_manage ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleScan}
+                disabled={scan.isPending || running}
+                className="gap-1"
+              >
+                <ScanLine className={cn("size-4", running && "animate-pulse")} />
+                {t("common.scanning")}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t("common.edit")}>
+                <Pencil className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDelete}
+                disabled={remove.isPending}
+                aria-label={t("common.delete")}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </>
+          ) : (
+            <Badge variant="outline">{t("settings.libraries.sharedBadge")}</Badge>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -256,22 +265,25 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
   const isEdit = !!library;
   const [name, setName] = useState(library?.name ?? "");
   const [path, setPath] = useState(library?.path ?? "");
+  const [sharedUserIds, setSharedUserIds] = useState<number[]>(library?.shared_user_ids ?? []);
   const [browserOpen, setBrowserOpen] = useState(false);
 
   if (open && library && library.name !== name && name === "") {
     setName(library.name);
     setPath(library.path);
+    setSharedUserIds(library.shared_user_ids);
   }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
       if (isEdit && library) {
-        await update.mutateAsync({ id: library.id, name, path });
+        await update.mutateAsync({ id: library.id, name, path, shared_user_ids: sharedUserIds });
       } else {
-        await create.mutateAsync({ name, path });
+        await create.mutateAsync({ name, path, shared_user_ids: sharedUserIds });
         setName("");
         setPath("");
+        setSharedUserIds([]);
       }
       onOpenChange(false);
     } catch {
@@ -289,6 +301,7 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
         if (!o) {
           setName(library?.name ?? "");
           setPath(library?.path ?? "");
+          setSharedUserIds(library?.shared_user_ids ?? []);
           create.reset();
           update.reset();
         }
@@ -336,6 +349,18 @@ function LibraryDialog({ open, onOpenChange, library }: LibraryDialogProps) {
                 <FolderSearch className="size-4" />
               </Button>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("settings.libraries.dialog.shareLabel")}</Label>
+            <UserMultiSelect
+              value={sharedUserIds}
+              onChange={setSharedUserIds}
+              excludeUserId={library?.owner_id}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.libraries.dialog.shareHint")}
+            </p>
           </div>
 
           <PathBrowserDialog

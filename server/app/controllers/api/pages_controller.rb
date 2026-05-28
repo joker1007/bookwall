@@ -13,7 +13,7 @@ module Api
   # without even hitting the server.
   class PagesController < BaseController
     def show
-      book = Book.find(params[:book_id])
+      book = find_accessible_book!(params[:book_id])
       page_num = params[:n].to_i
       return head :bad_request if page_num.negative?
 

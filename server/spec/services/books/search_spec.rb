@@ -23,6 +23,24 @@ RSpec.describe Books::Search do
     end
   end
 
+  describe "#relation with a base_scope" do
+    let(:other_library) { create(:library) }
+    let!(:outsider) { create(:book, library: other_library, title: "Alice Elsewhere") }
+
+    it "restricts results to the base scope, including FTS queries" do
+      base = Book.where(library_id: library.id)
+      # Without the base scope, the FTS query would also match outsider.
+      results = described_class.new(query: "Alice", base_scope: base).relation
+      expect(results.pluck(:id)).to contain_exactly(alice.id)
+    end
+
+    it "restricts the LIKE fallback to the base scope too" do
+      base = Book.where(library_id: library.id)
+      results = described_class.new(query: "Moby", base_scope: base).relation
+      expect(results.pluck(:id)).to contain_exactly(moby.id)
+    end
+  end
+
   describe "#relation with query" do
     it "filters by title via FTS5" do
       results = described_class.new(query: "Alice").relation
