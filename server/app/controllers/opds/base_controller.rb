@@ -36,11 +36,22 @@ module Opds
     end
 
     def render_feed(xml)
-      render plain: xml, content_type: Opds::ACQUISITION_MIME
+      render_compressed_xml(xml, Opds::ACQUISITION_MIME)
     end
 
     def render_navigation(xml)
-      render plain: xml, content_type: Opds::NAVIGATION_MIME
+      render_compressed_xml(xml, Opds::NAVIGATION_MIME)
+    end
+
+    def render_compressed_xml(xml, content_type)
+      response.set_header("Vary", "Accept-Encoding")
+      encoding, body = Opds::Compression.encode(xml, request.get_header("HTTP_ACCEPT_ENCODING"))
+      if encoding
+        response.set_header("Content-Encoding", encoding)
+        render body: body, content_type: content_type
+      else
+        render plain: xml, content_type: content_type
+      end
     end
   end
 end

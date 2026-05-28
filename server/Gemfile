@@ -43,6 +43,10 @@ gem "ruby-vips"
 # XML / HTML parsing (also used for OPDS feed builder)
 gem "nokogiri"
 
+# Content-Encoding negotiation for OPDS feeds (gzip is stdlib Zlib).
+gem "brotli"
+gem "zstd-ruby", require: "zstd-ruby"
+
 # Exponential-backoff retry wrapper used by the library scanner to ride out
 # SQLite BUSY contention with the web process.
 gem "retriable"
