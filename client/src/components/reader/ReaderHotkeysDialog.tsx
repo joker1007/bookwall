@@ -59,6 +59,10 @@ export function ReaderHotkeysDialog({
         ]
       : []),
     {
+      keys: <Kbd>F</Kbd>,
+      action: t("reader.hotkeys.toggleFullscreen"),
+    },
+    {
       keys: <Kbd>Esc</Kbd>,
       action: t("reader.hotkeys.close"),
     },

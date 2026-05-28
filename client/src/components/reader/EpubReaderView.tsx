@@ -7,7 +7,14 @@ import {
 } from "react";
 import { useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Keyboard, ListTree, Settings as SettingsIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Keyboard,
+  ListTree,
+  Maximize,
+  Minimize,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,6 +27,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
+import { useFullscreen } from "@/hooks/useFullscreen";
+import { cn } from "@/lib/utils";
 import {
   useReadingProgress,
   useUpdateReadingProgress,
@@ -198,6 +207,9 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
+  const readerContainerRef = useRef<HTMLDivElement | null>(null);
+  const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
+    useFullscreen(readerContainerRef);
   const [toc, setToc] = useState<TocItem[]>([]);
   // foliate-js's relocate event exposes a `fraction` (0..1) for the
   // current position. We stash it so the bottom scrubber can show
@@ -528,6 +540,12 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
       }
       if (settingsOpen || tocOpen || hotkeysOpen) return;
 
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
       // ArrowLeft/Right flip on RTL (vertical Japanese); Space/Backspace
       // stay direction-agnostic — they're "forward" / "back" by convention,
       // matching every other reader app.
@@ -545,12 +563,28 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         goPrev();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        goBack();
+        // See books.read.tsx for the Esc-in-fullscreen rationale.
+        if (isFullscreen) {
+          exitFullscreen();
+        } else {
+          goBack();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, goBack, settingsOpen, tocOpen, hotkeysOpen, effectiveDirection]);
+  }, [
+    goNext,
+    goPrev,
+    goBack,
+    settingsOpen,
+    tocOpen,
+    hotkeysOpen,
+    effectiveDirection,
+    isFullscreen,
+    toggleFullscreen,
+    exitFullscreen,
+  ]);
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = effectiveDirection === "ltr" ? goPrev : goNext;
@@ -566,8 +600,16 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
-      <header className="z-10 flex items-center gap-2 border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
+    <div
+      ref={readerContainerRef}
+      className="fixed inset-0 z-50 flex flex-col bg-black text-white"
+    >
+      <header
+        className={cn(
+          "z-10 flex items-center gap-2 border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur",
+          isFullscreen && "hidden",
+        )}
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -592,6 +634,15 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         <Button
           variant="ghost"
           size="icon"
+          aria-label={t("reader.fullscreen.enter")}
+          onClick={toggleFullscreen}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <Maximize className="size-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label={t("reader.hotkeys.open")}
           onClick={() => setHotkeysOpen(true)}
           className="text-white hover:bg-white/10 hover:text-white"
@@ -608,6 +659,22 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           <SettingsIcon className="size-5" />
         </Button>
       </header>
+
+      {isFullscreen ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("reader.fullscreen.exit")}
+          onClick={toggleFullscreen}
+          className="fixed right-2 top-2 z-40 size-10 rounded-full bg-black/40 text-white opacity-60 backdrop-blur transition-opacity hover:bg-black/60 hover:opacity-100 focus-visible:opacity-100"
+          style={{
+            top: "max(0.5rem, env(safe-area-inset-top))",
+            right: "max(0.5rem, env(safe-area-inset-right))",
+          }}
+        >
+          <Minimize className="size-5" />
+        </Button>
+      ) : null}
 
       <div
         role="presentation"

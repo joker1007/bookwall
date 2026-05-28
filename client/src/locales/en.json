@@ -240,10 +240,15 @@
       "prevPage": "Previous page",
       "singlePageNudge": "Advance by one page (overrides spread mode)",
       "toggleSpread": "Toggle two-page spread",
+      "toggleFullscreen": "Toggle fullscreen",
       "close": "Close the reader",
       "toggleHelp": "Show this dialog",
       "clickEdgesKey": "Click edges",
       "clickEdges": "Left / right margin clicks turn pages (direction follows the book's writing direction)."
+    },
+    "fullscreen": {
+      "enter": "Enter fullscreen",
+      "exit": "Exit fullscreen"
     },
     "pageIndicator": "{{current}} / {{total}}",
     "loadFailed": "Could not load this book.",

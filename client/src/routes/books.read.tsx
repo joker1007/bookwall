@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Keyboard, Settings as SettingsIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Keyboard,
+  Maximize,
+  Minimize,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
 import { Button } from "@/components/ui/button";
+import { useFullscreen } from "@/hooks/useFullscreen";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
@@ -58,6 +66,9 @@ export default function ReaderPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const readerContainerRef = useRef<HTMLDivElement | null>(null);
+  const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
+    useFullscreen(readerContainerRef);
 
   // Restore once both the per-book progress and the user-wide defaults
   // have resolved. A book that has never been opened (last_read_at ===
@@ -150,6 +161,12 @@ export default function ReaderPage() {
       }
       if (settingsOpen || hotkeysOpen) return;
 
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
       // ArrowLeft/Right flip on RTL — matches the tap-zone reversal so
       // an arrow key always advances in the same direction the reader
       // sees the next page. Holding Shift overrides spread mode so the
@@ -183,12 +200,36 @@ export default function ReaderPage() {
         saveSettings({ spread: next, direction, scale });
       } else if (e.key === "Escape") {
         e.preventDefault();
-        goBack();
+        // In fullscreen, the browser's own Esc handler exits fullscreen
+        // already (apiFullscreen path) but pseudo-fullscreen needs us
+        // to clear it explicitly. Either way, don't navigate away on
+        // the same Esc press — let the user press Esc again to leave
+        // the reader.
+        if (isFullscreen) {
+          exitFullscreen();
+        } else {
+          goBack();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, goNextOne, goPrevOne, goBack, settingsOpen, hotkeysOpen, direction, spread, scale, saveSettings]);
+  }, [
+    goNext,
+    goPrev,
+    goNextOne,
+    goPrevOne,
+    goBack,
+    settingsOpen,
+    hotkeysOpen,
+    direction,
+    spread,
+    scale,
+    saveSettings,
+    isFullscreen,
+    toggleFullscreen,
+    exitFullscreen,
+  ]);
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = direction === "ltr" ? goPrev : goNext;
@@ -288,8 +329,16 @@ export default function ReaderPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
-      <header className="z-10 flex items-center gap-2 border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
+    <div
+      ref={readerContainerRef}
+      className="fixed inset-0 z-50 flex flex-col bg-black text-white"
+    >
+      <header
+        className={cn(
+          "z-10 flex items-center gap-2 border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur",
+          isFullscreen && "hidden",
+        )}
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -305,6 +354,15 @@ export default function ReaderPage() {
         <span className="px-2 text-xs tabular-nums text-white/70">
           {t("reader.pageIndicator", { current: page + 1, total })}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("reader.fullscreen.enter")}
+          onClick={toggleFullscreen}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <Maximize className="size-5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -324,6 +382,26 @@ export default function ReaderPage() {
           <SettingsIcon className="size-5" />
         </Button>
       </header>
+
+      {isFullscreen ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("reader.fullscreen.exit")}
+          onClick={toggleFullscreen}
+          // The pill sits above the page area and outside any click-to-page
+          // zone so a thumb-tap to exit never doubles as a page advance.
+          // pt-[env(safe-area-inset-top)] / pr-[env(safe-area-inset-right)]
+          // honors notches on mobile.
+          className="fixed right-2 top-2 z-40 size-10 rounded-full bg-black/40 text-white opacity-60 backdrop-blur transition-opacity hover:bg-black/60 hover:opacity-100 focus-visible:opacity-100"
+          style={{
+            top: "max(0.5rem, env(safe-area-inset-top))",
+            right: "max(0.5rem, env(safe-area-inset-right))",
+          }}
+        >
+          <Minimize className="size-5" />
+        </Button>
+      ) : null}
 
       <div
         role="presentation"
