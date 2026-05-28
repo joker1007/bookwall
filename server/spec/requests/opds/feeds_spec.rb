@@ -232,4 +232,95 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(response.body).not_to include("Other")
     end
   end
+
+  describe "GET /opds/series" do
+    it "lists every series as a navigation entry pointing at its books feed" do
+      akira = create(:series, library: library, name: "Akira")
+      zelda = create(:series, library: library, name: "Zelda")
+
+      get "/opds/series", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to start_with("application/atom+xml")
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      links = doc.xpath("//atom:entry/atom:link", ns).map { |l| l["href"] }
+      # Sorted alphabetically.
+      expect(links).to eq([
+        "/opds/series/#{akira.id}",
+        "/opds/series/#{zelda.id}"
+      ])
+    end
+  end
+
+  describe "GET /opds/series/:id" do
+    it "lists books in the series ordered by volume then title" do
+      series = create(:series, library: library, name: "Akira")
+      vol2 = create(:book, library: library, series: series, title: "Akira v2", volume: 2, file_path: "akira-2.cbz")
+      vol1 = create(:book, library: library, series: series, title: "Akira v1", volume: 1, file_path: "akira-1.cbz")
+      other = create(:book, library: library, title: "Outside", file_path: "outside.cbz")
+
+      get "/opds/series/#{series.id}", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      titles = doc.xpath("//atom:entry/atom:title", ns).map(&:text)
+      expect(titles).to eq([vol1.title, vol2.title])
+      expect(titles).not_to include(other.title)
+    end
+
+    it "returns 404 for an unknown series" do
+      get "/opds/series/999999", headers: {"Authorization" => auth_header}
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "GET /opds/tags" do
+    it "lists every tag as a navigation entry pointing at its books feed" do
+      manga = create(:tag, name: "manga")
+      novel = create(:tag, name: "novel")
+
+      get "/opds/tags", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      links = doc.xpath("//atom:entry/atom:link", ns).map { |l| l["href"] }
+      expect(links).to eq([
+        "/opds/tags/#{manga.id}",
+        "/opds/tags/#{novel.id}"
+      ])
+    end
+  end
+
+  describe "GET /opds/tags/:id" do
+    it "lists only the books that carry the tag" do
+      manga = create(:tag, name: "manga")
+      tagged = create(:book, library: library, title: "Tagged", file_path: "tagged.cbz")
+      tagged.tags << manga
+      _untagged = create(:book, library: library, title: "Untagged", file_path: "untagged.cbz")
+
+      get "/opds/tags/#{manga.id}", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      titles = doc.xpath("//atom:entry/atom:title", ns).map(&:text)
+      expect(titles).to include("Tagged")
+      expect(titles).not_to include("Untagged")
+    end
+  end
+
+  describe "GET /opds (root navigation)" do
+    it "advertises the new Series and Tags subsections" do
+      get "/opds", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      hrefs = doc.xpath("//atom:entry/atom:link", ns).map { |l| l["href"] }
+      expect(hrefs).to include("/opds/series")
+      expect(hrefs).to include("/opds/tags")
+    end
+  end
 end
