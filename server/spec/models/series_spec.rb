@@ -22,6 +22,17 @@ RSpec.describe Series, type: :model do
     expect(series_a).to be_persisted
   end
 
+  describe ".in_library" do
+    it "returns only series in the given library" do
+      lib = create(:library)
+      other = create(:library)
+      keep = create(:series, library: lib)
+      create(:series, library: other)
+
+      expect(Series.in_library(lib.id)).to contain_exactly(keep)
+    end
+  end
+
   describe ".book_counts_for" do
     it "counts books per series" do
       lib = create(:library)

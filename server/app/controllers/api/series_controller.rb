@@ -6,8 +6,8 @@ module Api
     before_action :require_series_owner!, only: %i[update destroy]
 
     def index
-      scope = Series.where(library_id: accessible_library_ids)
-      scope = scope.where(library_id: params[:library_id]) if params[:library_id].present?
+      scope = Series.accessible_by(Current.user)
+      scope = scope.in_library(params[:library_id]) if params[:library_id].present?
       pagy, items = pagy(:offset, scope.order(:name))
       first_books = Books::FirstBookPreloader.for_series(items, library_ids: accessible_library_ids)
       book_counts = Series.book_counts_for(items, library_ids: accessible_library_ids)
@@ -40,7 +40,7 @@ module Api
     private
 
     def set_series
-      @series = Series.where(library_id: accessible_library_ids).find(params[:id])
+      @series = Series.accessible_by(Current.user).find(params[:id])
     end
 
     # Renaming/deleting a series mutates library content — owner only.

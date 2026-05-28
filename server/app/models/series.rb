@@ -14,6 +14,7 @@ class Series < ApplicationRecord
 
   # Series belong to a library directly, so visibility is the library scope.
   scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
+  scope :in_library, ->(library_id) { where(library_id: library_id) }
 
   # {series_id => book_count} for the given series, counting only books in the
   # supplied (already access-scoped) library ids. Series own their books

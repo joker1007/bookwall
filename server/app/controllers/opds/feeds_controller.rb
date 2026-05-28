@@ -67,7 +67,7 @@ module Opds
 
     def series_index
       helpers = view_context_helpers
-      entries = Series.where(library_id: accessible_library_ids).order(:name).map do |s|
+      entries = Series.accessible_by(Current.user).order(:name).map do |s|
         {
           title: s.name,
           href: helpers.opds_series_path(series_id: s.id),
@@ -84,7 +84,7 @@ module Opds
     end
 
     def series_show
-      series = Series.where(library_id: accessible_library_ids).find(params[:series_id])
+      series = Series.accessible_by(Current.user).find(params[:series_id])
       # Series in Bookwall are basically reading order: sort by volume,
       # then title to keep ties stable.
       books = series.books.includes(:authors, :tags).with_attached_cover.order(:volume, :title)
