@@ -7,10 +7,11 @@ module Api
     def index
       pagy, items = pagy(:offset, Author.order(:name))
       first_books = Books::FirstBookPreloader.for_authors(items)
+      book_counts = BookAuthor.where(author_id: items.map(&:id)).group(:author_id).count
       render json: {
         authors: AuthorSerializer.new(
           items,
-          params: {first_books: first_books}
+          params: {first_books: first_books, book_counts: book_counts}
         ).serializable_hash,
         pagination: pagy_metadata(pagy)
       }

@@ -13,6 +13,16 @@ RSpec.describe "Api::Series", type: :request do
       as: :json
   end
 
+  def count_queries
+    count = 0
+    callback = lambda do |_n, _start, _finish, _id, payload|
+      next if /SCHEMA|TRANSACTION|SAVEPOINT|RELEASE/.match?(payload[:sql])
+      count += 1
+    end
+    ActiveSupport::Notifications.subscribed(callback, "sql.active_record") { yield }
+    count
+  end
+
   describe "GET /api/series" do
     it "lists series with book counts and sample cover URL" do
       series = Series.create!(library: library, name: "S1")
@@ -25,6 +35,23 @@ RSpec.describe "Api::Series", type: :request do
       expect(payload[0]["name"]).to eq("S1")
       expect(payload[0]["book_count"]).to eq(1)
       expect(payload[0]).to have_key("sample_cover_thumb_url")
+    end
+
+    it "keeps the query count flat as more series are listed (no N+1)" do
+      first = Series.create!(library: library, name: "S0")
+      create_list(:book, 2, library: library, series: first)
+      baseline = count_queries { get "/api/series" }
+
+      4.times do |i|
+        series = Series.create!(library: library, name: "S#{i + 1}")
+        create_list(:book, 2, library: library, series: series)
+      end
+      scaled = count_queries { get "/api/series" }
+
+      payload = response.parsed_body["series"]
+      expect(payload.size).to eq(5)
+      expect(payload.map { |s| s["book_count"] }).to all(eq(2))
+      expect(scaled).to eq(baseline)
     end
   end
 

@@ -6,7 +6,8 @@ class TagSerializer
   attributes :id, :name, :created_at, :updated_at
 
   attribute :book_count do |t|
-    t.books.size
+    counts = params[:book_counts]
+    counts ? counts.fetch(t.id, 0) : t.books.size
   end
 
   attribute :sample_cover_thumb_url do |t|

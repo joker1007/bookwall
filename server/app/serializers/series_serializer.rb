@@ -6,7 +6,8 @@ class SeriesSerializer
   attributes :id, :name, :library_id, :created_at, :updated_at
 
   attribute :book_count do |s|
-    s.books.size
+    counts = params[:book_counts]
+    counts ? counts.fetch(s.id, 0) : s.books.size
   end
 
   attribute :sample_cover_thumb_url do |s|

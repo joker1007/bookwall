@@ -7,10 +7,11 @@ module Api
     def index
       pagy, items = pagy(:offset, Tag.order(:name))
       first_books = Books::FirstBookPreloader.for_tags(items)
+      book_counts = BookTag.where(tag_id: items.map(&:id)).group(:tag_id).count
       render json: {
         tags: TagSerializer.new(
           items,
-          params: {first_books: first_books}
+          params: {first_books: first_books, book_counts: book_counts}
         ).serializable_hash,
         pagination: pagy_metadata(pagy)
       }
