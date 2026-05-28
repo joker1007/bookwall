@@ -51,6 +51,9 @@ export function ReaderScrubber({
   const [hoverState, setHoverState] = useState<{
     value: number;
     clientX: number;
+    // Preview anchor (px from the track's left edge), computed at
+    // pointer time so render never has to read the ref.
+    offset: number;
   } | null>(null);
   // Mirrors the dragging ref into renderable state so the visible
   // panel can stay at full opacity for the entire touch interaction
@@ -73,7 +76,8 @@ export function ReaderScrubber({
       const raw = min + ratio * range;
       const snapped = Math.round(raw / step) * step;
       const clamped = Math.min(max, Math.max(min, snapped));
-      setHoverState({ value: clamped, clientX });
+      const offset = Math.min(rect.width, Math.max(0, clientX - rect.left));
+      setHoverState({ value: clamped, clientX, offset });
     },
     [direction, min, max, range, step],
   );
@@ -122,16 +126,11 @@ export function ReaderScrubber({
     setTouchActive(false);
   };
 
-  // The preview is anchored to the hovered X coordinate, but clamped
-  // inside the viewport so it stays readable at the edges.
-  const previewStyle = (() => {
-    if (!hoverState) return undefined;
-    const track = trackRef.current;
-    if (!track) return undefined;
-    const rect = track.getBoundingClientRect();
-    const offset = Math.min(rect.width, Math.max(0, hoverState.clientX - rect.left));
-    return { left: `${offset}px` } as const;
-  })();
+  // The preview is anchored to the hovered X coordinate (clamped inside
+  // the track at pointer time, see updateHoverFromPointer).
+  const previewStyle = hoverState
+    ? ({ left: `${hoverState.offset}px` } as const)
+    : undefined;
 
   return (
     <div className="group pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-stretch">

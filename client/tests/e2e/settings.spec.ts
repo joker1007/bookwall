@@ -58,7 +58,7 @@ test.describe("settings — API tokens", () => {
     await expect(page.getByText("Token issued")).toBeVisible();
     const tokenInput = page.locator('input[readonly]').first();
     const issued = await tokenInput.inputValue();
-    expect(issued).toMatch(/^[A-Za-z0-9_\-]{20,}$/);
+    expect(issued).toMatch(/^[A-Za-z0-9_-]{20,}$/);
 
     // Row shows up in the list.
     await expect(page.getByRole("cell", { name: "E2E Token" })).toBeVisible();

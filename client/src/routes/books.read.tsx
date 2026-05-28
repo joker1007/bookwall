@@ -77,9 +77,9 @@ export default function ReaderPage() {
   // Restore once both the per-book progress and the user-wide defaults
   // have resolved. A book that has never been opened (last_read_at ===
   // null) takes its initial settings from the user's reader_defaults so
-  // the experience is consistent across new books.
-  useEffect(() => {
-    if (initialized || !progress.data || !preferences.data) return;
+  // the experience is consistent across new books. Done during render
+  // (not in an effect) so the restored values land in the same commit.
+  if (!initialized && progress.data && preferences.data) {
     const defaults = preferences.data.reader_defaults;
     const neverRead = progress.data.last_read_at === null;
     const source = neverRead ? defaults : progress.data.settings;
@@ -88,7 +88,7 @@ export default function ReaderPage() {
     setDirection(source.direction ?? "ltr");
     setScale(source.scale ?? "fit");
     setInitialized(true);
-  }, [progress.data, preferences.data, initialized]);
+  }
 
   const total = book.data?.page_count ?? 0;
   const step = spread ? 2 : 1;

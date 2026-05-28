@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -30,15 +30,21 @@ export function BookEditDialog({ book, open, onOpenChange }: BookEditDialogProps
   const [authorNames, setAuthorNames] = useState(book.authors.map((a) => a.name).join(", "));
   const [tagNames, setTagNames] = useState(book.tags.map((tag) => tag.name).join(", "));
 
-  useEffect(() => {
-    if (!open) return;
-    setTitle(book.title);
-    setVolume(book.volume?.toString() ?? "");
-    setPublishedAt(book.published_at ?? "");
-    setAuthorNames(book.authors.map((a) => a.name).join(", "));
-    setTagNames(book.tags.map((tag) => tag.name).join(", "));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, book.id]);
+  // Re-seed the form from the book whenever the dialog (re)opens or the
+  // target book changes while open, discarding any unsaved edits. Done
+  // during render (not in an effect) so there's no extra render pass.
+  const [syncedKey, setSyncedKey] = useState<number | null>(null);
+  const activeKey = open ? book.id : null;
+  if (activeKey !== syncedKey) {
+    setSyncedKey(activeKey);
+    if (open) {
+      setTitle(book.title);
+      setVolume(book.volume?.toString() ?? "");
+      setPublishedAt(book.published_at ?? "");
+      setAuthorNames(book.authors.map((a) => a.name).join(", "));
+      setTagNames(book.tags.map((tag) => tag.name).join(", "));
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

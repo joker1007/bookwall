@@ -12,11 +12,20 @@ export default defineConfig([
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
     ],
     languageOptions: {
       globals: globals.browser,
     },
+  },
+  // React-specific rules only apply to the SPA source. The Playwright
+  // e2e tests under tests/ are plain Node code — applying react-hooks
+  // there misfires on Playwright's `use()` fixture (mistaken for the
+  // React `use` hook), and react-refresh is meaningless for them.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    extends: [
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
   },
 ])

@@ -225,15 +225,33 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const detectedVerticalRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate UI state from server once on first response.
-  useEffect(() => {
-    if (hydrated) return;
-    if (!preferences.data || !progress.data) return;
+  // Hydrate UI state from server once on first response. Done during
+  // render (not in an effect) so the resolved settings are applied in
+  // the same commit, avoiding an extra render pass.
+  if (!hydrated && preferences.data && progress.data) {
     setFontSize(resolvedSettings.fontSize);
     setTheme(resolvedSettings.theme);
     setWritingMode(resolvedSettings.writingMode);
     setHydrated(true);
-  }, [preferences.data, progress.data, resolvedSettings, hydrated]);
+  }
+
+  // Debounced position save. CFI restores the exact reading point on
+  // re-open; progress_fraction powers the cover progress bar across the
+  // library views. Declared before the mount effect so its `relocate`
+  // listener can reference it.
+  const locationDebounce = useRef<number | null>(null);
+  const saveLocation = useCallback(
+    (cfi: string, fraction: number | undefined) => {
+      if (locationDebounce.current) window.clearTimeout(locationDebounce.current);
+      locationDebounce.current = window.setTimeout(() => {
+        update.mutate({
+          epub_cfi: cfi,
+          ...(typeof fraction === "number" ? {progress_fraction: fraction} : {}),
+        });
+      }, READER_PROGRESS_DEBOUNCE_MS);
+    },
+    [update],
+  );
 
   // Mount <foliate-view> and stream the book in. We wait for the
   // progress query to settle before kicking foliate off — otherwise
@@ -419,23 +437,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     // until the saved CFI is in hand, then re-run once it lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book.id, progress.isPending]);
-
-  // Debounced position save. CFI restores the exact reading point on
-  // re-open; progress_fraction powers the cover progress bar across the
-  // library views.
-  const locationDebounce = useRef<number | null>(null);
-  const saveLocation = useCallback(
-    (cfi: string, fraction: number | undefined) => {
-      if (locationDebounce.current) window.clearTimeout(locationDebounce.current);
-      locationDebounce.current = window.setTimeout(() => {
-        update.mutate({
-          epub_cfi: cfi,
-          ...(typeof fraction === "number" ? {progress_fraction: fraction} : {}),
-        });
-      }, READER_PROGRESS_DEBOUNCE_MS);
-    },
-    [update],
-  );
 
   // Whenever the user changes a setting, push it through foliate's
   // renderer.setStyles, which (a) writes into the high-priority $style
