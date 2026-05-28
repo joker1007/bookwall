@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { BookOpen, Download, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { useBook, useFavoriteBook } from "@/hooks/useBooks";
 import { useDeleteBook } from "@/hooks/useBookMutation";
 import { useAuthStore } from "@/stores/authStore";
@@ -174,6 +174,15 @@ export default function BookDetailPage() {
               />
               {isFavorited ? t("books.detail.favorited") : t("books.detail.favorite")}
             </Button>
+            {/* image_dir books aren't a single file, so /file 404s — hide it. */}
+            {book.file_format !== "image_dir" ? (
+              <Button variant="outline" asChild className="gap-2">
+                <a href={`/api/books/${book.id}/file`} download>
+                  <Download className="size-4" aria-hidden />
+                  {t("books.detail.download")}
+                </a>
+              </Button>
+            ) : null}
             <Button variant="outline" onClick={() => setEditOpen(true)} className="gap-2">
               <Pencil className="size-4" aria-hidden />
               {t("books.detail.edit")}

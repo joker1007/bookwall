@@ -197,6 +197,7 @@
       "filePathLabel": "ファイルパス",
       "favorite": "お気に入り",
       "favorited": "お気に入り済み",
+      "download": "ダウンロード",
       "edit": "編集",
       "deleteMeta": "メタデータを削除",
       "deleteConfirm": "「{{title}}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?"

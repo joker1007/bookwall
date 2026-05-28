@@ -197,6 +197,7 @@
       "filePathLabel": "File path",
       "favorite": "Favorite",
       "favorited": "Favorited",
+      "download": "Download",
       "edit": "Edit",
       "deleteMeta": "Delete metadata",
       "deleteConfirm": "Delete Bookwall metadata for \"{{title}}\"? The original file will not be removed. Continue?"
