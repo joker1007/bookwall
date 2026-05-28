@@ -10,6 +10,7 @@ module Books
       series_id: nil,
       author_id: nil,
       tag_id: nil,
+      collection_id: nil,
       favorite_user_id: nil,
       sort: nil,
       base_scope: Book.all
@@ -19,6 +20,7 @@ module Books
       @series_id = series_id
       @author_id = author_id
       @tag_id = tag_id
+      @collection_id = collection_id
       @favorite_user_id = favorite_user_id
       @sort = (sort || "added_at_desc").to_s
       @base_scope = base_scope
@@ -31,6 +33,9 @@ module Books
       scope = scope.where(series_id: @series_id) if @series_id.present?
       scope = scope.joins(:authors).where(authors: {id: @author_id}) if @author_id.present?
       scope = scope.joins(:tags).where(tags: {id: @tag_id}) if @tag_id.present?
+      if @collection_id.present?
+        scope = scope.joins(:collection_books).where(collection_books: {collection_id: @collection_id})
+      end
       if @favorite_user_id.present?
         scope = scope.joins(:favorites).where(favorites: {user_id: @favorite_user_id})
       end

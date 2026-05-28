@@ -81,4 +81,22 @@ RSpec.describe Books::FirstBookPreloader do
       expect(result[a2.id].title).to eq("Late")
     end
   end
+
+  describe ".for_collections" do
+    it "returns the earliest-added book per collection" do
+      c1 = create(:collection)
+      c2 = create(:collection)
+      early = create(:book, library: library, title: "Early",
+        added_at: 3.days.ago, file_path: "early.cbz")
+      late = create(:book, library: library, title: "Late",
+        added_at: 1.day.ago, file_path: "late.cbz")
+      c1.books << [early, late]
+      c2.books << late
+
+      result = described_class.for_collections([c1, c2])
+
+      expect(result[c1.id].title).to eq("Early")
+      expect(result[c2.id].title).to eq("Late")
+    end
+  end
 end

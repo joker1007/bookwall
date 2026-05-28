@@ -47,6 +47,12 @@ module Books
       first_book_per_join("book_authors", :author_id, author_records.map(&:id), library_ids: library_ids)
     end
 
+    # Collections group books through collection_books; the first book is the
+    # earliest added_at, same shape as authors.
+    def for_collections(collection_records, library_ids: nil)
+      first_book_per_join("collection_books", :collection_id, collection_records.map(&:id), library_ids: library_ids)
+    end
+
     def first_book_per_join(join_table, foreign_key, ids, library_ids: nil)
       return {} if ids.empty?
 

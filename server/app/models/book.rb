@@ -17,6 +17,9 @@ class Book < ApplicationRecord
   has_many :favorites, dependent: :destroy
   has_many :favoriting_users, through: :favorites, source: :user
 
+  has_many :collection_books, dependent: :destroy
+  has_many :collections, through: :collection_books
+
   has_many :reading_progresses, dependent: :destroy
 
   has_one_attached :cover do |attachable|

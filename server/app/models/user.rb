@@ -8,6 +8,7 @@ class User < ApplicationRecord
   has_many :favorites, dependent: :destroy
   has_many :favorite_books, through: :favorites, source: :book
   has_many :reading_progresses, dependent: :destroy
+  has_many :collections, dependent: :destroy
 
   has_many :owned_libraries, class_name: "Library", foreign_key: :owner_id, dependent: :destroy
   has_many :library_shares, dependent: :destroy

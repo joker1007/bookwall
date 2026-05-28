@@ -67,6 +67,13 @@ RSpec.describe Books::Search do
       expect(described_class.new(tag_id: tag.id).relation.pluck(:id)).to contain_exactly(alice.id)
     end
 
+    it "filters by collection_id" do
+      collection = create(:collection)
+      collection.books << moby
+      expect(described_class.new(collection_id: collection.id).relation.pluck(:id))
+        .to contain_exactly(moby.id)
+    end
+
     it "filters by library_id" do
       other = create(:library)
       create(:book, library: other, title: "Other")
