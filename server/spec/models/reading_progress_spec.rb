@@ -57,6 +57,42 @@ RSpec.describe ReadingProgress, type: :model do
     end
   end
 
+  describe "scopes" do
+    let(:user) { create(:user) }
+    let(:lib) { create(:library, owner: user) }
+    let(:other_lib) { create(:library, owner: user) }
+
+    def progress_for(book, account: user)
+      ReadingProgress.create!(user: account, book: book, current_page: 1, last_read_at: Time.current)
+    end
+
+    it ".for_user returns only the given user's rows" do
+      book = create(:book, library: lib)
+      progress_for(book)
+      progress_for(book, account: create(:user))
+
+      result = ReadingProgress.for_user(user)
+      expect(result.count).to eq(1)
+      expect(result.first.user_id).to eq(user.id)
+    end
+
+    it ".in_libraries keeps only rows whose book is in the given libraries" do
+      in_book = create(:book, library: lib, file_path: "a.cbz")
+      out_book = create(:book, library: other_lib, file_path: "b.cbz")
+      progress_for(in_book)
+      progress_for(out_book)
+
+      expect(ReadingProgress.in_libraries([lib.id]).pluck(:book_id)).to contain_exactly(in_book.id)
+    end
+
+    it ".read returns rows that carry a last_read_at" do
+      book = create(:book, library: lib)
+      progress_for(book)
+
+      expect(ReadingProgress.read.pluck(:book_id)).to contain_exactly(book.id)
+    end
+  end
+
   describe "cascade" do
     it "is removed when the user is destroyed" do
       user = create(:user)

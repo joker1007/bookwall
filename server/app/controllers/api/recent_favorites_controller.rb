@@ -8,8 +8,8 @@ module Api
 
     def index
       favorites = Favorite
-        .where(user_id: Current.user.id)
-        .joins(:book).where(books: {library_id: accessible_library_ids})
+        .for_user(Current.user)
+        .in_libraries(accessible_library_ids)
         .order(created_at: :desc)
         .limit(LIMIT)
         .includes(book: [:authors, :tags, :series, {cover_attachment: :blob}])
