@@ -6,13 +6,15 @@
 #
 #   docker build -t bookwall .
 #   docker run -d -p 8237:8237 \
-#     -e RAILS_MASTER_KEY=$(cat server/config/master.key) \
 #     -v bookwall-config:/config \
 #     bookwall
 #
-# /config holds the SQLite databases and the Active Storage attachments —
-# mount it as a named volume (or bind-mount a host path) so the data
-# survives container replacement.
+# /config holds the SQLite databases, the Active Storage attachments, AND
+# the SECRET_KEY_BASE. The entrypoint generates a fresh secret on the
+# very first boot and writes it to /config/secret_key_base; subsequent
+# starts reuse it. Mount /config as a named volume (or bind-mount a host
+# path) so the data — and signed session cookies — survive container
+# replacement.
 #
 # Thruster listens on $PORT (8237) and proxies to Falcon on TARGET_PORT
 # (3000). 8237 was chosen to stay clear of the usual 80 / 8080 / 8000

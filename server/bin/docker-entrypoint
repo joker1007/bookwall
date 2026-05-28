@@ -1,5 +1,22 @@
 #!/bin/bash -e
 
+# Seed SECRET_KEY_BASE from the data volume. The app deliberately does
+# NOT use Rails' encrypted credentials, so there's no RAILS_MASTER_KEY
+# to pass in. Instead the entrypoint generates a fresh key on the very
+# first boot, persists it next to the SQLite databases under
+# $BOOKWALL_DATA_DIR, and reuses it on every subsequent start. Mounting
+# the same /config volume lets the container survive replacements
+# without invalidating any existing session cookies.
+SECRET_KEY_FILE="${BOOKWALL_DATA_DIR:-/config}/secret_key_base"
+if [ ! -f "$SECRET_KEY_FILE" ]; then
+  mkdir -p "$(dirname "$SECRET_KEY_FILE")"
+  # Avoid booting Rails just to call `rails secret` — pure SecureRandom
+  # is faster and breaks the SECRET_KEY_BASE-needed-to-boot-Rails cycle.
+  ruby -rsecurerandom -e 'puts SecureRandom.hex(64)' > "$SECRET_KEY_FILE"
+  chmod 600 "$SECRET_KEY_FILE"
+fi
+export SECRET_KEY_BASE="$(cat "$SECRET_KEY_FILE")"
+
 # Prepare every Rails-managed SQLite database before booting any web /
 # worker process. The primary database uses structure.sql (SQLite FTS5);
 # the SolidQueue / SolidCache databases ship as plain schema.rb files
