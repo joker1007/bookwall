@@ -28,10 +28,13 @@ module Opds
 
     def favorites
       user = Current.user
-      books = Book.joins(:favorites).where(favorites: {user_id: user.id})
-                  .includes(:authors, :tags)
-                  .with_attached_cover
-      render_acquisition_feed("Favorites", "urn:bookwall:favorites", view_context_helpers.opds_favorites_path, books)
+      scope = Book.joins(:favorites).where(favorites: {user_id: user.id})
+      facets = build_facets(scope) { |filters| view_context_helpers.opds_favorites_path(filters) }
+      books = facets.books.includes(:authors, :tags).with_attached_cover
+      render_acquisition_feed(
+        "Favorites", "urn:bookwall:favorites",
+        view_context_helpers.opds_favorites_path(active_facet_params), books, facets: facets.links
+      )
     end
 
     def libraries
@@ -50,9 +53,15 @@ module Opds
 
     def library
       lib = Library.find(params[:library_id])
-      books = lib.books.includes(:authors, :tags).with_attached_cover.order(:title)
-      render_acquisition_feed(lib.name, "urn:bookwall:library:#{lib.id}",
-                              view_context_helpers.opds_library_path(library_id: lib.id), books)
+      facets = build_facets(lib.books) do |filters|
+        view_context_helpers.opds_library_path(filters.merge(library_id: lib.id))
+      end
+      books = facets.books.includes(:authors, :tags).with_attached_cover.order(:title)
+      render_acquisition_feed(
+        lib.name, "urn:bookwall:library:#{lib.id}",
+        view_context_helpers.opds_library_path(active_facet_params.merge(library_id: lib.id)),
+        books, facets: facets.links
+      )
     end
 
     def series_index
@@ -113,9 +122,28 @@ module Opds
       Rails.application.routes.url_helpers
     end
 
-    def render_acquisition_feed(title, id, self_url, books)
+    # Builds an Opds::Facets for the given base scope. The block receives a
+    # filters hash ({series_id:, tag_id:} with nils omitted) and returns the
+    # feed path for that combination.
+    def build_facets(scope, &path_for)
+      Opds::Facets.new(
+        scope: scope,
+        series_id: params[:series_id],
+        tag_id: params[:tag_id],
+        url_builder: ->(series_id:, tag_id:) {
+          path_for.call({series_id: series_id, tag_id: tag_id}.compact)
+        }
+      )
+    end
+
+    def active_facet_params
+      {series_id: params[:series_id].presence, tag_id: params[:tag_id].presence}.compact
+    end
+
+    def render_acquisition_feed(title, id, self_url, books, facets: [])
       xml = Opds::FeedBuilder.acquisition(
-        title: title, id: id, self_url: self_url, books: books, helpers: view_context_helpers
+        title: title, id: id, self_url: self_url, books: books,
+        helpers: view_context_helpers, facets: facets
       )
       render_feed(xml)
     end

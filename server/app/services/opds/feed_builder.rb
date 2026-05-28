@@ -5,11 +5,15 @@ module Opds
     ATOM_NS = "http://www.w3.org/2005/Atom".freeze
     OPDS_NS = "http://opds-spec.org/2010/catalog".freeze
     PSE_NS = "http://vaemendis.net/opds-pse/ns".freeze
+    # Atom Threading Extensions (RFC 4685): supplies thr:count, the per-facet
+    # result count OPDS clients show next to each filter option.
+    THREAD_NS = "http://purl.org/syndication/thread/1.0".freeze
 
     ACQUISITION_REL = "http://opds-spec.org/acquisition".freeze
     IMAGE_REL = "http://opds-spec.org/image".freeze
     THUMB_REL = "http://opds-spec.org/image/thumbnail".freeze
     PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream".freeze
+    FACET_REL = "http://opds-spec.org/facet".freeze
 
     # OPDS-PSE clients (Chunky, Panels, KyBook, ...) substitute the literal
     # "{pageNumber}" token in the link href with a real page number. Rails
@@ -48,12 +52,14 @@ module Opds
       end
     end
 
-    def self.acquisition(title:, id:, self_url:, books:, helpers:)
+    def self.acquisition(title:, id:, self_url:, books:, helpers:, facets: [])
       build_feed do |xml|
         xml.title title
         xml.id_ id
         xml.updated Time.current.iso8601
         xml.link(rel: "self", href: self_url, type: Opds::ACQUISITION_MIME)
+
+        facets.each { |facet| facet_link(xml, facet) }
 
         books.each do |book|
           xml.entry do
@@ -101,11 +107,23 @@ module Opds
 
     def self.build_feed
       doc = Nokogiri::XML::Builder.new(encoding: "UTF-8") do |xml|
-        xml.feed("xmlns" => ATOM_NS, "xmlns:opds" => OPDS_NS, "xmlns:pse" => PSE_NS, "xmlns:dc" => "http://purl.org/dc/elements/1.1/") do
+        xml.feed("xmlns" => ATOM_NS, "xmlns:opds" => OPDS_NS, "xmlns:pse" => PSE_NS, "xmlns:dc" => "http://purl.org/dc/elements/1.1/", "xmlns:thr" => THREAD_NS) do
           yield xml
         end
       end
       doc.to_xml
+    end
+
+    def self.facet_link(xml, facet)
+      attrs = {
+        rel: FACET_REL,
+        href: facet.href,
+        title: facet.title,
+        "opds:facetGroup" => facet.group,
+        "thr:count" => facet.count
+      }
+      attrs["opds:activeFacet"] = "true" if facet.active
+      xml.link(attrs)
     end
 
     def self.pse_streamable?(book)
