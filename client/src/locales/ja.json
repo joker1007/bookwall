@@ -118,7 +118,10 @@
     "namePlaceholder": "例: 読みたい本",
     "delete": "コレクション削除",
     "deleteConfirmTitle": "コレクション「{{name}}」を削除しますか?",
-    "deleteConfirmDescription": "コレクションのみ削除され、書籍とファイルはそのまま残ります。"
+    "deleteConfirmDescription": "コレクションのみ削除され、書籍とファイルはそのまま残ります。",
+    "assignExisting": "既存のコレクション",
+    "assignChoose": "コレクションを選択…",
+    "assignOrCreate": "または新規作成"
   },
   "search": {
     "title": "検索",
@@ -129,6 +132,24 @@
   },
   "books": {
     "listEmpty": "書籍はまだありません。",
+    "bulk": {
+      "enter": "選択",
+      "exit": "完了",
+      "selected_one": "{{count}} 件選択中",
+      "selected_other": "{{count}} 件選択中",
+      "selectAll": "すべて選択",
+      "clear": "選択を解除",
+      "favorite": "お気に入りに追加",
+      "unfavorite": "お気に入りから外す",
+      "addToCollection": "コレクションに追加",
+      "removeFromCollection": "コレクションから外す",
+      "delete": "削除",
+      "deleteConfirmTitle_one": "{{count}} 冊の書籍を削除しますか?",
+      "deleteConfirmTitle_other": "{{count}} 冊の書籍を削除しますか?",
+      "deleteConfirmDescription": "Bookwall のメタデータのみ削除され、ディスク上のファイルはそのまま残ります。",
+      "assignDescription_one": "{{count}} 冊の書籍をコレクションに追加します。",
+      "assignDescription_other": "{{count}} 冊の書籍をコレクションに追加します。"
+    },
     "coverMissing": "{{title}} の表紙 (未取得)",
     "coverAlt": "{{title}} の表紙",
     "progressLabel": "読書進捗: {{percent}}%",

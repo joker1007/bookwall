@@ -1,21 +1,44 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BookCover } from "./BookCover";
 import { BookActions } from "./BookActions";
 import type { Book } from "@/types/api";
 
 interface BookCardProps {
   book: Book;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
-export function BookCard({ book }: BookCardProps) {
+export function BookCard({ book, selectable, selected, onToggleSelect }: BookCardProps) {
   const { t } = useTranslation();
   const volumeSuffix = book.volume ? t("books.volumeSuffix", { volume: book.volume }) : "";
   return (
-    <article className="group relative flex flex-col gap-2 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-accent/40">
+    <article
+      className={cn(
+        "group relative flex flex-col gap-2 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-accent/40",
+        selected && "border-primary bg-primary/5",
+      )}
+    >
       <div className="relative">
         <BookCover book={book} />
-        <BookActions book={book} layout="overlay" />
+        {selectable ? (
+          <span
+            className={cn(
+              "pointer-events-none absolute left-1.5 top-1.5 z-30 flex size-6 items-center justify-center rounded-md border shadow-sm",
+              selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background/95",
+            )}
+          >
+            {selected ? <Check className="size-4" aria-hidden /> : null}
+          </span>
+        ) : (
+          <BookActions book={book} layout="overlay" />
+        )}
       </div>
       <div className="flex flex-col gap-0.5">
         <h3 className="line-clamp-2 text-sm font-medium leading-tight">
@@ -40,6 +63,17 @@ export function BookCard({ book }: BookCardProps) {
           </p>
         ) : null}
       </div>
+      {selectable ? (
+        // Selection mode: a card-wide button toggles selection (and sits above
+        // the stretched title link) instead of navigating.
+        <button
+          type="button"
+          aria-label={book.title}
+          aria-pressed={selected}
+          onClick={() => onToggleSelect?.(book.id)}
+          className="absolute inset-0 z-20 cursor-pointer rounded-lg"
+        />
+      ) : null}
     </article>
   );
 }

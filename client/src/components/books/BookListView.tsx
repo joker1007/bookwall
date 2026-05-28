@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, CheckSquare } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,10 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItemSizeSlider } from "@/components/common/ItemSizeSlider";
 import { GridSkeleton } from "@/components/common/GridSkeleton";
 import { Pagination } from "@/components/common/Pagination";
+import { BulkActionBar } from "./BulkActionBar";
 import { useUiStore, PER_PAGE_OPTIONS, type PerPage } from "@/stores/uiStore";
 import { useBookList, type BookListParams } from "@/hooks/useBooks";
 import { BookCard } from "./BookCard";
@@ -87,6 +89,41 @@ export function BookListView({
   const data = query.data;
   const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
+  // --- Bulk selection -----------------------------------------------------
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Clear the selection whenever the list contents change (different
+  // collection/library/sort or a new page) so stale ids never leak into a
+  // bulk action. Done at render time to avoid a setState-in-effect.
+  const listKey = `${JSON.stringify(baseParams ?? {})}|${sort}|${page}`;
+  const [prevKey, setPrevKey] = useState(listKey);
+  if (listKey !== prevKey) {
+    setPrevKey(listKey);
+    if (selectedIds.size > 0) setSelectedIds(new Set());
+  }
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+  const selectAll = () => {
+    if (data?.books) setSelectedIds(new Set(data.books.map((b) => b.id)));
+  };
+  const toggleSelectionMode = () => {
+    setSelectionMode((on) => !on);
+    setSelectedIds(new Set());
+  };
+
+  const collectionId = baseParams?.collection_id;
+  const allSelected =
+    !!data && data.books.length > 0 && selectedIds.size === data.books.length;
+
   return (
     <section className="flex flex-col gap-4 px-3 py-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -138,6 +175,17 @@ export function BookListView({
           <ItemSizeSlider value={itemSize} onChange={setItemSize} />
         ) : null}
 
+        <Button
+          variant={selectionMode ? "default" : "outline"}
+          size="sm"
+          className="ml-auto gap-2"
+          onClick={toggleSelectionMode}
+          aria-pressed={selectionMode}
+        >
+          <CheckSquare className="size-4" aria-hidden />
+          {selectionMode ? t("books.bulk.exit") : t("books.bulk.enter")}
+        </Button>
+
         <ToggleGroup
           type="single"
           value={displayMode}
@@ -145,7 +193,6 @@ export function BookListView({
             if (v === "grid" || v === "list") setDisplayMode(v);
           }}
           variant="outline"
-          className="ml-auto"
         >
           <ToggleGroupItem
             value="grid"
@@ -182,14 +229,25 @@ export function BookListView({
               }}
             >
               {data!.books.map((book) => (
-                <BookCard key={book.id} book={book} />
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  selectable={selectionMode}
+                  selected={selectedIds.has(book.id)}
+                  onToggleSelect={toggleSelect}
+                />
               ))}
             </div>
           ) : (
             <ul className="flex flex-col gap-1">
               {data!.books.map((book) => (
                 <li key={book.id}>
-                  <BookRow book={book} />
+                  <BookRow
+                    book={book}
+                    selectable={selectionMode}
+                    selected={selectedIds.has(book.id)}
+                    onToggleSelect={toggleSelect}
+                  />
                 </li>
               ))}
             </ul>
@@ -200,6 +258,16 @@ export function BookListView({
             pages={data!.pagination.pages}
             onPageChange={(p) => updateParam("page", p === 1 ? null : String(p))}
           />
+
+          {selectionMode ? (
+            <BulkActionBar
+              selectedIds={[...selectedIds]}
+              allSelected={allSelected}
+              onSelectAll={selectAll}
+              onClear={clearSelection}
+              collectionId={collectionId}
+            />
+          ) : null}
         </>
       )}
     </section>

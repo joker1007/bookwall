@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { BookCover } from "./BookCover";
 import { BookActions } from "./BookActions";
@@ -7,13 +9,33 @@ import type { Book } from "@/types/api";
 
 interface BookRowProps {
   book: Book;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
-export function BookRow({ book }: BookRowProps) {
+export function BookRow({ book, selectable, selected, onToggleSelect }: BookRowProps) {
   const { t } = useTranslation();
   const volumeSuffix = book.volume ? t("books.volumeSuffix", { volume: book.volume }) : "";
   return (
-    <article className="group relative flex items-start gap-3 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-accent/40">
+    <article
+      className={cn(
+        "group relative flex items-start gap-3 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-accent/40",
+        selected && "border-primary bg-primary/5",
+      )}
+    >
+      {selectable ? (
+        <span
+          className={cn(
+            "mt-1 flex size-6 shrink-0 items-center justify-center rounded-md border",
+            selected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-background",
+          )}
+        >
+          {selected ? <Check className="size-4" aria-hidden /> : null}
+        </span>
+      ) : null}
       <div className="w-16 shrink-0 sm:w-20">
         <BookCover book={book} />
       </div>
@@ -49,7 +71,17 @@ export function BookRow({ book }: BookRowProps) {
           </div>
         ) : null}
       </div>
-      <BookActions book={book} layout="inline" />
+      {selectable ? (
+        <button
+          type="button"
+          aria-label={book.title}
+          aria-pressed={selected}
+          onClick={() => onToggleSelect?.(book.id)}
+          className="absolute inset-0 z-20 cursor-pointer rounded-lg"
+        />
+      ) : (
+        <BookActions book={book} layout="inline" />
+      )}
     </article>
   );
 }

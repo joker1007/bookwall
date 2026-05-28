@@ -118,7 +118,10 @@
     "namePlaceholder": "e.g. Reading list",
     "delete": "Delete collection",
     "deleteConfirmTitle": "Delete collection \"{{name}}\"?",
-    "deleteConfirmDescription": "Only the collection is removed — the books and their files are left untouched."
+    "deleteConfirmDescription": "Only the collection is removed — the books and their files are left untouched.",
+    "assignExisting": "Existing collection",
+    "assignChoose": "Choose a collection…",
+    "assignOrCreate": "Or create a new one"
   },
   "search": {
     "title": "Search",
@@ -129,6 +132,24 @@
   },
   "books": {
     "listEmpty": "No books yet.",
+    "bulk": {
+      "enter": "Select",
+      "exit": "Done",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "selectAll": "Select all",
+      "clear": "Clear selection",
+      "favorite": "Favorite",
+      "unfavorite": "Unfavorite",
+      "addToCollection": "Add to collection",
+      "removeFromCollection": "Remove from collection",
+      "delete": "Delete",
+      "deleteConfirmTitle_one": "Delete {{count}} book?",
+      "deleteConfirmTitle_other": "Delete {{count}} books?",
+      "deleteConfirmDescription": "Only the Bookwall metadata is removed — the files on disk are left untouched.",
+      "assignDescription_one": "Add {{count}} book to a collection.",
+      "assignDescription_other": "Add {{count}} books to a collection."
+    },
     "coverMissing": "Cover for {{title}} (not available)",
     "coverAlt": "Cover for {{title}}",
     "progressLabel": "Reading progress: {{percent}}%",
