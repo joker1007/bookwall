@@ -12,8 +12,4 @@ class Tag < ApplicationRecord
                      .where(books: {library_id: Library.accessible_by(user).select(:id)})
                      .select(:tag_id))
   }
-
-  def first_book
-    books.with_attached_cover.order(:added_at, :id).first
-  end
 end

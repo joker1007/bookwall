@@ -9,9 +9,4 @@ class TagSerializer
     counts = params[:book_counts]
     counts ? counts.fetch(t.id, 0) : t.books.size
   end
-
-  attribute :sample_cover_thumb_url do |t|
-    book = params[:first_books]&.fetch(t.id, nil) || t.first_book
-    CoverUrlHelper.cover_thumb_url(book)
-  end
 end

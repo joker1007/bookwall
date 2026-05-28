@@ -81,23 +81,4 @@ RSpec.describe Books::FirstBookPreloader do
       expect(result[a2.id].title).to eq("Late")
     end
   end
-
-  describe ".for_tags" do
-    it "returns the earliest-added book per tag" do
-      t1 = Tag.create!(name: "fiction")
-      t2 = Tag.create!(name: "manga")
-      early = create(:book, library: library, title: "Early",
-        added_at: 3.days.ago, file_path: "early.cbz")
-      late = create(:book, library: library, title: "Late",
-        added_at: 1.day.ago, file_path: "late.cbz")
-      early.tags << t1
-      late.tags << t1
-      late.tags << t2
-
-      result = described_class.for_tags([t1, t2])
-
-      expect(result[t1.id].title).to eq("Early")
-      expect(result[t2.id].title).to eq("Late")
-    end
-  end
 end

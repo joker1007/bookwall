@@ -97,7 +97,6 @@ export interface Tag {
   id: number;
   name: string;
   book_count: number;
-  sample_cover_thumb_url: string | null;
   created_at: string;
   updated_at: string;
 }

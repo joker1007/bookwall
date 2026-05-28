@@ -40,16 +40,11 @@ module Books
       Book.where(id: first_book_ids).with_attached_cover.index_by(&:series_id)
     end
 
-    # Author / Tag join through the book_authors / book_tags tables; the
-    # first book is the earliest added_at. The pattern below works for
-    # any HABTM-style "first per parent" lookup — pass the join model
-    # name and the foreign key.
+    # Author joins through the book_authors table; the first book is the
+    # earliest added_at. The pattern below works for any HABTM-style
+    # "first per parent" lookup — pass the join model name and foreign key.
     def for_authors(author_records, library_ids: nil)
       first_book_per_join("book_authors", :author_id, author_records.map(&:id), library_ids: library_ids)
-    end
-
-    def for_tags(tag_records, library_ids: nil)
-      first_book_per_join("book_tags", :tag_id, tag_records.map(&:id), library_ids: library_ids)
     end
 
     def first_book_per_join(join_table, foreign_key, ids, library_ids: nil)
