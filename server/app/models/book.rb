@@ -39,6 +39,17 @@ class Book < ApplicationRecord
     File.expand_path(File.join(library.path, file_path))
   end
 
+  # Replace this book's authors/tags from a list of names, creating any new
+  # Author/Tag rows on the way. Blank/duplicate names are normalized away; an
+  # empty list clears the association.
+  def replace_authors(names)
+    self.authors = Author.upsert_by_name(names)
+  end
+
+  def replace_tags(names)
+    self.tags = Tag.upsert_by_name(names)
+  end
+
   before_save :ensure_added_at
   # FTS sync runs out-of-band so the writing transaction (API update etc.)
   # doesn't hold the SQLite writer lock while FTS5 internals rewrite

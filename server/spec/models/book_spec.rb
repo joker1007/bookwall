@@ -30,6 +30,31 @@ RSpec.describe Book, type: :model do
     end
   end
 
+  describe "#replace_authors / #replace_tags" do
+    let(:book) { create(:book) }
+
+    it "creates missing authors and assigns them" do
+      expect { book.replace_authors(["Alice", "Bob"]) }.to change(Author, :count).by(2)
+      expect(book.authors.pluck(:name)).to contain_exactly("Alice", "Bob")
+    end
+
+    it "reuses an existing author instead of duplicating it" do
+      create(:author, name: "Alice")
+      expect { book.replace_authors(["Alice"]) }.not_to change(Author, :count)
+      expect(book.authors.pluck(:name)).to contain_exactly("Alice")
+    end
+
+    it "normalizes whitespace, blanks, and duplicates" do
+      book.replace_tags(["  fantasy ", "fantasy", "", "  ", "manga"])
+      expect(book.tags.pluck(:name)).to contain_exactly("fantasy", "manga")
+    end
+
+    it "clears the association when given an empty list" do
+      book.replace_authors(["Alice"])
+      expect { book.replace_authors([]) }.to change { book.authors.count }.from(1).to(0)
+    end
+  end
+
   describe "FTS sync via job" do
     include ActiveJob::TestHelper
 

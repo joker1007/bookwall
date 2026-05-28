@@ -25,6 +25,15 @@ module GlobalMetadata
         .where(metadata_foreign_key => records.map(&:id), books: {library_id: library_ids})
         .group(metadata_foreign_key).count
     end
+
+    # Normalizes the names (strip, drop blanks, dedupe), inserts any missing
+    # rows, and returns the matching records. Returns [] for a blank input.
+    def upsert_by_name(names)
+      cleaned = Array(names).map { |n| n.to_s.strip }.reject(&:empty?).uniq
+      return [] if cleaned.empty?
+      upsert_all(cleaned.map { |n| {name: n} }, unique_by: :name)
+      where(name: cleaned).to_a
+    end
   end
 
   # True when this record carries at least one book in one of the given

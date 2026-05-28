@@ -35,8 +35,8 @@ module Api
     def update
       ActiveRecord::Base.transaction do
         @book.update!(book_params)
-        update_authors if params.key?(:author_names)
-        update_tags if params.key?(:tag_names)
+        @book.replace_authors(params[:author_names]) if params.key?(:author_names)
+        @book.replace_tags(params[:tag_names]) if params.key?(:tag_names)
       end
       @book.reload
       render json: serialize_book(@book)
@@ -123,30 +123,6 @@ module Api
           reading_progress_by_book_id: ReadingProgress.by_book_id_for(Current.user, ids)
         }
       ).serializable_hash
-    end
-
-    def update_authors
-      names = normalize_names(params[:author_names])
-      if names.any?
-        Author.upsert_all(names.map { |n| {name: n} }, unique_by: :name)
-        @book.authors = Author.where(name: names)
-      else
-        @book.authors = []
-      end
-    end
-
-    def update_tags
-      names = normalize_names(params[:tag_names])
-      if names.any?
-        Tag.upsert_all(names.map { |n| {name: n} }, unique_by: :name)
-        @book.tags = Tag.where(name: names)
-      else
-        @book.tags = []
-      end
-    end
-
-    def normalize_names(raw)
-      Array(raw).map(&:to_s).map(&:strip).reject(&:empty?).uniq
     end
   end
 end
