@@ -3,9 +3,19 @@
 require "rails_helper"
 
 RSpec.describe "Opds::Feeds", type: :request do
+  ATOM_NS = "http://www.w3.org/2005/Atom"
+  PSE_NS = "http://vaemendis.net/opds-pse/ns"
+
   let(:user) { create(:user, password: "password123") }
   let(:auth_header) { ActionController::HttpAuthentication::Basic.encode_credentials(user.email_address, "password123") }
   let(:library) { create(:library, owner: user) }
+
+  def pse_link(body)
+    Nokogiri::XML(body).at_xpath(
+      "//atom:entry/pse:link[@rel='http://vaemendis.net/opds-pse/stream']",
+      "atom" => ATOM_NS, "pse" => PSE_NS
+    )
+  end
 
   describe "GET /opds" do
     it "requires authentication" do
@@ -58,6 +68,38 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(pse["href"]).to eq("/opds/books/#{book.id}/pages/{pageNumber}")
       expect(pse["href"]).not_to include("%7B")
       expect(pse["href"]).not_to include("%7D")
+    end
+
+    it "adds pse:lastRead (1-based) and pse:lastReadDate from the user's progress" do
+      book = create(:book, library: library, page_count: 10)
+      ReadingProgress.create!(
+        user: user, book: book, current_page: 3, last_read_at: Time.utc(2026, 5, 29, 12, 0, 0)
+      )
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      pse = pse_link(response.body)
+      # current_page is 0-based; OPDS-PSE lastRead is 1-based, so 3 -> 4.
+      expect(pse.attribute_with_ns("lastRead", PSE_NS).value).to eq("4")
+      expect(pse.attribute_with_ns("lastReadDate", PSE_NS).value).to eq("2026-05-29T12:00:00Z")
+    end
+
+    it "omits pse:lastRead/lastReadDate when the user has no progress" do
+      create(:book, library: library, page_count: 10)
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      pse = pse_link(response.body)
+      expect(pse.attribute_with_ns("lastRead", PSE_NS)).to be_nil
+      expect(pse.attribute_with_ns("lastReadDate", PSE_NS)).to be_nil
+    end
+
+    it "scopes pse:lastRead to the requesting user's own progress" do
+      book = create(:book, library: library, page_count: 10)
+      ReadingProgress.create!(user: create(:user), book: book, current_page: 5, last_read_at: Time.current)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      expect(pse_link(response.body).attribute_with_ns("lastRead", PSE_NS)).to be_nil
     end
 
     it "omits the PSE link for EPUB books (PSE is image-only)" do

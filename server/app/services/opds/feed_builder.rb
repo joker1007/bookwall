@@ -52,7 +52,7 @@ module Opds
       end
     end
 
-    def self.acquisition(title:, id:, self_url:, books:, helpers:, facets: [])
+    def self.acquisition(title:, id:, self_url:, books:, helpers:, facets: [], reading_progress_by_book_id: {})
       build_feed do |xml|
         xml.title title
         xml.id_ id
@@ -94,11 +94,7 @@ module Opds
             end
 
             if pse_streamable?(book) && book.page_count.to_i > 0
-              xml.send(:"pse:link",
-                       rel: PSE_STREAM_REL,
-                       href: pse_stream_href(book, helpers),
-                       type: "image/jpeg",
-                       "pse:count" => book.page_count)
+              xml.send(:"pse:link", pse_link_attrs(book, helpers, reading_progress_by_book_id[book.id]))
             end
           end
         end
@@ -143,6 +139,23 @@ module Opds
     def self.pse_stream_href(book, helpers)
       helpers.opds_book_page_path(book_id: book.id, n: PSE_TEMPLATE_SENTINEL)
              .sub(PSE_TEMPLATE_SENTINEL, PSE_TEMPLATE_TOKEN)
+    end
+
+    # Builds the OPDS-PSE stream link attributes. The {pageNumber} stream is
+    # 0-based, but pse:lastRead is 1-based per the spec, so we map the stored
+    # 0-based current_page to current_page + 1 (clamped to the page count).
+    def self.pse_link_attrs(book, helpers, progress)
+      attrs = {
+        rel: PSE_STREAM_REL,
+        href: pse_stream_href(book, helpers),
+        type: "image/jpeg",
+        "pse:count" => book.page_count
+      }
+      if progress
+        attrs["pse:lastRead"] = [progress.current_page + 1, book.page_count].min
+        attrs["pse:lastReadDate"] = progress.last_read_at.utc.iso8601 if progress.last_read_at
+      end
+      attrs
     end
 
     def self.thumb_variant(book)
