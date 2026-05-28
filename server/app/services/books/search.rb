@@ -11,7 +11,8 @@ module Books
       author_id: nil,
       tag_id: nil,
       favorite_user_id: nil,
-      sort: nil
+      sort: nil,
+      base_scope: Book.all
     )
       @query = query.to_s.strip
       @library_id = library_id
@@ -20,10 +21,11 @@ module Books
       @tag_id = tag_id
       @favorite_user_id = favorite_user_id
       @sort = (sort || "added_at_desc").to_s
+      @base_scope = base_scope
     end
 
     def relation
-      scope = Book.all
+      scope = @base_scope
       scope = apply_query(scope)
       scope = scope.where(library_id: @library_id) if @library_id.present?
       scope = scope.where(series_id: @series_id) if @series_id.present?

@@ -3,13 +3,14 @@
 module Api
   class SeriesController < BaseController
     before_action :set_series, only: %i[show update destroy]
+    before_action :require_series_owner!, only: %i[update destroy]
 
     def index
-      scope = Series.all
+      scope = Series.where(library_id: accessible_library_ids)
       scope = scope.where(library_id: params[:library_id]) if params[:library_id].present?
       pagy, items = pagy(:offset, scope.order(:name))
-      first_books = Books::FirstBookPreloader.for_series(items)
-      book_counts = Book.where(series_id: items.map(&:id)).group(:series_id).count
+      first_books = Books::FirstBookPreloader.for_series(items, library_ids: accessible_library_ids)
+      book_counts = Book.where(series_id: items.map(&:id), library_id: accessible_library_ids).group(:series_id).count
       render json: {
         series: SeriesSerializer.new(
           items,
@@ -39,7 +40,12 @@ module Api
     private
 
     def set_series
-      @series = Series.find(params[:id])
+      @series = Series.where(library_id: accessible_library_ids).find(params[:id])
+    end
+
+    # Renaming/deleting a series mutates library content — owner only.
+    def require_series_owner!
+      raise ManagementForbidden unless @series.library.owner_id == Current.user.id
     end
 
     def series_params

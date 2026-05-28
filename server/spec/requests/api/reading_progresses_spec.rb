@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Api::ReadingProgresses", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
   let(:book) { create(:book, library: library, page_count: 20) }
 
   describe "GET /api/books/:book_id/progress" do

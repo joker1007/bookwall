@@ -49,6 +49,11 @@ export interface Library {
   last_scanned_at: string | null;
   created_at: string;
   updated_at: string;
+  owner_id: number;
+  // Whether the current viewer owns (and may manage) this library.
+  can_manage: boolean;
+  // Users this library is shared with. Only populated for the owner; [] otherwise.
+  shared_user_ids: number[];
 }
 
 export type ScanStatus = "pending" | "running" | "succeeded" | "failed";

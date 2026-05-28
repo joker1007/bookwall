@@ -25,7 +25,7 @@ export function useLibrary(id: number | string | undefined) {
 export function useCreateLibrary() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; path: string }) =>
+    mutationFn: (input: { name: string; path: string; shared_user_ids?: number[] }) =>
       api<Library>("/api/libraries", { method: "POST", body: input }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["libraries"] }),
   });
@@ -34,8 +34,15 @@ export function useCreateLibrary() {
 export function useUpdateLibrary() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...payload }: { id: number; name?: string; path?: string }) =>
-      api<Library>(`/api/libraries/${id}`, { method: "PATCH", body: payload }),
+    mutationFn: ({
+      id,
+      ...payload
+    }: {
+      id: number;
+      name?: string;
+      path?: string;
+      shared_user_ids?: number[];
+    }) => api<Library>(`/api/libraries/${id}`, { method: "PATCH", body: payload }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["libraries"] }),
   });
 }

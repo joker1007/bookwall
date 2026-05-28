@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Api::Pages", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
-  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s) }
+  let(:library) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
   let(:book) do
     create(:book,
       library: library,

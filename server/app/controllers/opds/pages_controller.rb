@@ -3,7 +3,7 @@
 module Opds
   class PagesController < BaseController
     def show
-      book = Book.find(params[:book_id])
+      book = find_accessible_book!(params[:book_id])
       page_num = params[:n].to_i
       # OPDS-PSE numbers pages from 0; negative input is malformed.
       raise ActionController::BadRequest, "page must be >= 0" if page_num.negative?

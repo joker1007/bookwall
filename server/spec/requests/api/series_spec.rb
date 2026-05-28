@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Api::Series", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password) }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
 
   before do
     post "/api/session",

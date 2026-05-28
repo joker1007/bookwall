@@ -27,7 +27,7 @@ module Api
     private
 
     def set_book
-      @book = Book.find(params[:book_id])
+      @book = find_accessible_book!(params[:book_id])
     end
 
     # Returns the existing row or a blank in-memory one so show/update can

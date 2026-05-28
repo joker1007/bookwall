@@ -20,7 +20,7 @@ module Opds
     end
 
     def recent
-      books = Book.order(added_at: :desc).limit(100)
+      books = accessible_books.order(added_at: :desc).limit(100)
                   .includes(:authors, :tags)
                   .with_attached_cover
       render_acquisition_feed("Recent", "urn:bookwall:recent", view_context_helpers.opds_recent_path, books)
@@ -29,6 +29,7 @@ module Opds
     def favorites
       user = Current.user
       scope = Book.joins(:favorites).where(favorites: {user_id: user.id})
+                  .where(library_id: accessible_library_ids)
       facets = build_facets(scope) { |filters| view_context_helpers.opds_favorites_path(filters) }
       books = facets.books.includes(:authors, :tags).with_attached_cover
       render_acquisition_feed(
@@ -39,7 +40,7 @@ module Opds
 
     def libraries
       helpers = view_context_helpers
-      entries = Library.order(:name).map do |lib|
+      entries = accessible_libraries.order(:name).map do |lib|
         {title: lib.name, href: helpers.opds_library_path(library_id: lib.id), id: "urn:bookwall:library:#{lib.id}"}
       end
       xml = Opds::FeedBuilder.navigation(
@@ -52,7 +53,7 @@ module Opds
     end
 
     def library
-      lib = Library.find(params[:library_id])
+      lib = find_accessible_library!(params[:library_id])
       facets = build_facets(lib.books) do |filters|
         view_context_helpers.opds_library_path(filters.merge(library_id: lib.id))
       end
@@ -66,7 +67,7 @@ module Opds
 
     def series_index
       helpers = view_context_helpers
-      entries = Series.order(:name).map do |s|
+      entries = Series.where(library_id: accessible_library_ids).order(:name).map do |s|
         {
           title: s.name,
           href: helpers.opds_series_path(series_id: s.id),
@@ -83,7 +84,7 @@ module Opds
     end
 
     def series_show
-      series = Series.find(params[:series_id])
+      series = Series.where(library_id: accessible_library_ids).find(params[:series_id])
       # Series in Bookwall are basically reading order: sort by volume,
       # then title to keep ties stable.
       books = series.books.includes(:authors, :tags).with_attached_cover.order(:volume, :title)
@@ -93,7 +94,7 @@ module Opds
 
     def tags_index
       helpers = view_context_helpers
-      entries = Tag.order(:name).map do |t|
+      entries = Tag.accessible_by(Current.user).order(:name).map do |t|
         {
           title: t.name,
           href: helpers.opds_tag_path(tag_id: t.id),
@@ -110,8 +111,9 @@ module Opds
     end
 
     def tag_show
-      tag = Tag.find(params[:tag_id])
-      books = tag.books.includes(:authors, :tags).with_attached_cover.order(:title)
+      tag = Tag.accessible_by(Current.user).find(params[:tag_id])
+      books = tag.books.where(library_id: accessible_library_ids)
+                 .includes(:authors, :tags).with_attached_cover.order(:title)
       render_acquisition_feed(tag.name, "urn:bookwall:tag:#{tag.id}",
                               view_context_helpers.opds_tag_path(tag_id: tag.id), books)
     end

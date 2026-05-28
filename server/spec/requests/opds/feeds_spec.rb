@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "Opds::Feeds", type: :request do
   let(:user) { create(:user, password: "password123") }
   let(:auth_header) { ActionController::HttpAuthentication::Basic.encode_credentials(user.email_address, "password123") }
-  let(:library) { create(:library) }
+  let(:library) { create(:library, owner: user) }
 
   describe "GET /opds" do
     it "requires authentication" do
@@ -280,6 +280,8 @@ RSpec.describe "Opds::Feeds", type: :request do
     it "lists every tag as a navigation entry pointing at its books feed" do
       manga = create(:tag, name: "manga")
       novel = create(:tag, name: "novel")
+      create(:book, library: library, file_path: "m.cbz").tags << manga
+      create(:book, library: library, file_path: "n.cbz").tags << novel
 
       get "/opds/tags", headers: {"Authorization" => auth_header}
 

@@ -3,6 +3,7 @@
 module Opds
   class BaseController < ActionController::API
     include ActionController::HttpAuthentication::Basic::ControllerMethods
+    include LibraryScoping
 
     before_action :authenticate_opds_user!
 

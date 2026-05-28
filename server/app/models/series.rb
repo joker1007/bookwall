@@ -12,6 +12,9 @@ class Series < ApplicationRecord
 
   validates :name, presence: true, uniqueness: {scope: :library_id}
 
+  # Series belong to a library directly, so visibility is the library scope.
+  scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
+
   # Earliest volume (NULL volumes sort last) — used as the thumbnail for the
   # series in list views.
   def first_book

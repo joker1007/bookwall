@@ -14,6 +14,7 @@
     "scanning": "スキャン",
     "show": "表示",
     "copy": "コピー",
+    "remove": "削除",
     "noUnusedAt": "未使用",
     "never": "—",
     "fetchFailed": "取得に失敗しました。",
@@ -275,6 +276,7 @@
         "actions": "操作"
       },
       "empty": "ライブラリはまだありません。",
+      "sharedBadge": "共有",
       "deleteConfirm": "「{{name}}」を削除します。書籍メタもまとめて削除されます。よろしいですか?",
       "scanStatus": {
         "runningProgress": "スキャン中 {{processed}} / {{total}}",
@@ -288,7 +290,10 @@
         "name": "名前",
         "namePlaceholder": "自宅 NAS",
         "path": "パス (サーバから見える絶対パス)",
-        "pathPlaceholder": "/mnt/books"
+        "pathPlaceholder": "/mnt/books",
+        "shareLabel": "共有するユーザー",
+        "sharePlaceholder": "ユーザーを追加…",
+        "shareHint": "共有されたユーザーは閲覧・読書のみ可能です。編集・スキャン・削除はできません。"
       },
       "browser": {
         "open": "ディレクトリを参照",

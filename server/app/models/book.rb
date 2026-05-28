@@ -28,6 +28,9 @@ class Book < ApplicationRecord
   validates :file_format, presence: true
   validates :file_size, numericality: {greater_than_or_equal_to: 0}
 
+  # Books reachable by the user: those in a library they own or are shared.
+  scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
+
   # The on-disk path resolved against the owning library's root. Stored
   # `file_path` is relative (so libraries can be remounted) and consumers
   # who need to actually open the file go through this method.
