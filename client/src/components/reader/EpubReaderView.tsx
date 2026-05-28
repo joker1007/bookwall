@@ -16,7 +16,6 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -24,10 +23,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
+import {
+  ReaderFontSizeField,
+  ReaderOptionField,
+} from "@/components/reader/ReaderSettingsFields";
 import { useFullscreen } from "@/hooks/useFullscreen";
+import { useReaderKeyboard } from "@/hooks/useReaderKeyboard";
 import { cn } from "@/lib/utils";
 import {
   useReadingProgress,
@@ -41,7 +44,7 @@ import {
   READER_FONT_SIZE_DEFAULT,
   READER_FONT_SIZE_MAX,
   READER_FONT_SIZE_MIN,
-  READER_FONT_SIZE_STEP,
+  READER_PROGRESS_DEBOUNCE_MS,
   READER_THEME_VALUES,
   READER_WRITING_MODE_VALUES,
 } from "@/types/api";
@@ -51,8 +54,6 @@ import type {
   ReaderTheme,
   ReaderWritingMode,
 } from "@/types/api";
-
-const DEBOUNCE_MS = 800;
 
 // Minimal slice of foliate-js's <foliate-view> custom element that we
 // actually call. The library doesn't ship TS types, so we declare the
@@ -431,7 +432,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           epub_cfi: cfi,
           ...(typeof fraction === "number" ? {progress_fraction: fraction} : {}),
         });
-      }, DEBOUNCE_MS);
+      }, READER_PROGRESS_DEBOUNCE_MS);
     },
     [update],
   );
@@ -529,67 +530,22 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     viewRef.current?.prev?.();
   }, []);
 
-  // Keyboard
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+  const toggleHotkeys = useCallback(() => setHotkeysOpen((v) => !v), []);
+  // See books.read.tsx for the Esc-in-fullscreen rationale.
+  const handleEscape = useCallback(() => {
+    if (isFullscreen) exitFullscreen();
+    else goBack();
+  }, [isFullscreen, exitFullscreen, goBack]);
 
-      // "?" works anywhere — it's the open/close shortcut for the
-      // cheat sheet itself, so it shouldn't be gated by any open
-      // overlay.
-      if (e.key === "?") {
-        e.preventDefault();
-        setHotkeysOpen((v) => !v);
-        return;
-      }
-      if (settingsOpen || tocOpen || hotkeysOpen) return;
-
-      if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        toggleFullscreen();
-        return;
-      }
-
-      // ArrowLeft/Right flip on RTL (vertical Japanese); Space/Backspace
-      // stay direction-agnostic — they're "forward" / "back" by convention,
-      // matching every other reader app.
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        (effectiveDirection === "rtl" ? goPrev : goNext)();
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        (effectiveDirection === "rtl" ? goNext : goPrev)();
-      } else if (e.key === " " || e.code === "Space") {
-        e.preventDefault();
-        goNext();
-      } else if (e.key === "Backspace") {
-        e.preventDefault();
-        goPrev();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        // See books.read.tsx for the Esc-in-fullscreen rationale.
-        if (isFullscreen) {
-          exitFullscreen();
-        } else {
-          goBack();
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
-    goNext,
-    goPrev,
-    goBack,
-    settingsOpen,
-    tocOpen,
-    hotkeysOpen,
-    effectiveDirection,
-    isFullscreen,
-    toggleFullscreen,
-    exitFullscreen,
-  ]);
+  useReaderKeyboard({
+    direction: effectiveDirection,
+    paused: settingsOpen || tocOpen || hotkeysOpen,
+    onNext: goNext,
+    onPrev: goPrev,
+    onToggleHotkeys: toggleHotkeys,
+    onToggleFullscreen: toggleFullscreen,
+    onEscape: handleEscape,
+  });
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = effectiveDirection === "ltr" ? goPrev : goNext;
@@ -779,87 +735,32 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
             <SheetDescription>{t("reader.settingsDescription")}</SheetDescription>
           </SheetHeader>
           <div className="grid gap-6 px-4 pb-4">
-            <div className="grid gap-2">
-              <Label>{t("reader.epubFontSize")}</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onFontSizeChange(fontSize - READER_FONT_SIZE_STEP)}
-                  disabled={fontSize <= READER_FONT_SIZE_MIN}
-                >
-                  -
-                </Button>
-                <span className="min-w-12 text-center text-sm tabular-nums">
-                  {fontSize}%
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onFontSizeChange(fontSize + READER_FONT_SIZE_STEP)}
-                  disabled={fontSize >= READER_FONT_SIZE_MAX}
-                >
-                  +
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("reader.theme.label")}</Label>
-              <ToggleGroup
-                type="single"
-                value={theme}
-                onValueChange={(v) => {
-                  if (READER_THEME_VALUES.includes(v as ReaderTheme)) {
-                    onThemeChange(v as ReaderTheme);
-                  }
-                }}
-                variant="outline"
-                className="flex-wrap justify-start"
-              >
-                {READER_THEME_VALUES.map((value) => (
-                  <ToggleGroupItem
-                    key={value}
-                    value={value}
-                    aria-label={t(`reader.theme.${value}`)}
-                  >
-                    {t(`reader.theme.${value}`)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("reader.writingMode.label")}</Label>
-              <ToggleGroup
-                type="single"
-                value={writingMode}
-                onValueChange={(v) => {
-                  if (READER_WRITING_MODE_VALUES.includes(v as ReaderWritingMode)) {
-                    onWritingModeChange(v as ReaderWritingMode);
-                  }
-                }}
-                variant="outline"
-                className="flex-wrap justify-start"
-              >
-                {READER_WRITING_MODE_VALUES.map((value) => (
-                  <ToggleGroupItem
-                    key={value}
-                    value={value}
-                    aria-label={t(`reader.writingMode.${value}`)}
-                  >
-                    {t(`reader.writingMode.${value}`)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              {writingMode === "auto" ? (
-                <p className="text-xs text-muted-foreground">
-                  {t("reader.writingMode.autoDetected", {
-                    mode: t(`reader.writingMode.${effectiveWritingMode}`),
-                  })}
-                </p>
-              ) : null}
-            </div>
+            <ReaderFontSizeField
+              label={t("reader.epubFontSize")}
+              value={fontSize}
+              onChange={onFontSizeChange}
+            />
+            <ReaderOptionField
+              label={t("reader.theme.label")}
+              value={theme}
+              options={READER_THEME_VALUES}
+              optionLabel={(v) => t(`reader.theme.${v}`)}
+              onChange={onThemeChange}
+            />
+            <ReaderOptionField
+              label={t("reader.writingMode.label")}
+              value={writingMode}
+              options={READER_WRITING_MODE_VALUES}
+              optionLabel={(v) => t(`reader.writingMode.${v}`)}
+              onChange={onWritingModeChange}
+              hint={
+                writingMode === "auto"
+                  ? t("reader.writingMode.autoDetected", {
+                      mode: t(`reader.writingMode.${effectiveWritingMode}`),
+                    })
+                  : undefined
+              }
+            />
             <div className="grid gap-2 pt-2">
               <Button
                 type="button"

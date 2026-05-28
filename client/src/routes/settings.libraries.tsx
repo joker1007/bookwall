@@ -23,8 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ReaderFontSizeField,
+  ReaderOptionField,
+  ReaderSpreadField,
+} from "@/components/reader/ReaderSettingsFields";
 import {
   useLibraries,
   useCreateLibrary,
@@ -40,9 +44,6 @@ import {
 import { ApiError } from "@/lib/api";
 import {
   READER_FONT_SIZE_DEFAULT,
-  READER_FONT_SIZE_MAX,
-  READER_FONT_SIZE_MIN,
-  READER_FONT_SIZE_STEP,
   READER_PRELOAD_AHEAD_DEFAULT,
   READER_PRELOAD_AHEAD_OPTIONS,
   READER_SCALE_VALUES,
@@ -449,67 +450,36 @@ function ReaderDefaultsSection() {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("settings.readerDefaults.cbzGroup")}
             </h3>
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="reader-default-spread">{t("reader.spread")}</Label>
-            <Toggle
-              id="reader-default-spread"
-              pressed={spread}
-              onPressedChange={(v) => save({ spread: v })}
-              variant="outline"
-              size="sm"
-              aria-label={t("reader.spread")}
-              disabled={update.isPending}
-            >
-              {spread ? t("reader.on") : t("reader.off")}
-            </Toggle>
-          </div>
+          <ReaderSpreadField
+            id="reader-default-spread"
+            label={t("reader.spread")}
+            value={spread}
+            onChange={(v) => save({ spread: v })}
+            onLabel={t("reader.on")}
+            offLabel={t("reader.off")}
+            disabled={update.isPending}
+          />
 
-          <div className="grid gap-2">
-            <Label>{t("reader.direction")}</Label>
-            <ToggleGroup
-              type="single"
-              value={direction}
-              onValueChange={(v) => {
-                if (v === "ltr" || v === "rtl") save({ direction: v });
-              }}
-              variant="outline"
-              className="justify-start"
-              disabled={update.isPending}
-            >
-              <ToggleGroupItem value="ltr" aria-label={t("reader.directionLtr")}>
-                {t("reader.directionLtr")}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="rtl" aria-label={t("reader.directionRtl")}>
-                {t("reader.directionRtl")}
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+          <ReaderOptionField
+            label={t("reader.direction")}
+            value={direction}
+            options={["ltr", "rtl"] as const}
+            optionLabel={(v) =>
+              v === "ltr" ? t("reader.directionLtr") : t("reader.directionRtl")
+            }
+            onChange={(v) => save({ direction: v })}
+            disabled={update.isPending}
+            wrap={false}
+          />
 
-          <div className="grid gap-2">
-            <Label>{t("reader.scale")}</Label>
-            <ToggleGroup
-              type="single"
-              value={scale}
-              onValueChange={(v) => {
-                if (READER_SCALE_VALUES.includes(v as ReaderScale)) {
-                  save({ scale: v as ReaderScale });
-                }
-              }}
-              variant="outline"
-              className="flex-wrap justify-start"
-              disabled={update.isPending}
-            >
-              {READER_SCALE_VALUES.map((value) => (
-                <ToggleGroupItem
-                  key={value}
-                  value={value}
-                  aria-label={t(`reader.scaleMode.${value}`)}
-                >
-                  {t(`reader.scaleMode.${value}`)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
+          <ReaderOptionField
+            label={t("reader.scale")}
+            value={scale}
+            options={READER_SCALE_VALUES}
+            optionLabel={(v) => t(`reader.scaleMode.${v}`)}
+            onChange={(v) => save({ scale: v })}
+            disabled={update.isPending}
+          />
 
           <div className="grid gap-2">
             <Label>{t("settings.readerDefaults.preloadAhead")}</Label>
@@ -547,84 +517,30 @@ function ReaderDefaultsSection() {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("settings.readerDefaults.epubGroup")}
             </h3>
-          <div className="grid gap-2">
-            <Label>{t("reader.epubFontSize")}</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => save({ font_size: Math.max(READER_FONT_SIZE_MIN, fontSize - READER_FONT_SIZE_STEP) })}
-                disabled={update.isPending || fontSize <= READER_FONT_SIZE_MIN}
-              >
-                -
-              </Button>
-              <span className="min-w-12 text-center text-sm tabular-nums">
-                {fontSize}%
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => save({ font_size: Math.min(READER_FONT_SIZE_MAX, fontSize + READER_FONT_SIZE_STEP) })}
-                disabled={update.isPending || fontSize >= READER_FONT_SIZE_MAX}
-              >
-                +
-              </Button>
-            </div>
-          </div>
+          <ReaderFontSizeField
+            label={t("reader.epubFontSize")}
+            value={fontSize}
+            onChange={(v) => save({ font_size: v })}
+            disabled={update.isPending}
+          />
 
-          <div className="grid gap-2">
-            <Label>{t("reader.theme.label")}</Label>
-            <ToggleGroup
-              type="single"
-              value={theme}
-              onValueChange={(v) => {
-                if (READER_THEME_VALUES.includes(v as ReaderTheme)) {
-                  save({ theme: v as ReaderTheme });
-                }
-              }}
-              variant="outline"
-              className="flex-wrap justify-start"
-              disabled={update.isPending}
-            >
-              {READER_THEME_VALUES.map((value) => (
-                <ToggleGroupItem
-                  key={value}
-                  value={value}
-                  aria-label={t(`reader.theme.${value}`)}
-                >
-                  {t(`reader.theme.${value}`)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
+          <ReaderOptionField
+            label={t("reader.theme.label")}
+            value={theme}
+            options={READER_THEME_VALUES}
+            optionLabel={(v) => t(`reader.theme.${v}`)}
+            onChange={(v) => save({ theme: v })}
+            disabled={update.isPending}
+          />
 
-          <div className="grid gap-2">
-            <Label>{t("reader.writingMode.label")}</Label>
-            <ToggleGroup
-              type="single"
-              value={writingMode}
-              onValueChange={(v) => {
-                if (READER_WRITING_MODE_VALUES.includes(v as ReaderWritingMode)) {
-                  save({ writing_mode: v as ReaderWritingMode });
-                }
-              }}
-              variant="outline"
-              className="flex-wrap justify-start"
-              disabled={update.isPending}
-            >
-              {READER_WRITING_MODE_VALUES.map((value) => (
-                <ToggleGroupItem
-                  key={value}
-                  value={value}
-                  aria-label={t(`reader.writingMode.${value}`)}
-                >
-                  {t(`reader.writingMode.${value}`)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
+          <ReaderOptionField
+            label={t("reader.writingMode.label")}
+            value={writingMode}
+            options={READER_WRITING_MODE_VALUES}
+            optionLabel={(v) => t(`reader.writingMode.${v}`)}
+            onChange={(v) => save({ writing_mode: v })}
+            disabled={update.isPending}
+          />
           </div>
         </div>
       )}

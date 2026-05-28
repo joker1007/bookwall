@@ -11,10 +11,14 @@ import {
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
+import {
+  ReaderOptionField,
+  ReaderSpreadField,
+} from "@/components/reader/ReaderSettingsFields";
 import { Button } from "@/components/ui/button";
 import { useFullscreen } from "@/hooks/useFullscreen";
+import { useReaderKeyboard } from "@/hooks/useReaderKeyboard";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -22,8 +26,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useBook } from "@/hooks/useBooks";
 import {
   useReadingProgress,
@@ -33,10 +35,12 @@ import {
   useUpdateUserPreferences,
   useUserPreferences,
 } from "@/hooks/useUserPreferences";
-import { READER_PRELOAD_AHEAD_DEFAULT, READER_SCALE_VALUES } from "@/types/api";
+import {
+  READER_PRELOAD_AHEAD_DEFAULT,
+  READER_PROGRESS_DEBOUNCE_MS,
+  READER_SCALE_VALUES,
+} from "@/types/api";
 import type { ReaderScale, ReaderSettings } from "@/types/api";
-
-const DEBOUNCE_MS = 800;
 
 export default function ReaderPage() {
   const { t } = useTranslation();
@@ -116,7 +120,7 @@ export default function ReaderPage() {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       update.mutate({ current_page: page });
-    }, DEBOUNCE_MS);
+    }, READER_PROGRESS_DEBOUNCE_MS);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
@@ -145,91 +149,34 @@ export default function ReaderPage() {
     saveSettings({ spread, direction, scale: value });
   };
 
-  // Keyboard navigation (suspended while the settings sheet is open so the
-  // sheet's own focus trap can use arrows without paging the reader).
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+  const toggleHotkeys = useCallback(() => setHotkeysOpen((v) => !v), []);
+  const toggleSpread = useCallback(() => {
+    setSpread((prev) => {
+      const next = !prev;
+      saveSettings({ spread: next, direction, scale });
+      return next;
+    });
+  }, [saveSettings, direction, scale]);
+  // In fullscreen, the browser's own Esc handler exits fullscreen already
+  // (apiFullscreen path) but pseudo-fullscreen needs us to clear it
+  // explicitly. Either way, don't navigate away on the same Esc press.
+  const handleEscape = useCallback(() => {
+    if (isFullscreen) exitFullscreen();
+    else goBack();
+  }, [isFullscreen, exitFullscreen, goBack]);
 
-      // "?" toggles the cheat sheet from anywhere — it shouldn't be
-      // gated by any open overlay.
-      if (e.key === "?") {
-        e.preventDefault();
-        setHotkeysOpen((v) => !v);
-        return;
-      }
-      if (settingsOpen || hotkeysOpen) return;
-
-      if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        toggleFullscreen();
-        return;
-      }
-
-      // ArrowLeft/Right flip on RTL — matches the tap-zone reversal so
-      // an arrow key always advances in the same direction the reader
-      // sees the next page. Holding Shift overrides spread mode so the
-      // arrow advances by exactly one page, which is how you re-pair
-      // an offset spread without leaving the keyboard. Space/Backspace
-      // are direction-agnostic ("forward" / "back" by convention).
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          (direction === "rtl" ? goPrevOne : goNextOne)();
-        } else {
-          (direction === "rtl" ? goPrev : goNext)();
-        }
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          (direction === "rtl" ? goNextOne : goPrevOne)();
-        } else {
-          (direction === "rtl" ? goNext : goPrev)();
-        }
-      } else if (e.key === " " || e.code === "Space") {
-        e.preventDefault();
-        goNext();
-      } else if (e.key === "Backspace") {
-        e.preventDefault();
-        goPrev();
-      } else if (e.key === "2") {
-        e.preventDefault();
-        const next = !spread;
-        setSpread(next);
-        saveSettings({ spread: next, direction, scale });
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        // In fullscreen, the browser's own Esc handler exits fullscreen
-        // already (apiFullscreen path) but pseudo-fullscreen needs us
-        // to clear it explicitly. Either way, don't navigate away on
-        // the same Esc press — let the user press Esc again to leave
-        // the reader.
-        if (isFullscreen) {
-          exitFullscreen();
-        } else {
-          goBack();
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
-    goNext,
-    goPrev,
-    goNextOne,
-    goPrevOne,
-    goBack,
-    settingsOpen,
-    hotkeysOpen,
+  useReaderKeyboard({
     direction,
-    spread,
-    scale,
-    saveSettings,
-    isFullscreen,
-    toggleFullscreen,
-    exitFullscreen,
-  ]);
+    paused: settingsOpen || hotkeysOpen,
+    onNext: goNext,
+    onPrev: goPrev,
+    onNextSingle: goNextOne,
+    onPrevSingle: goPrevOne,
+    onToggleSpread: toggleSpread,
+    onToggleHotkeys: toggleHotkeys,
+    onToggleFullscreen: toggleFullscreen,
+    onEscape: handleEscape,
+  });
 
   // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = direction === "ltr" ? goPrev : goNext;
@@ -499,62 +446,31 @@ export default function ReaderPage() {
             <SheetDescription>{t("reader.settingsDescription")}</SheetDescription>
           </SheetHeader>
           <div className="grid gap-6 px-4 pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="reader-spread">{t("reader.spread")}</Label>
-              <Toggle
-                id="reader-spread"
-                pressed={spread}
-                onPressedChange={handleSpreadChange}
-                variant="outline"
-                size="sm"
-                aria-label={t("reader.spread")}
-              >
-                {spread ? t("reader.on") : t("reader.off")}
-              </Toggle>
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("reader.direction")}</Label>
-              <ToggleGroup
-                type="single"
-                value={direction}
-                onValueChange={(v) => {
-                  if (v === "ltr" || v === "rtl") handleDirectionChange(v);
-                }}
-                variant="outline"
-                className="justify-start"
-              >
-                <ToggleGroupItem value="ltr" aria-label={t("reader.directionLtr")}>
-                  {t("reader.directionLtr")}
-                </ToggleGroupItem>
-                <ToggleGroupItem value="rtl" aria-label={t("reader.directionRtl")}>
-                  {t("reader.directionRtl")}
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("reader.scale")}</Label>
-              <ToggleGroup
-                type="single"
-                value={scale}
-                onValueChange={(v) => {
-                  if (READER_SCALE_VALUES.includes(v as ReaderScale)) {
-                    handleScaleChange(v as ReaderScale);
-                  }
-                }}
-                variant="outline"
-                className="flex-wrap justify-start"
-              >
-                {READER_SCALE_VALUES.map((value) => (
-                  <ToggleGroupItem
-                    key={value}
-                    value={value}
-                    aria-label={t(`reader.scaleMode.${value}`)}
-                  >
-                    {t(`reader.scaleMode.${value}`)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
+            <ReaderSpreadField
+              id="reader-spread"
+              label={t("reader.spread")}
+              value={spread}
+              onChange={handleSpreadChange}
+              onLabel={t("reader.on")}
+              offLabel={t("reader.off")}
+            />
+            <ReaderOptionField
+              label={t("reader.direction")}
+              value={direction}
+              options={["ltr", "rtl"] as const}
+              optionLabel={(v) =>
+                v === "ltr" ? t("reader.directionLtr") : t("reader.directionRtl")
+              }
+              onChange={handleDirectionChange}
+              wrap={false}
+            />
+            <ReaderOptionField
+              label={t("reader.scale")}
+              value={scale}
+              options={READER_SCALE_VALUES}
+              optionLabel={(v) => t(`reader.scaleMode.${v}`)}
+              onChange={handleScaleChange}
+            />
             <div className="grid gap-2 pt-2">
               <Button
                 type="button"

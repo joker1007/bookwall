@@ -136,6 +136,10 @@ export const READER_FONT_SIZE_MIN = 50;
 export const READER_FONT_SIZE_MAX = 300;
 export const READER_FONT_SIZE_STEP = 10;
 
+// Delay before persisting reader progress / settings changes, so dragging
+// the scrubber or rapidly turning pages collapses into one save.
+export const READER_PROGRESS_DEBOUNCE_MS = 800;
+
 export interface ReaderSettings {
   // CBZ / PDF / image_dir only — page progression direction (also flips
   // ArrowLeft/Right and the click hot-spots in those readers).
