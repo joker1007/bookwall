@@ -133,6 +133,67 @@ RSpec.describe "Api::Books", type: :request do
     end
   end
 
+  describe "GET /api/books?collection_id=" do
+    it "filters to books in the user's own collection" do
+      sign_in!
+      collection = create(:collection, user: user)
+      inside = create(:book, library: library, title: "Inside", file_path: "in.cbz")
+      create(:book, library: library, title: "Outside", file_path: "out.cbz")
+      collection.books << inside
+
+      get "/api/books", params: {collection_id: collection.id}
+      titles = response.parsed_body["books"].map { |b| b["title"] }
+      expect(titles).to contain_exactly("Inside")
+    end
+
+    it "returns 404 for another user's collection (no curation leak)" do
+      sign_in!
+      other = create(:collection, user: create(:user))
+      get "/api/books", params: {collection_id: other.id}
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "bulk favorite" do
+    it "favorites every selected accessible book and is idempotent" do
+      sign_in!
+      a = create(:book, library: library, file_path: "a.cbz")
+      b = create(:book, library: library, file_path: "b.cbz")
+      create(:favorite, user: user, book: a) # already favorited
+
+      post "/api/books/bulk_favorite", params: {book_ids: [a.id, b.id]}, as: :json
+      expect(response).to have_http_status(:no_content)
+      expect(Favorite.where(user: user).pluck(:book_id)).to contain_exactly(a.id, b.id)
+    end
+
+    it "removes favorites for the selected books on DELETE" do
+      sign_in!
+      a = create(:book, library: library, file_path: "a.cbz")
+      b = create(:book, library: library, file_path: "b.cbz")
+      create(:favorite, user: user, book: a)
+      create(:favorite, user: user, book: b)
+
+      delete "/api/books/bulk_favorite", params: {book_ids: [a.id, b.id]}, as: :json
+      expect(response).to have_http_status(:no_content)
+      expect(Favorite.where(user: user)).to be_empty
+    end
+  end
+
+  describe "bulk destroy" do
+    it "deletes owned books only, leaving shared (read-only) books intact" do
+      sign_in!
+      owned = create(:book, library: library, file_path: "owned.cbz")
+      shared_lib = create(:library, owner: create(:user))
+      create(:library_share, library: shared_lib, user: user)
+      shared = create(:book, library: shared_lib, file_path: "shared.cbz")
+
+      post "/api/books/bulk_destroy", params: {book_ids: [owned.id, shared.id]}, as: :json
+      expect(response).to have_http_status(:no_content)
+      expect(Book.exists?(owned.id)).to be(false)
+      expect(Book.exists?(shared.id)).to be(true)
+    end
+  end
+
   describe "favorite toggle" do
     it "is idempotent on repeated POST" do
       sign_in!

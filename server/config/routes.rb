@@ -21,6 +21,11 @@ Rails.application.routes.draw do
       resources :scans, only: %i[create index]
     end
     resources :books do
+      collection do
+        post :bulk_favorite
+        delete :bulk_favorite, action: :bulk_unfavorite
+        post :bulk_destroy
+      end
       member do
         post :favorite
         delete :favorite, action: :unfavorite
@@ -32,6 +37,9 @@ Rails.application.routes.draw do
     resources :series
     resources :authors
     resources :tags
+    resources :collections do
+      resources :books, only: %i[create destroy], controller: "collection_books"
+    end
     resources :recent_reads, only: %i[index]
     resources :recent_favorites, only: %i[index]
     resources :users, only: %i[index]

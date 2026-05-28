@@ -12,6 +12,7 @@ module Api
         series_id: params[:series_id],
         author_id: params[:author_id],
         tag_id: params[:tag_id],
+        collection_id: own_collection_id,
         favorite_user_id: favorites_only? ? Current.user.id : nil,
         sort: params[:sort],
         base_scope: accessible_books
@@ -59,6 +60,30 @@ module Api
       head :no_content
     end
 
+    # POST /api/books/bulk_favorite  { book_ids: [...] }
+    # Favorite every accessible book in the list (idempotent).
+    def bulk_favorite
+      rows = accessible_books.where(id: bulk_ids).ids.map do |book_id|
+        {user_id: Current.user.id, book_id: book_id, created_at: Time.current}
+      end
+      Favorite.upsert_all(rows, unique_by: %i[user_id book_id]) if rows.any?
+      head :no_content
+    end
+
+    # DELETE /api/books/bulk_favorite  { book_ids: [...] }
+    def bulk_unfavorite
+      Favorite.where(user_id: Current.user.id, book_id: bulk_ids).delete_all
+      head :no_content
+    end
+
+    # POST /api/books/bulk_destroy  { book_ids: [...] }
+    # Deletes metadata only, and only for books the user owns — shared
+    # (read-only) books in the selection are left untouched.
+    def bulk_destroy
+      accessible_books.where(id: bulk_ids, library_id: owned_library_ids).destroy_all
+      head :no_content
+    end
+
     # GET /api/books/:id/file
     # Streams the raw book file (.epub / .cbz / .pdf) to the SPA, used by
     # the in-browser EPUB reader (foliate-js) and any other download flow.
@@ -102,6 +127,18 @@ module Api
 
     def favorites_only?
       ActiveModel::Type::Boolean.new.cast(params[:favorites_only])
+    end
+
+    def bulk_ids
+      Array(params[:book_ids]).map(&:to_i)
+    end
+
+    # Resolve the collection_id filter only when it belongs to the current
+    # user — a foreign/bogus id raises 404 rather than leaking another user's
+    # curation. Returns nil when no collection filter was requested.
+    def own_collection_id
+      return nil if params[:collection_id].blank?
+      Current.user.collections.find(params[:collection_id]).id
     end
 
     def serialize_book(book)
