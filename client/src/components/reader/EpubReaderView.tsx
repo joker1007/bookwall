@@ -105,25 +105,6 @@ function flattenToc(items: TocItem[]): TocItem[] {
   return out;
 }
 
-// foliate-js renders book content inside an iframe that sits inside a
-// shadow root (the paginator / scrolled renderer is a custom element).
-// Walk the tree, including any open shadow roots, so we can re-apply
-// styles to already-mounted sections when settings change.
-function collectIframes(
-  root: Element | ShadowRoot | null | undefined,
-): HTMLIFrameElement[] {
-  if (!root) return [];
-  const out: HTMLIFrameElement[] = [];
-  root.querySelectorAll("iframe").forEach((iframe) => {
-    out.push(iframe as HTMLIFrameElement);
-  });
-  root.querySelectorAll("*").forEach((el) => {
-    const sr = (el as HTMLElement).shadowRoot;
-    if (sr) out.push(...collectIframes(sr));
-  });
-  return out;
-}
-
 function themeCss(theme: ReaderTheme): string {
   switch (theme) {
     case "dark":
@@ -288,17 +269,17 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           if (detail?.cfi) saveLocation(detail.cfi, clampedFraction);
         });
 
-        // Inject per-document styles when each section loads. Routed via
-        // a ref so the latest font_size / theme / writing_mode are used,
-        // not whatever values were in scope at mount time. We also use
-        // this hook to sniff the iframe's computed writing-mode the first
-        // time we see a vertical section — some EPUBs have a horizontal
-        // cover page followed by vertical body sections, so we wait for
-        // "first vertical signal" rather than "first section".
+        // Sniff the iframe's computed writing-mode the first time we see
+        // a vertical section — some EPUBs have a horizontal cover page
+        // followed by vertical body sections, so we wait for "first
+        // vertical signal" rather than "first section". The actual user
+        // stylesheet (font_size / theme / writing_mode) is applied via
+        // foliate's renderer.setStyles in a separate effect — that route
+        // is the one foliate's own re-flow path observes, so it survives
+        // settings changes against already-rendered sections.
         view.addEventListener("load", (e: Event) => {
-          const detail = (e as CustomEvent<{ doc: Document }>).detail;
-          applyBookStylesRef.current(detail.doc);
           if (!detectedVerticalRef.current) {
+            const detail = (e as CustomEvent<{ doc: Document }>).detail;
             try {
               const win = detail.doc.defaultView;
               if (win) {
@@ -364,6 +345,20 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         );
         renderer?.setAttribute?.("margin", "16px");
         renderer?.setAttribute?.("gap", "5%");
+
+        // Seed renderer.setStyles with the resolved user stylesheet
+        // BEFORE init() so the first section load picks it up — foliate
+        // caches the last call to setStyles and replays it on every
+        // section transition via its `onLoad` hook. Without this seed,
+        // sections load with no font_size / theme applied until the
+        // useEffect below catches up, producing a visible re-flow.
+        renderer?.setStyles?.(
+          buildBookStyles({
+            fontSize: resolvedSettings.fontSize,
+            theme: resolvedSettings.theme,
+            writingMode: resolvedSettings.writingMode,
+          }),
+        );
 
         // foliate-js doesn't render the first section until we navigate
         // to it explicitly. If we have a saved CFI, init({ lastLocation })
@@ -441,43 +436,26 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     [update],
   );
 
-  // The "load" event listener on <foliate-view> is registered once at
-  // mount time, which would normally capture stale font_size / theme /
-  // writing_mode values in a closure. Route the actual style application
-  // through a ref so each invocation reads the latest values.
-  const applyBookStylesRef = useRef<(doc: Document) => void>(() => {});
-  useEffect(() => {
-    applyBookStylesRef.current = (doc: Document) => {
-      const css = buildBookStyles({ fontSize, theme, writingMode });
-      let style = doc.getElementById(
-        "__bookwall_reader_style",
-      ) as HTMLStyleElement | null;
-      if (!style) {
-        style = doc.createElement("style");
-        style.id = "__bookwall_reader_style";
-        doc.head.append(style);
-      }
-      style.textContent = css;
-    };
-  }, [fontSize, theme, writingMode]);
-
-  // Whenever the user changes a setting, apply it to the renderer (so
-  // foliate-js's outer chrome adopts the theme) AND walk through every
-  // iframe that has already been mounted (the load listener will only
-  // fire on future section loads). The iframe lives inside the
-  // paginator's shadow DOM, so a plain querySelectorAll on our container
-  // doesn't reach it — descend into shadow roots manually.
+  // Whenever the user changes a setting, push it through foliate's
+  // renderer.setStyles, which (a) writes into the high-priority $style
+  // slot inside the section iframe, (b) replays the same CSS into every
+  // future section the user navigates to, and (c) triggers foliate's
+  // internal re-flow (expand + columnize) so font-size changes
+  // re-paginate immediately.
+  //
+  // Earlier this code also walked the iframe tree with `collectIframes`
+  // and injected its own <style> as a backup. That walk never actually
+  // reached anything — foliate's <foliate-view> and <foliate-paginator>
+  // use `attachShadow({ mode: "closed" })`, so `el.shadowRoot` is null
+  // and the iframe is unreachable from outside. The leftover stale
+  // <style> from the load event also sat at the END of head with
+  // `!important` and beat foliate's $style on every settings change,
+  // which is why font_size / theme used to refuse to re-apply.
   useEffect(() => {
     if (loadStatus !== "ready") return;
     const renderer = viewRef.current?.renderer;
     const css = buildBookStyles({ fontSize, theme, writingMode });
-    renderer?.setStyles?.([css]);
-
-    const iframes = collectIframes(viewRef.current);
-    iframes.forEach((iframe) => {
-      const doc = iframe.contentDocument;
-      if (doc) applyBookStylesRef.current(doc);
-    });
+    renderer?.setStyles?.(css);
   }, [loadStatus, fontSize, theme, writingMode]);
 
   // Keep the renderer's max-column-count in sync with the viewport.
