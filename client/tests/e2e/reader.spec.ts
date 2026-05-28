@@ -58,4 +58,57 @@ test.describe("image reader progress restore", () => {
     // Regression guard: page 0 must never have been fetched.
     expect(requestedPages).not.toContain(0);
   });
+
+  // Regression: a book whose progress row exists from a page-progress save
+  // (so last_read_at is non-null) but whose reader settings were never
+  // touched (settings == {}) must still fall back to the user's
+  // reader_defaults on re-open — not to the hard-coded initial values
+  // (spread off / ltr / fit). Previously `persisted ?? defaults` kept the
+  // empty `{}` and shadowed the defaults.
+  test("falls back to reader_defaults when only page progress was saved", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+
+    // Default to spread (two-page) view for every new book.
+    const prefRes = await page.request.patch("/api/preferences", {
+      data: { reader_defaults: { spread: true } },
+    });
+    expect(prefRes.ok()).toBeTruthy();
+
+    const libRes = await page.request.post("/api/libraries", {
+      data: { name: "Reader Defaults", path: FIXTURES_PATH },
+    });
+    expect(libRes.ok()).toBeTruthy();
+    const lib = (await libRes.json()) as { id: number };
+    const scanRes = await page.request.post(`/api/libraries/${lib.id}/scans`);
+    expect(scanRes.status()).toBe(202);
+
+    const listRes = await page.request.get(`/api/books?library_id=${lib.id}`);
+    expect(listRes.ok()).toBeTruthy();
+    const { books } = (await listRes.json()) as {
+      books: { id: number; file_format: string }[];
+    };
+    const cbz = books.find((b) => b.file_format === "cbz");
+    expect(cbz, "fixtures should contain a CBZ book").toBeTruthy();
+    const bookId = cbz!.id;
+
+    // Save ONLY the page position. The backend stamps last_read_at on every
+    // save, so this flips the book out of the "never read" state while
+    // leaving settings empty — exactly the condition that used to lose the
+    // defaults on reload.
+    const progRes = await page.request.patch(`/api/books/${bookId}/progress`, {
+      data: { current_page: 0 },
+    });
+    expect(progRes.ok()).toBeTruthy();
+
+    await page.goto(`/ui/books/${bookId}/read`);
+
+    // Spread from defaults => both page 0 and page 1 render as main images
+    // (their alt text carries the page indicator; preload images have empty
+    // alt). With the bug, spread is off and only page 0 ("1 / 4") shows.
+    await expect(page.getByAltText("1 / 4", { exact: true })).toBeVisible();
+    await expect(page.getByAltText("2 / 4", { exact: true })).toBeVisible();
+  });
 });

@@ -75,18 +75,23 @@ export default function ReaderPage() {
     useFullscreen(readerContainerRef);
 
   // Restore once both the per-book progress and the user-wide defaults
-  // queries have settled. A book that has never been opened (last_read_at
-  // === null) takes its initial settings from the user's reader_defaults
-  // so the experience is consistent across new books. Done during render
-  // (not in an effect) so the restored values land in the same commit,
-  // before the reader is allowed to paint (gated on `initialized` below)
-  // — otherwise page 0 flashes briefly before jumping to the saved page.
-  // Gating on "settled" rather than "has data" means an errored query
-  // degrades to defaults instead of leaving the reader stuck on loading.
+  // queries have settled. Per-book settings layer on top of the user's
+  // reader_defaults so a book that has been opened (its progress row
+  // exists from a page-progress save) but never had its reader settings
+  // touched still falls back to the defaults — not the hard-coded
+  // initial values. Merging (rather than `persisted ?? defaults`) is what
+  // makes that work: the persisted hash is `{}` until settings are saved,
+  // and `{} ?? defaults` would keep the empty object and shadow defaults.
+  // Done during render (not in an effect) so the restored values land in
+  // the same commit, before the reader is allowed to paint (gated on
+  // `initialized` below) — otherwise page 0 flashes briefly before
+  // jumping to the saved page. Gating on "settled" rather than "has data"
+  // means an errored query degrades to defaults instead of leaving the
+  // reader stuck on loading.
   if (!initialized && !progress.isPending && !preferences.isPending) {
     const defaults = preferences.data?.reader_defaults ?? {};
-    const neverRead = progress.data?.last_read_at == null;
-    const source = neverRead ? defaults : (progress.data?.settings ?? defaults);
+    const persisted = progress.data?.settings ?? {};
+    const source = { ...defaults, ...persisted };
     setPage(progress.data?.current_page ?? 0);
     setSpread(source.spread ?? false);
     setDirection(source.direction ?? "ltr");
