@@ -57,6 +57,8 @@ Rails.application.routes.draw do
     get "/series/:series_id", to: "feeds#series_show", as: :series
     get "/tags", to: "feeds#tags_index", as: :tags_index
     get "/tags/:tag_id", to: "feeds#tag_show", as: :tag
+    get "/collections", to: "feeds#collections_index", as: :collections_index
+    get "/collections/:collection_id", to: "feeds#collection_show", as: :collection
     # Include the format extension in the URL so OPDS readers that infer MIME
     # from the path (rather than the link's @type attribute) recognize the
     # downloaded book as EPUB/CBZ/PDF.

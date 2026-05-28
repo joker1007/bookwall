@@ -16,7 +16,8 @@ module Opds
           {title: "Favorites", href: helpers.opds_favorites_path, rel: "subsection"},
           {title: "All Libraries", href: helpers.opds_libraries_path, rel: "subsection"},
           {title: "Series", href: helpers.opds_series_index_path, rel: "subsection"},
-          {title: "Tags", href: helpers.opds_tags_index_path, rel: "subsection"}
+          {title: "Tags", href: helpers.opds_tags_index_path, rel: "subsection"},
+          {title: "Collections", href: helpers.opds_collections_index_path, rel: "subsection"}
         ]
       )
       render_navigation(xml)
@@ -136,6 +137,32 @@ module Opds
                  .includes(:authors, :tags).with_attached_cover.order(:title)
       render_acquisition_feed(tag.name, "urn:bookwall:tag:#{tag.id}",
                               view_context_helpers.opds_tag_path(tag_id: tag.id), books)
+    end
+
+    def collections_index
+      helpers = view_context_helpers
+      entries = Current.user.collections.order(:name).map do |c|
+        {
+          title: c.name,
+          href: helpers.opds_collection_path(collection_id: c.id),
+          id: "urn:bookwall:collection:#{c.id}"
+        }
+      end
+      xml = Opds::FeedBuilder.navigation(
+        title: "Collections",
+        id: "urn:bookwall:collections",
+        self_url: helpers.opds_collections_index_path,
+        entries: entries
+      )
+      render_navigation(xml)
+    end
+
+    def collection_show
+      collection = Current.user.collections.find(params[:collection_id])
+      books = collection.books.where(library_id: accessible_library_ids)
+                .includes(:authors, :tags).with_attached_cover.order(:title)
+      render_acquisition_feed(collection.name, "urn:bookwall:collection:#{collection.id}",
+                              view_context_helpers.opds_collection_path(collection_id: collection.id), books)
     end
 
     private
