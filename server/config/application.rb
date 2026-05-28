@@ -2,6 +2,7 @@
 
 require_relative "boot"
 require_relative "../lib/middleware/spa_cache_headers"
+require_relative "../lib/middleware/active_storage_cache_headers"
 
 require "rails"
 require "active_model/railtie"
@@ -23,6 +24,16 @@ module Bookwall
 
     config.active_record.schema_format = :sql
 
+    # Generate Active Storage URLs that point at the proxy controllers
+    # instead of the default redirect ones. The proxy URL embeds only
+    # stable identifiers (signed blob id + variation digest), so it
+    # doesn't change per request — necessary for the long-cache headers
+    # set by Middleware::ActiveStorageCacheHeaders to actually pay off
+    # on repeat visits. The redirect flow re-signs the disk URL with a
+    # fresh timestamp every call, which would make every browser
+    # session miss the cache no matter what Cache-Control says.
+    config.active_storage.resolve_model_to_route = :rails_storage_proxy
+
     config.autoload_lib(ignore: %w[assets tasks])
 
     config.generators do |g|
@@ -41,6 +52,11 @@ module Bookwall
     # still ride the long-cache header set in
     # config/environments/production.rb.
     config.middleware.use Middleware::SpaCacheHeaders
+
+    # Active Storage URLs reference content-addressable blobs (blob key
+    # + variation_digest), so every successful serve can be cached for
+    # a year without risking stale images.
+    config.middleware.use Middleware::ActiveStorageCacheHeaders
 
     config.middleware.insert_before 0, Rack::Cors do
       allow do
