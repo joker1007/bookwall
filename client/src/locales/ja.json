@@ -42,6 +42,7 @@
     "series": "シリーズ",
     "authors": "著者",
     "tags": "タグ",
+    "collections": "コレクション",
     "favorites": "お気に入り",
     "settings": "設定",
     "settingsLibraries": "ライブラリ設定",
@@ -100,6 +101,24 @@
     "title": "タグ",
     "description": "書籍に付けられたタグの一覧。",
     "empty": "タグはまだありません。"
+  },
+  "collections": {
+    "title": "コレクション",
+    "description": "自分で作成した書籍のグループ。",
+    "empty": "コレクションはまだありません。作成して書籍を追加しましょう。",
+    "detailEmpty": "このコレクションにはまだ書籍がありません。",
+    "bookCount_one": "{{count}} 冊",
+    "bookCount_other": "{{count}} 冊",
+    "create": "コレクション作成",
+    "createTitle": "コレクションを作成",
+    "rename": "名前変更",
+    "renameTitle": "コレクション名を変更",
+    "nameLabel": "コレクション名",
+    "nameHint": "コレクションは自分だけに表示されます。",
+    "namePlaceholder": "例: 読みたい本",
+    "delete": "コレクション削除",
+    "deleteConfirmTitle": "コレクション「{{name}}」を削除しますか?",
+    "deleteConfirmDescription": "コレクションのみ削除され、書籍とファイルはそのまま残ります。"
   },
   "search": {
     "title": "検索",

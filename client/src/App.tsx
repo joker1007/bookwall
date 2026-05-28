@@ -12,6 +12,8 @@ import AuthorsIndexPage from "@/routes/authors";
 import AuthorDetailPage from "@/routes/authors.detail";
 import TagsIndexPage from "@/routes/tags";
 import TagDetailPage from "@/routes/tags.detail";
+import CollectionsIndexPage from "@/routes/collections";
+import CollectionDetailPage from "@/routes/collections.detail";
 import FavoritesPage from "@/routes/favorites";
 import BookDetailPage from "@/routes/books.detail";
 import ReaderPage from "@/routes/books.read";
@@ -57,6 +59,8 @@ export default function App() {
             <Route path="authors/:id" element={<AuthorDetailPage />} />
             <Route path="tags" element={<TagsIndexPage />} />
             <Route path="tags/:id" element={<TagDetailPage />} />
+            <Route path="collections" element={<CollectionsIndexPage />} />
+            <Route path="collections/:id" element={<CollectionDetailPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="books/:id" element={<BookDetailPage />} />

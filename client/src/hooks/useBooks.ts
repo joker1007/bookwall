@@ -9,6 +9,7 @@ export interface BookListParams {
   series_id?: number | string;
   author_id?: number | string;
   tag_id?: number | string;
+  collection_id?: number | string;
   favorites_only?: boolean;
   sort?: string;
   page?: number;

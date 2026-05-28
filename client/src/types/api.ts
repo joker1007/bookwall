@@ -101,6 +101,20 @@ export interface Tag {
   updated_at: string;
 }
 
+export interface Collection {
+  id: number;
+  name: string;
+  book_count: number;
+  sample_cover_thumb_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionsListResponse {
+  collections: Collection[];
+  pagination: Pagination;
+}
+
 export interface ApiToken {
   id: number;
   name: string;

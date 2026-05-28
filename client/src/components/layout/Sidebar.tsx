@@ -6,6 +6,7 @@ import {
   Layers,
   Users,
   Tag as TagIcon,
+  Bookmark,
   Heart,
   Settings,
   type LucideIcon,
@@ -25,6 +26,7 @@ const NAV: NavItem[] = [
   { to: "/series", labelKey: "nav.series", icon: Layers },
   { to: "/authors", labelKey: "nav.authors", icon: Users },
   { to: "/tags", labelKey: "nav.tags", icon: TagIcon },
+  { to: "/collections", labelKey: "nav.collections", icon: Bookmark },
   { to: "/favorites", labelKey: "nav.favorites", icon: Heart },
   { to: "/settings/libraries", labelKey: "nav.settings", icon: Settings },
 ];

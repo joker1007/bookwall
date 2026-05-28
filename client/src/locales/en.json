@@ -42,6 +42,7 @@
     "series": "Series",
     "authors": "Authors",
     "tags": "Tags",
+    "collections": "Collections",
     "favorites": "Favorites",
     "settings": "Settings",
     "settingsLibraries": "Library settings",
@@ -100,6 +101,24 @@
     "title": "Tags",
     "description": "Tags attached to books in your library.",
     "empty": "No tags yet."
+  },
+  "collections": {
+    "title": "Collections",
+    "description": "Your own named groups of books.",
+    "empty": "No collections yet. Create one and add books to it.",
+    "detailEmpty": "This collection has no books yet.",
+    "bookCount_one": "{{count}} book",
+    "bookCount_other": "{{count}} books",
+    "create": "Create collection",
+    "createTitle": "Create collection",
+    "rename": "Rename",
+    "renameTitle": "Rename collection",
+    "nameLabel": "Collection name",
+    "nameHint": "Collections are private to you.",
+    "namePlaceholder": "e.g. Reading list",
+    "delete": "Delete collection",
+    "deleteConfirmTitle": "Delete collection \"{{name}}\"?",
+    "deleteConfirmDescription": "Only the collection is removed — the books and their files are left untouched."
   },
   "search": {
     "title": "Search",
