@@ -11,7 +11,7 @@ module Opds
         id: "urn:bookwall:root",
         self_url: helpers.opds_root_path,
         entries: [
-          {title: "Recent", href: helpers.opds_recent_path, rel: "http://opds-spec.org/sort/new"},
+          {title: "Recent", href: helpers.opds_recent_path, rel: "subsection"},
           {title: "Recently Read", href: helpers.opds_recent_reads_path, rel: "subsection"},
           {title: "Favorites", href: helpers.opds_favorites_path, rel: "subsection"},
           {title: "All Libraries", href: helpers.opds_libraries_path, rel: "subsection"},
