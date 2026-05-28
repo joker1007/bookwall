@@ -75,15 +75,19 @@ export default function ReaderPage() {
     useFullscreen(readerContainerRef);
 
   // Restore once both the per-book progress and the user-wide defaults
-  // have resolved. A book that has never been opened (last_read_at ===
-  // null) takes its initial settings from the user's reader_defaults so
-  // the experience is consistent across new books. Done during render
-  // (not in an effect) so the restored values land in the same commit.
-  if (!initialized && progress.data && preferences.data) {
-    const defaults = preferences.data.reader_defaults;
-    const neverRead = progress.data.last_read_at === null;
-    const source = neverRead ? defaults : progress.data.settings;
-    setPage(progress.data.current_page);
+  // queries have settled. A book that has never been opened (last_read_at
+  // === null) takes its initial settings from the user's reader_defaults
+  // so the experience is consistent across new books. Done during render
+  // (not in an effect) so the restored values land in the same commit,
+  // before the reader is allowed to paint (gated on `initialized` below)
+  // — otherwise page 0 flashes briefly before jumping to the saved page.
+  // Gating on "settled" rather than "has data" means an errored query
+  // degrades to defaults instead of leaving the reader stuck on loading.
+  if (!initialized && !progress.isPending && !preferences.isPending) {
+    const defaults = preferences.data?.reader_defaults ?? {};
+    const neverRead = progress.data?.last_read_at == null;
+    const source = neverRead ? defaults : (progress.data?.settings ?? defaults);
+    setPage(progress.data?.current_page ?? 0);
     setSpread(source.spread ?? false);
     setDirection(source.direction ?? "ltr");
     setScale(source.scale ?? "fit");
@@ -273,6 +277,17 @@ export default function ReaderPage() {
 
   if (book.data.file_format === "epub") {
     return <EpubReaderView book={book.data} />;
+  }
+
+  // Hold the image/CBZ/PDF reader on the loading screen until progress has
+  // been restored, so the saved page is the first thing painted instead of
+  // page 0 flashing before the jump.
+  if (!initialized) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white">
+        {t("common.loading")}
+      </div>
+    );
   }
 
   return (

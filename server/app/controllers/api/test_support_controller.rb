@@ -13,6 +13,7 @@ module Api
         Favorite.delete_all
         CollectionBook.delete_all
         Collection.delete_all
+        ReadingProgress.delete_all
         BookAuthor.delete_all
         BookTag.delete_all
         ActiveStorage::Attachment.delete_all
