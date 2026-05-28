@@ -67,6 +67,16 @@ RSpec.describe Scanners::LibraryScanner do
       expect(attached).to all(be true)
     end
 
+    it "preprocesses the :thumb variant for every cover so the web side does not write under load" do
+      described_class.new(library).call
+
+      blob_ids = library.books.map { |b| b.cover.blob.id }
+      expect(blob_ids).to all(be_present)
+
+      variant_count = ActiveStorage::VariantRecord.where(blob_id: blob_ids).count
+      expect(variant_count).to eq(blob_ids.size)
+    end
+
     it "updates last_scanned_at on the library" do
       expect { described_class.new(library).call }
         .to change { library.reload.last_scanned_at }

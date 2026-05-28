@@ -21,8 +21,6 @@ class Book < ApplicationRecord
 
   has_one_attached :cover do |attachable|
     attachable.variant :thumb, resize_to_limit: [240, nil]
-    attachable.variant :medium, resize_to_limit: [480, nil]
-    attachable.variant :large, resize_to_limit: [960, nil]
   end
 
   validates :title, presence: true

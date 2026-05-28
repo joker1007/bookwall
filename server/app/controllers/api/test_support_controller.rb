@@ -14,6 +14,7 @@ module Api
         BookAuthor.delete_all
         BookTag.delete_all
         ActiveStorage::Attachment.delete_all
+        ActiveStorage::VariantRecord.delete_all
         ActiveStorage::Blob.delete_all
         Book.delete_all
         ScanLog.delete_all

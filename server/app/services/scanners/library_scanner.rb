@@ -51,6 +51,12 @@ module Scanners
       total = diff[:add].size + diff[:update].size
       upserted_ids = parse_and_apply(diff[:add] + diff[:update], scan_log_id: log.id, total: total)
 
+      # Resolve cover thumbnails up-front so the web side never has to
+      # write to active_storage_variant_records under request load. With
+      # 200-cover grid views every visit, lazy generation would otherwise
+      # produce 200 parallel INSERT bursts against SQLite's single writer.
+      preprocess_thumb_variants(upserted_ids)
+
       library.update!(last_scanned_at: Time.current)
       log.update!(status: :succeeded, finished_at: Time.current)
       Rails.cache.delete(progress_cache_key(log.id))
@@ -233,6 +239,40 @@ module Scanners
         pool.shutdown
         pool.wait_for_termination(60)
       end
+    end
+
+    # Bulk-generate the :thumb variant for every book the scan touched
+    # so its active_storage_variant_record exists before the web side
+    # ever asks for the thumbnail URL. Idempotent — `.processed` no-ops
+    # when the variant_record already exists.
+    def preprocess_thumb_variants(book_ids)
+      return if book_ids.empty?
+
+      books = Book.where(id: book_ids).with_attached_cover.to_a
+      books.reject! { |b| !b.cover.attached? }
+      return if books.empty?
+
+      # Cap workers at the AR pool size so we don't block waiting on
+      # connection checkouts — each .processed call grabs a connection
+      # to write the variant_record row.
+      pool_size = [@pool_size, books.size, ActiveRecord::Base.connection_pool.size].min
+      pool_size = 1 if pool_size < 1
+      pool = Concurrent::FixedThreadPool.new(pool_size)
+
+      books.each do |book|
+        pool.post do
+          ActiveRecord::Base.connection_pool.with_connection do
+            with_busy_retry { book.cover.variant(:thumb).processed }
+          end
+        rescue StandardError => e
+          Rails.logger.warn do
+            "[LibraryScanner] thumb preprocess failed book=#{book.id}: #{e.message}"
+          end
+        end
+      end
+
+      pool.shutdown
+      pool.wait_for_termination
     end
 
     def write_progress(scan_log_id, processed, total)
