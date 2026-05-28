@@ -10,7 +10,7 @@ module Api
       scope = scope.where(library_id: params[:library_id]) if params[:library_id].present?
       pagy, items = pagy(:offset, scope.order(:name))
       first_books = Books::FirstBookPreloader.for_series(items, library_ids: accessible_library_ids)
-      book_counts = Book.where(series_id: items.map(&:id), library_id: accessible_library_ids).group(:series_id).count
+      book_counts = Series.book_counts_for(items, library_ids: accessible_library_ids)
       render json: {
         series: SeriesSerializer.new(
           items,

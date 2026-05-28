@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
 class Author < ApplicationRecord
+  include GlobalMetadata
+
   has_many :book_authors, dependent: :destroy
   has_many :books, through: :book_authors
+
+  represents_book_metadata join_model: BookAuthor, foreign_key: :author_id
 
   validates :name, presence: true, uniqueness: true
 

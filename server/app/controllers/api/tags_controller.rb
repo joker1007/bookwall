@@ -7,9 +7,7 @@ module Api
 
     def index
       pagy, items = pagy(:offset, Tag.accessible_by(Current.user).order(:name))
-      book_counts = BookTag.joins(:book)
-        .where(tag_id: items.map(&:id), books: {library_id: accessible_library_ids})
-        .group(:tag_id).count
+      book_counts = Tag.book_counts_for(items, library_ids: accessible_library_ids)
       render json: {
         tags: TagSerializer.new(
           items,
@@ -46,10 +44,7 @@ module Api
     # guarantee for shared users, only allow rename/delete when the tag is
     # reachable through a library the current user owns.
     def require_tag_manageable!
-      manageable = BookTag.joins(:book)
-        .where(tag_id: @tag.id, books: {library_id: owned_library_ids})
-        .exists?
-      raise ManagementForbidden unless manageable
+      raise ManagementForbidden unless @tag.manageable_via?(owned_library_ids)
     end
 
     def tag_params

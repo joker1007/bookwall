@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
 class Tag < ApplicationRecord
+  include GlobalMetadata
+
   has_many :book_tags, dependent: :destroy
   has_many :books, through: :book_tags
+
+  represents_book_metadata join_model: BookTag, foreign_key: :tag_id
 
   validates :name, presence: true, uniqueness: true
 

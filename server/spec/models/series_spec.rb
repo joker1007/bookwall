@@ -22,6 +22,29 @@ RSpec.describe Series, type: :model do
     expect(series_a).to be_persisted
   end
 
+  describe ".book_counts_for" do
+    it "counts books per series" do
+      lib = create(:library)
+      s1 = create(:series, library: lib)
+      s2 = create(:series, library: lib)
+      create(:book, library: lib, series: s1, file_path: "a.cbz")
+      create(:book, library: lib, series: s1, file_path: "b.cbz")
+      create(:book, library: lib, series: s2, file_path: "c.cbz")
+
+      counts = Series.book_counts_for([s1, s2], library_ids: [lib.id])
+
+      expect(counts).to eq(s1.id => 2, s2.id => 1)
+    end
+
+    it "excludes books outside the given libraries" do
+      lib = create(:library)
+      s = create(:series, library: lib)
+      create(:book, library: lib, series: s, file_path: "a.cbz")
+
+      expect(Series.book_counts_for([s], library_ids: [])).to eq({})
+    end
+  end
+
   describe "#destroy" do
     it "cascades into contained books and their join rows" do
       library = create(:library)

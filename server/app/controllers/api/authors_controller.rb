@@ -8,9 +8,7 @@ module Api
     def index
       pagy, items = pagy(:offset, Author.accessible_by(Current.user).order(:name))
       first_books = Books::FirstBookPreloader.for_authors(items, library_ids: accessible_library_ids)
-      book_counts = BookAuthor.joins(:book)
-        .where(author_id: items.map(&:id), books: {library_id: accessible_library_ids})
-        .group(:author_id).count
+      book_counts = Author.book_counts_for(items, library_ids: accessible_library_ids)
       render json: {
         authors: AuthorSerializer.new(
           items,
@@ -47,10 +45,7 @@ module Api
     # reachable through a library the current user owns (read-only guarantee
     # for shared users).
     def require_author_manageable!
-      manageable = BookAuthor.joins(:book)
-        .where(author_id: @author.id, books: {library_id: owned_library_ids})
-        .exists?
-      raise ManagementForbidden unless manageable
+      raise ManagementForbidden unless @author.manageable_via?(owned_library_ids)
     end
 
     def author_params
