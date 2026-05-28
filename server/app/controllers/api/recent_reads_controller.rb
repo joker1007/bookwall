@@ -25,18 +25,11 @@ module Api
         books: BookSerializer.new(
           books,
           params: {
-            favorite_book_ids: favorite_book_ids(books.map(&:id)),
+            favorite_book_ids: Favorite.book_ids_for(Current.user, books.map(&:id)),
             reading_progress_by_book_id: progress_by_book_id
           }
         ).serializable_hash
       }
-    end
-
-    private
-
-    def favorite_book_ids(ids)
-      return [] if ids.empty?
-      Favorite.where(user_id: Current.user.id, book_id: ids).pluck(:book_id)
     end
   end
 end

@@ -21,19 +21,10 @@ module Api
           books,
           params: {
             favorite_book_ids: ids,
-            reading_progress_by_book_id: reading_progress_by_book_id(ids)
+            reading_progress_by_book_id: ReadingProgress.by_book_id_for(Current.user, ids)
           }
         ).serializable_hash
       }
-    end
-
-    private
-
-    def reading_progress_by_book_id(ids)
-      return {} if ids.empty?
-      ReadingProgress
-        .where(user_id: Current.user.id, book_id: ids)
-        .index_by(&:book_id)
     end
   end
 end

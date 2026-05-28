@@ -93,6 +93,31 @@ RSpec.describe ReadingProgress, type: :model do
     end
   end
 
+  describe ".by_book_id_for" do
+    let(:user) { create(:user) }
+    let(:lib) { create(:library, owner: user) }
+
+    it "returns a {book_id => progress} hash for the user's books" do
+      book = create(:book, library: lib)
+      progress = ReadingProgress.create!(user: user, book: book, current_page: 4, last_read_at: Time.current)
+
+      result = ReadingProgress.by_book_id_for(user, [book.id])
+      expect(result.keys).to contain_exactly(book.id)
+      expect(result[book.id]).to eq(progress)
+    end
+
+    it "scopes to the given user" do
+      book = create(:book, library: lib)
+      ReadingProgress.create!(user: create(:user), book: book, current_page: 1, last_read_at: Time.current)
+
+      expect(ReadingProgress.by_book_id_for(user, [book.id])).to eq({})
+    end
+
+    it "returns {} for an empty input without querying" do
+      expect(ReadingProgress.by_book_id_for(user, [])).to eq({})
+    end
+  end
+
   describe "cascade" do
     it "is removed when the user is destroyed" do
       user = create(:user)

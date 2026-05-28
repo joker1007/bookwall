@@ -143,9 +143,7 @@ module Opds
     end
 
     def render_acquisition_feed(title, id, self_url, books, facets: [])
-      progress = ReadingProgress
-        .where(user_id: Current.user.id, book_id: books.map(&:id))
-        .index_by(&:book_id)
+      progress = ReadingProgress.by_book_id_for(Current.user, books.map(&:id))
       xml = Opds::FeedBuilder.acquisition(
         title: title, id: id, self_url: self_url, books: books,
         helpers: view_context_helpers, facets: facets,

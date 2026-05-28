@@ -38,4 +38,29 @@ RSpec.describe Favorite, type: :model do
       expect(Favorite.in_libraries([lib.id]).pluck(:book_id)).to contain_exactly(in_book.id)
     end
   end
+
+  describe ".book_ids_for" do
+    let(:user) { create(:user) }
+    let(:lib) { create(:library, owner: user) }
+
+    it "returns the favorited book ids among the given ids" do
+      favorited = create(:book, library: lib, file_path: "a.cbz")
+      not_favorited = create(:book, library: lib, file_path: "b.cbz")
+      create(:favorite, user: user, book: favorited)
+
+      result = Favorite.book_ids_for(user, [favorited.id, not_favorited.id])
+      expect(result).to contain_exactly(favorited.id)
+    end
+
+    it "scopes to the given user" do
+      book = create(:book, library: lib)
+      create(:favorite, user: create(:user), book: book)
+
+      expect(Favorite.book_ids_for(user, [book.id])).to be_empty
+    end
+
+    it "returns [] for an empty input without querying" do
+      expect(Favorite.book_ids_for(user, [])).to eq([])
+    end
+  end
 end
