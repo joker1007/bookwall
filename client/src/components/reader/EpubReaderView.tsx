@@ -36,10 +36,8 @@ import {
   useReadingProgress,
   useUpdateReadingProgress,
 } from "@/hooks/useReadingProgress";
-import {
-  useUserPreferences,
-  useUpdateUserPreferences,
-} from "@/hooks/useUserPreferences";
+import { useResolvedReaderSettings } from "@/hooks/useResolvedReaderSettings";
+import { useUpdateUserPreferences } from "@/hooks/useUserPreferences";
 import {
   READER_FONT_SIZE_DEFAULT,
   READER_FONT_SIZE_MAX,
@@ -177,7 +175,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   }, [navType, navigate, book.id]);
   const progress = useReadingProgress(book.id);
   const update = useUpdateReadingProgress(book.id);
-  const preferences = useUserPreferences();
   const updatePreferences = useUpdateUserPreferences();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -200,18 +197,17 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const [sectionTotal, setSectionTotal] = useState(0);
 
   // Resolved settings (per-book ReadingProgress.settings beats user defaults
-  // beats hard-coded defaults).
-  const resolvedSettings = useMemo(() => {
-    const defaults = preferences.data?.reader_defaults ?? {};
-    const persisted = progress.data?.settings ?? {};
-    const neverRead = progress.data?.last_read_at === null;
-    const source: ReaderSettings = neverRead ? defaults : { ...defaults, ...persisted };
-    return {
-      fontSize: source.font_size ?? READER_FONT_SIZE_DEFAULT,
-      theme: (source.theme ?? "light") as ReaderTheme,
-      writingMode: (source.writing_mode ?? "auto") as ReaderWritingMode,
-    };
-  }, [preferences.data, progress.data]);
+  // beats hard-coded defaults). The merge + settled-gate live in the shared
+  // hook so this reader and the image reader can't drift apart.
+  const resolved = useResolvedReaderSettings(book.id);
+  const resolvedSettings = useMemo(
+    () => ({
+      fontSize: resolved.settings.font_size ?? READER_FONT_SIZE_DEFAULT,
+      theme: (resolved.settings.theme ?? "light") as ReaderTheme,
+      writingMode: (resolved.settings.writing_mode ?? "auto") as ReaderWritingMode,
+    }),
+    [resolved.settings],
+  );
 
   const [fontSize, setFontSize] = useState<number>(READER_FONT_SIZE_DEFAULT);
   const [theme, setTheme] = useState<ReaderTheme>("light");
@@ -225,10 +221,10 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const detectedVerticalRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate UI state from server once on first response. Done during
-  // render (not in an effect) so the resolved settings are applied in
-  // the same commit, avoiding an extra render pass.
-  if (!hydrated && preferences.data && progress.data) {
+  // Hydrate UI state from server once the resolved settings have settled.
+  // Done during render (not in an effect) so the resolved settings are
+  // applied in the same commit, avoiding an extra render pass.
+  if (!hydrated && resolved.ready) {
     setFontSize(resolvedSettings.fontSize);
     setTheme(resolvedSettings.theme);
     setWritingMode(resolvedSettings.writingMode);

@@ -27,10 +27,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useBook } from "@/hooks/useBooks";
-import {
-  useReadingProgress,
-  useUpdateReadingProgress,
-} from "@/hooks/useReadingProgress";
+import { useUpdateReadingProgress } from "@/hooks/useReadingProgress";
+import { useResolvedReaderSettings } from "@/hooks/useResolvedReaderSettings";
 import {
   useUpdateUserPreferences,
   useUserPreferences,
@@ -58,7 +56,7 @@ export default function ReaderPage() {
     }
   }, [navType, navigate, id]);
   const book = useBook(id);
-  const progress = useReadingProgress(id);
+  const resolved = useResolvedReaderSettings(id);
   const update = useUpdateReadingProgress(id ?? "");
   const preferences = useUserPreferences();
   const updatePreferences = useUpdateUserPreferences();
@@ -74,28 +72,17 @@ export default function ReaderPage() {
   const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
     useFullscreen(readerContainerRef);
 
-  // Restore once both the per-book progress and the user-wide defaults
-  // queries have settled. Per-book settings layer on top of the user's
-  // reader_defaults so a book that has been opened (its progress row
-  // exists from a page-progress save) but never had its reader settings
-  // touched still falls back to the defaults — not the hard-coded
-  // initial values. Merging (rather than `persisted ?? defaults`) is what
-  // makes that work: the persisted hash is `{}` until settings are saved,
-  // and `{} ?? defaults` would keep the empty object and shadow defaults.
-  // Done during render (not in an effect) so the restored values land in
-  // the same commit, before the reader is allowed to paint (gated on
+  // Restore once useResolvedReaderSettings reports both queries have
+  // settled (see that hook for the merge / settled-gate rationale). Done
+  // during render (not in an effect) so the restored values land in the
+  // same commit, before the reader is allowed to paint (gated on
   // `initialized` below) — otherwise page 0 flashes briefly before
-  // jumping to the saved page. Gating on "settled" rather than "has data"
-  // means an errored query degrades to defaults instead of leaving the
-  // reader stuck on loading.
-  if (!initialized && !progress.isPending && !preferences.isPending) {
-    const defaults = preferences.data?.reader_defaults ?? {};
-    const persisted = progress.data?.settings ?? {};
-    const source = { ...defaults, ...persisted };
-    setPage(progress.data?.current_page ?? 0);
-    setSpread(source.spread ?? false);
-    setDirection(source.direction ?? "ltr");
-    setScale(source.scale ?? "fit");
+  // jumping to the saved page.
+  if (!initialized && resolved.ready) {
+    setPage(resolved.currentPage);
+    setSpread(resolved.settings.spread ?? false);
+    setDirection(resolved.settings.direction ?? "ltr");
+    setScale(resolved.settings.scale ?? "fit");
     setInitialized(true);
   }
 
