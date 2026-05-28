@@ -71,6 +71,7 @@
     "loggedInAs": "ログイン中: {{email}}"
   },
   "home": {
+    "title": "ホーム",
     "continueReading": "最近読んだ本",
     "favorites": "お気に入り"
   },

@@ -71,6 +71,7 @@
     "loggedInAs": "Logged in as {{email}}"
   },
   "home": {
+    "title": "Home",
     "continueReading": "Continue reading",
     "favorites": "Favorites"
   },

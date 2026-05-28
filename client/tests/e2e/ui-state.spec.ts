@@ -6,7 +6,9 @@ test.describe("UI state persistence", () => {
     signup,
   }) => {
     await signup();
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    // The display-mode toggle lives in the book list view; the favorites
+    // page renders its control bar even with an empty library.
+    await page.goto("/ui/favorites");
 
     const gridBtn = page.getByRole("radio", { name: "Grid view" });
     const listBtn = page.getByRole("radio", { name: "List view" });

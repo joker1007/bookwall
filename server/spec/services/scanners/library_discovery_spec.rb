@@ -50,4 +50,20 @@ RSpec.describe Scanners::LibraryDiscovery do
     FileUtils.touch(File.join(tmpdir, "loose.jpg"))
     expect(discover).to be_empty
   end
+
+  it "matches archive extensions case-insensitively" do
+    FileUtils.touch(File.join(tmpdir, "UPPER.CBZ"))
+    FileUtils.touch(File.join(tmpdir, "Mixed.Epub"))
+
+    expect(discover.map { |j| j[:format] }).to contain_exactly(:cbz, :epub)
+  end
+
+  it "matches image extensions case-insensitively when grouping image dirs" do
+    dir = File.join(tmpdir, "Chapter 1")
+    FileUtils.mkdir_p(dir)
+    FileUtils.touch(File.join(dir, "001.JPG"))
+
+    image_dirs = discover.select { |j| j[:format] == :image_dir }
+    expect(image_dirs.map { |j| j[:path] }).to contain_exactly(dir)
+  end
 end

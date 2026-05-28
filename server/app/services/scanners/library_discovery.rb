@@ -8,15 +8,23 @@ module Scanners
   #   2. Find every CBZ / EPUB / PDF. Files inside an already-identified
   #      image_dir are skipped so "image_dir wins, prune everything below it"
   #      semantics hold.
-  # `File::FNM_CASEFOLD` matches `.JPG` / `.EPUB` etc. so users don't have to
-  # normalise their library by hand.
+  # Extension matching is case-insensitive (`.JPG`, `.EPUB`, ...) so users
+  # don't have to normalise their library by hand.
   class LibraryDiscovery
+    # Dir.glob silently ignores File::FNM_CASEFOLD, so we make matching
+    # case-insensitive by expanding each alphabetic character of the
+    # extension into a `[lower UPPER]` character class — e.g. ".cbz" becomes
+    # ".[cC][bB][zZ]".
+    def self.casefold_glob(ext)
+      ext.chars.map { |c| /[a-z]/i.match?(c) ? "[#{c.downcase}#{c.upcase}]" : c }.join
+    end
+
     BOOK_FORMAT_GLOBS = {
-      cbz: "**/*.cbz",
-      epub: "**/*.epub",
-      pdf: "**/*.pdf"
+      cbz: "**/*#{casefold_glob(".cbz")}",
+      epub: "**/*#{casefold_glob(".epub")}",
+      pdf: "**/*#{casefold_glob(".pdf")}"
     }.freeze
-    IMAGE_FORMAT_GLOBS = Parsers::IMAGE_EXTENSIONS.map { |ext| "**/*#{ext}" }.freeze
+    IMAGE_FORMAT_GLOBS = Parsers::IMAGE_EXTENSIONS.map { |ext| "**/*#{casefold_glob(ext)}" }.freeze
 
     def initialize(root)
       @root = File.expand_path(root)
@@ -32,7 +40,7 @@ module Scanners
       end
 
       BOOK_FORMAT_GLOBS.each do |fmt, pattern|
-        Dir.glob(pattern, File::FNM_CASEFOLD, base: @root) do |rel|
+        Dir.glob(pattern, base: @root) do |rel|
           next if hidden_path?(rel)
           full = File.join(@root, rel)
           next if inside_image_dir?(full, image_dirs)
@@ -54,7 +62,7 @@ module Scanners
     def collect_image_dirs
       dirs = Set.new
       IMAGE_FORMAT_GLOBS.each do |pattern|
-        Dir.glob(pattern, File::FNM_CASEFOLD, base: @root) do |rel|
+        Dir.glob(pattern, base: @root) do |rel|
           next if hidden_path?(rel)
           parent_rel = File.dirname(rel)
           # Library root itself is never a book, even if loose images got
