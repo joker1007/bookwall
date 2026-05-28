@@ -349,10 +349,19 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         // space on a typical desktop viewport. Let the content stretch
         // to the actual viewport with only a small margin so the reader
         // looks comfortable on both desktop and mobile.
+        //
+        // max-column-count switches between 1 (phones) and 2 (tablet+
+        // desktop) — a phone-width split into two columns shrinks each
+        // line so far that single Japanese characters break across
+        // columns, which is unreadable. The matching effect below keeps
+        // the attribute in sync on rotation / window resize.
         const renderer = view.renderer;
         renderer?.setAttribute?.("max-inline-size", "100%");
         renderer?.setAttribute?.("max-block-size", "100%");
-        renderer?.setAttribute?.("max-column-count", "2");
+        renderer?.setAttribute?.(
+          "max-column-count",
+          window.matchMedia("(min-width: 768px)").matches ? "2" : "1",
+        );
         renderer?.setAttribute?.("margin", "16px");
         renderer?.setAttribute?.("gap", "5%");
 
@@ -470,6 +479,24 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
       if (doc) applyBookStylesRef.current(doc);
     });
   }, [loadStatus, fontSize, theme, writingMode]);
+
+  // Keep the renderer's max-column-count in sync with the viewport.
+  // Rotating a phone from portrait to landscape (or resizing the window
+  // on desktop) should re-flow between single- and two-column layout
+  // without having to reload the reader.
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    const mql = window.matchMedia("(min-width: 768px)");
+    const apply = () => {
+      viewRef.current?.renderer?.setAttribute?.(
+        "max-column-count",
+        mql.matches ? "2" : "1",
+      );
+    };
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, [loadStatus]);
 
   // Save settings (debounced through the same mutation that handles CFI).
   const saveSettings = useCallback(
