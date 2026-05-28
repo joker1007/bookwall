@@ -3,13 +3,13 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "4c2de28b22e905580a337593c15d47df1058a2ac3b2410857354e3e0454c4d44",
+      "fingerprint": "7d00b13a8b4e1a74707bcfb2cd653e5d64e100c2fd2a65ef3ab7c041b2614506",
       "check_name": "SendFile",
       "message": "Parameter value used in file name",
       "file": "app/controllers/opds/downloads_controller.rb",
-      "line": 31,
+      "line": 22,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "send_file(find_accessible_book!(params[:book_id]).absolute_path, :type => Opds::FeedBuilder.download_mime(find_accessible_book!(params[:book_id])), :disposition => \"attachment\", :filename => download_filename(find_accessible_book!(params[:book_id])))",
+      "code": "send_file(find_accessible_book!(params[:book_id]).absolute_path, :type => Books::FileFormat.mime(find_accessible_book!(params[:book_id]).file_format), :disposition => \"attachment\", :filename => Books::FileFormat.download_filename(find_accessible_book!(params[:book_id])))",
       "render_path": null,
       "location": {
         "type": "method",
@@ -19,18 +19,18 @@
       "user_input": "find_accessible_book!(params[:book_id]).absolute_path",
       "confidence": "Weak",
       "cwe_id": [22],
-      "note": "find_accessible_book! restricts the lookup to libraries the current user owns or is shared (404 otherwise). Book#absolute_path joins library.path (admin-controlled) with file_path (set by the scanner from disk discovery, never by user input). The controller restricts the resolved path to the owning library root before send_file. The filename argument is built from Book#title via download_filename, which strips control chars, path separators, and quotes so the value cannot break the Content-Disposition header."
+      "note": "find_accessible_book! restricts the lookup to libraries the current user owns or is shared (404 otherwise). Book#absolute_path joins library.path (admin-controlled) with file_path (set by the scanner from disk discovery, never by user input). The controller restricts the resolved path to the owning library root before send_file. The filename argument is built from Book#title via Books::FileFormat.download_filename, which strips control chars, path separators, and quotes so the value cannot break the Content-Disposition header."
     },
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "b7c861bc2daa05726582cc915023ca47c036532e2a9bf6a727b2214ee93ac5b9",
+      "fingerprint": "5da9233649981cf21a94e1d88965c721bc022928458522933ea260588ed30450",
       "check_name": "SendFile",
       "message": "Parameter value used in file name",
       "file": "app/controllers/api/books_controller.rb",
-      "line": 86,
+      "line": 81,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "send_file(find_accessible_book!(params[:id]).absolute_path, :type => Opds::FeedBuilder.download_mime(find_accessible_book!(params[:id])), :disposition => \"attachment\", :filename => download_filename(find_accessible_book!(params[:id])))",
+      "code": "send_file(find_accessible_book!(params[:id]).absolute_path, :type => Books::FileFormat.mime(find_accessible_book!(params[:id]).file_format), :disposition => \"attachment\", :filename => Books::FileFormat.download_filename(find_accessible_book!(params[:id])))",
       "render_path": null,
       "location": {
         "type": "method",
@@ -40,7 +40,7 @@
       "user_input": "find_accessible_book!(params[:id]).absolute_path",
       "confidence": "Weak",
       "cwe_id": [22],
-      "note": "Same constraints as the OPDS variant: find_accessible_book! scopes the lookup to the user's accessible libraries (404 otherwise), Book#absolute_path joins library.path with the scanner-supplied file_path, the controller verifies the resolved path stays under the owning library root before send_file, and the filename is sanitized via download_filename. The endpoint serves the EPUB / CBZ / PDF bytes to the in-app reader (Cookie auth)."
+      "note": "Same constraints as the OPDS variant: find_accessible_book! scopes the lookup to the user's accessible libraries (404 otherwise), Book#absolute_path joins library.path with the scanner-supplied file_path, the controller verifies the resolved path stays under the owning library root before send_file, and the filename is sanitized via Books::FileFormat.download_filename. The endpoint serves the EPUB / CBZ / PDF bytes to the in-app reader (Cookie auth)."
     },
     {
       "warning_type": "File Access",

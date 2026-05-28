@@ -171,12 +171,7 @@ module Opds
     end
 
     def self.download_mime(book)
-      case book.file_format
-      when "cbz", "image_dir" then "application/x-cbz"
-      when "epub" then "application/epub+zip"
-      when "pdf" then "application/pdf"
-      else "application/octet-stream"
-      end
+      Books::FileFormat.mime(book.file_format)
     end
 
     # Human-readable summary string embedded in <atom:content>. Format label

@@ -107,6 +107,29 @@ RSpec.describe "Api::Books", type: :request do
       expect(book.authors.pluck(:name)).to contain_exactly("Alice", "Bob")
       expect(book.tags.pluck(:name)).to contain_exactly("fantasy")
     end
+
+    it "returns 422 when the title is blank" do
+      sign_in!
+      book = create(:book, library: library, title: "Old")
+
+      patch "/api/books/#{book.id}", params: {title: ""}, as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(book.reload.title).to eq("Old")
+    end
+
+    it "rolls back the metadata write when associating tags fails" do
+      sign_in!
+      book = create(:book, library: library, title: "Old")
+      allow(Tag).to receive(:upsert_all).and_raise(ActiveRecord::RecordInvalid.new(Tag.new))
+
+      patch "/api/books/#{book.id}",
+            params: {title: "New", tag_names: ["fantasy"]},
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(book.reload.title).to eq("Old")
+    end
   end
 
   describe "DELETE /api/books/:id" do

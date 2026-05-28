@@ -2,12 +2,6 @@
 
 module Api
   class BooksController < BaseController
-    EXTENSION_FOR_FORMAT = {
-      "cbz" => ".cbz",
-      "epub" => ".epub",
-      "pdf" => ".pdf"
-    }.freeze
-
     before_action :set_book, only: %i[show update destroy favorite unfavorite file]
     before_action :require_book_owner!, only: %i[update destroy]
 
@@ -39,14 +33,15 @@ module Api
     end
 
     def update
-      if @book.update(book_params)
+      ActiveRecord::Base.transaction do
+        @book.update!(book_params)
         update_authors if params.key?(:author_names)
         update_tags if params.key?(:tag_names)
-        @book.reload
-        render json: serialize_book(@book)
-      else
-        render json: {errors: @book.errors.full_messages}, status: :unprocessable_content
       end
+      @book.reload
+      render json: serialize_book(@book)
+    rescue ActiveRecord::RecordInvalid
+      render json: {errors: @book.errors.full_messages}, status: :unprocessable_content
     end
 
     def destroy
@@ -84,19 +79,12 @@ module Api
       return unless stale?(etag: etag)
 
       send_file resolved,
-        type: Opds::FeedBuilder.download_mime(@book),
+        type: Books::FileFormat.mime(@book.file_format),
         disposition: "attachment",
-        filename: download_filename(@book)
+        filename: Books::FileFormat.download_filename(@book)
     end
 
     private
-
-    def download_filename(book)
-      ext = EXTENSION_FOR_FORMAT.fetch(book.file_format.to_s, "")
-      raw = book.title.to_s.strip.presence || "book-#{book.id}"
-      base = raw.gsub(/[\x00-\x1f\x7f"\/\\]/, "_")
-      "#{base}#{ext}"
-    end
 
     def set_book
       @book = find_accessible_book!(params[:id])
