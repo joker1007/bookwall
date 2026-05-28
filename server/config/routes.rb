@@ -41,6 +41,7 @@ Rails.application.routes.draw do
   namespace :opds do
     root to: "feeds#root", as: :root
     get "/recent", to: "feeds#recent", as: :recent
+    get "/recent-reads", to: "feeds#recent_reads", as: :recent_reads
     get "/favorites", to: "feeds#favorites", as: :favorites
     get "/libraries", to: "feeds#libraries", as: :libraries
     get "/libraries/:library_id", to: "feeds#library", as: :library

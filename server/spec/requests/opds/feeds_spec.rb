@@ -364,5 +364,74 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(hrefs).to include("/opds/series")
       expect(hrefs).to include("/opds/tags")
     end
+
+    it "advertises the Recently Read subsection" do
+      get "/opds", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      hrefs = doc.xpath("//atom:entry/atom:link", ns).map { |l| l["href"] }
+      expect(hrefs).to include("/opds/recent-reads")
+    end
+  end
+
+  describe "GET /opds/recent-reads" do
+    it "requires authentication" do
+      get "/opds/recent-reads"
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "lists the user's opened books, most-recently-read first" do
+      older = create(:book, library: library, title: "OlderRead", file_path: "older.cbz", page_count: 10)
+      newer = create(:book, library: library, title: "NewerRead", file_path: "newer.cbz", page_count: 10)
+      ReadingProgress.create!(user: user, book: older, current_page: 1, last_read_at: 2.days.ago)
+      ReadingProgress.create!(user: user, book: newer, current_page: 1, last_read_at: 1.hour.ago)
+
+      get "/opds/recent-reads", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      titles = Nokogiri::XML(response.body)
+        .xpath("//atom:entry/atom:title", "atom" => ATOM_NS).map(&:text)
+      expect(titles).to eq(%w[NewerRead OlderRead])
+    end
+
+    it "excludes books the user has not opened" do
+      read = create(:book, library: library, title: "Opened", file_path: "a.cbz", page_count: 10)
+      create(:book, library: library, title: "Untouched", file_path: "b.cbz", page_count: 10)
+      ReadingProgress.create!(user: user, book: read, current_page: 1, last_read_at: 1.hour.ago)
+
+      get "/opds/recent-reads", headers: {"Authorization" => auth_header}
+
+      titles = Nokogiri::XML(response.body)
+        .xpath("//atom:entry/atom:title", "atom" => ATOM_NS).map(&:text)
+      expect(titles).to contain_exactly("Opened")
+    end
+
+    it "does not leak another user's reading history" do
+      book = create(:book, library: library, title: "TheirRead", file_path: "a.cbz", page_count: 10)
+      ReadingProgress.create!(user: create(:user), book: book, current_page: 1, last_read_at: 1.hour.ago)
+
+      get "/opds/recent-reads", headers: {"Authorization" => auth_header}
+
+      titles = Nokogiri::XML(response.body)
+        .xpath("//atom:entry/atom:title", "atom" => ATOM_NS).map(&:text)
+      expect(titles).to be_empty
+    end
+
+    it "caps the feed at 20 entries, keeping the most recent reads" do
+      25.times do |i|
+        book = create(:book, library: library, title: "B#{i}", file_path: "b#{i}.cbz", page_count: 10)
+        ReadingProgress.create!(user: user, book: book, current_page: 1, last_read_at: i.hours.ago)
+      end
+
+      get "/opds/recent-reads", headers: {"Authorization" => auth_header}
+
+      titles = Nokogiri::XML(response.body)
+        .xpath("//atom:entry/atom:title", "atom" => ATOM_NS).map(&:text)
+      expect(titles.size).to eq(20)
+      # i.hours.ago: smaller i == more recent, so B0..B19 survive the cap.
+      expect(titles).to include("B0", "B19")
+      expect(titles).not_to include("B20", "B24")
+    end
   end
 end

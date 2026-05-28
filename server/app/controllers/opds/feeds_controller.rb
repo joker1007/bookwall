@@ -2,6 +2,8 @@
 
 module Opds
   class FeedsController < BaseController
+    RECENT_READS_LIMIT = 20
+
     def root
       helpers = view_context_helpers
       xml = Opds::FeedBuilder.navigation(
@@ -10,6 +12,7 @@ module Opds
         self_url: helpers.opds_root_path,
         entries: [
           {title: "Recent", href: helpers.opds_recent_path, rel: "http://opds-spec.org/sort/new"},
+          {title: "Recently Read", href: helpers.opds_recent_reads_path, rel: "subsection"},
           {title: "Favorites", href: helpers.opds_favorites_path, rel: "subsection"},
           {title: "All Libraries", href: helpers.opds_libraries_path, rel: "subsection"},
           {title: "Series", href: helpers.opds_series_index_path, rel: "subsection"},
@@ -24,6 +27,23 @@ module Opds
                   .includes(:authors, :tags)
                   .with_attached_cover
       render_acquisition_feed("Recent", "urn:bookwall:recent", view_context_helpers.opds_recent_path, books)
+    end
+
+    # Books the current user has opened, newest-read first (the OPDS counterpart
+    # of the SPA's "Continue reading" carousel).
+    def recent_reads
+      books = ReadingProgress
+        .for_user(Current.user)
+        .read
+        .in_libraries(accessible_library_ids)
+        .order(last_read_at: :desc)
+        .limit(RECENT_READS_LIMIT)
+        .includes(book: [:authors, :tags, {cover_attachment: :blob}])
+        .map(&:book)
+      render_acquisition_feed(
+        "Recently Read", "urn:bookwall:recent-reads",
+        view_context_helpers.opds_recent_reads_path, books
+      )
     end
 
     def favorites
