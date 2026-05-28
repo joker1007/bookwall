@@ -6,6 +6,7 @@ class CreateLibraries < ActiveRecord::Migration[8.1]
       t.string :name, null: false
       t.string :path, null: false
       t.datetime :last_scanned_at
+      t.references :owner, null: false, foreign_key: {to_table: :users}
 
       t.timestamps
     end

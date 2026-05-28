@@ -129,7 +129,6 @@ CREATE INDEX "index_library_shares_on_user_id" ON "library_shares" ("user_id");
 CREATE INDEX "index_library_shares_on_user_id_only" ON "library_shares" ("user_id");
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260529000001'),
-('20260529000000'),
 ('20260528140000'),
 ('20260528000000'),
 ('20260527000009'),
