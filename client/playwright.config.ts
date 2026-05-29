@@ -49,8 +49,8 @@ export default defineConfig({
     {
       name: "rails",
       command:
-        "BOOKWALL_E2E_RESET=1 RAILS_ENV=test bin/rails db:prepare && " +
-        `BOOKWALL_E2E_RESET=1 RAILS_ENV=test bundle exec falcon serve --bind http://${RAILS_HOST}:${RAILS_PORT} --count 1`,
+        "BOOKWALL_E2E_RESET=1 RAILS_ENV=test_e2e bin/rails db:prepare && " +
+        `BOOKWALL_E2E_RESET=1 RAILS_ENV=test_e2e bundle exec falcon serve --bind http://${RAILS_HOST}:${RAILS_PORT} --count 1`,
       cwd: "../server",
       url: `http://${RAILS_HOST}:${RAILS_PORT}/up`,
       reuseExistingServer: !process.env.CI,

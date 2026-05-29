@@ -2,6 +2,12 @@ test:
   service: Disk
   root: <%= Rails.root.join("tmp/storage") %>
 
+# Dedicated root for the test_e2e environment so Playwright-uploaded blobs
+# don't mix with the files rspec writes under tmp/storage.
+test_e2e:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage_e2e") %>
+
 local:
   service: Disk
   # Production runs with BOOKWALL_DATA_DIR pointing at the mounted

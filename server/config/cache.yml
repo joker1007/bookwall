@@ -11,6 +11,9 @@ development:
 test:
   <<: *default
 
+test_e2e:
+  <<: *default
+
 production:
   database: cache
   <<: *default

@@ -19,6 +19,12 @@ test:
   <<: *default
   database: storage/test.sqlite3
 
+# Mirrors `test` but writes to its own SQLite file so the Playwright e2e
+# suite (RAILS_ENV=test_e2e) never shares state with rspec (RAILS_ENV=test).
+test_e2e:
+  <<: *default
+  database: storage/test_e2e.sqlite3
+
 # Production stores every SQLite database under BOOKWALL_DATA_DIR so
 # the Docker image can mount a single /config volume that captures
 # both Active Storage attachments and the databases. Falls back to
