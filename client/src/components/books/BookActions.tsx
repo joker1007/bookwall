@@ -42,7 +42,7 @@ export function BookActions({ book, layout = "inline" }: BookActionsProps) {
       className={cn(
         "relative z-10 flex gap-1",
         isOverlay
-          ? "absolute right-1.5 top-1.5 flex-col"
+          ? "absolute right-1.5 top-1.5 flex-col opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
           : "shrink-0 items-center",
       )}
     >
