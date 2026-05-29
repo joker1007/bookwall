@@ -89,15 +89,37 @@ RSpec.describe "Api::Libraries", type: :request do
   end
 
   describe "DELETE /api/libraries/:id" do
-    it "deletes the library" do
+    around do |example|
+      # Default test adapter is :inline, which would destroy the library during
+      # the request; switch to :test to observe the "marked + enqueued" state.
+      original = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      example.run
+      ActiveJob::Base.queue_adapter = original
+    end
+
+    it "marks the library for deletion and enqueues the destroy job" do
       sign_in!
       library = create(:library, owner: user)
 
       expect {
         delete "/api/libraries/#{library.id}"
-      }.to change(Library, :count).by(-1)
+      }.to have_enqueued_job(DestroyLibraryJob).with(library.id)
 
-      expect(response).to have_http_status(:no_content)
+      expect(response).to have_http_status(:accepted)
+      expect(library.reload.deleting_at).to be_present
+      expect(Library.exists?(library.id)).to be(true)
+    end
+
+    it "hides a library marked for deletion from listings" do
+      sign_in!
+      library = create(:library, owner: user)
+
+      delete "/api/libraries/#{library.id}"
+
+      get "/api/libraries"
+      ids = response.parsed_body["libraries"].map { |lib| lib["id"] }
+      expect(ids).not_to include(library.id)
     end
   end
 end

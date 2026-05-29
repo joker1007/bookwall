@@ -69,6 +69,9 @@ export default function LibrariesSettings() {
   const list = useLibraries();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Library | null>(null);
+  // Lifted here because the row unmounts as soon as the deleted library drops
+  // out of the refetched list, which would take a row-local dialog with it.
+  const [deletedName, setDeletedName] = useState<string | null>(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -131,6 +134,7 @@ export default function LibrariesSettings() {
                     key={library.id}
                     library={library}
                     onEdit={() => openEdit(library)}
+                    onDeleteStarted={setDeletedName}
                   />
                 ))
               )}
@@ -143,6 +147,11 @@ export default function LibrariesSettings() {
         open={open}
         onOpenChange={setOpen}
         library={editing}
+      />
+
+      <LibraryDeleteStartedDialog
+        name={deletedName}
+        onClose={() => setDeletedName(null)}
       />
 
       <ScheduledTasksSection />
@@ -237,9 +246,10 @@ function ScheduledTaskToggle({
 interface LibraryRowProps {
   library: Library;
   onEdit: () => void;
+  onDeleteStarted: (name: string) => void;
 }
 
-function LibraryRow({ library, onEdit }: LibraryRowProps) {
+function LibraryRow({ library, onEdit, onDeleteStarted }: LibraryRowProps) {
   const { t } = useTranslation();
   const scan = useScanLibrary();
   const remove = useDeleteLibrary();
@@ -255,7 +265,9 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
 
   const handleDelete = () => {
     if (!window.confirm(t("settings.libraries.deleteConfirm", { name: library.name }))) return;
-    remove.mutate(library.id);
+    remove.mutate(library.id, {
+      onSuccess: () => onDeleteStarted(library.name),
+    });
   };
 
   return (
@@ -324,6 +336,30 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
         </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+interface LibraryDeleteStartedDialogProps {
+  name: string | null;
+  onClose: () => void;
+}
+
+function LibraryDeleteStartedDialog({ name, onClose }: LibraryDeleteStartedDialogProps) {
+  const { t } = useTranslation();
+  return (
+    <Dialog open={name !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("settings.libraries.deleteStarted.title")}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.libraries.deleteStarted.description", { name: name ?? "" })}
+        </p>
+        <DialogFooter>
+          <Button onClick={onClose}>{t("common.close")}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

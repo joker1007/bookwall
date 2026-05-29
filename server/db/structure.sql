@@ -110,13 +110,14 @@ FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 );
 CREATE UNIQUE INDEX "index_user_preferences_on_user_id" ON "user_preferences" ("user_id") /*application='Bookwall'*/;
-CREATE TABLE IF NOT EXISTS "libraries" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "path" varchar NOT NULL, "last_scanned_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "owner_id" integer NOT NULL, "auto_scan_enabled" boolean DEFAULT TRUE NOT NULL /*application='Bookwall'*/, CONSTRAINT "fk_rails_3c26848d46"
+CREATE TABLE IF NOT EXISTS "libraries" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "path" varchar NOT NULL, "last_scanned_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "owner_id" integer NOT NULL, "auto_scan_enabled" boolean DEFAULT TRUE NOT NULL /*application='Bookwall'*/, "deleting_at" datetime(6) /*application='Bookwall'*/, CONSTRAINT "fk_rails_3c26848d46"
 FOREIGN KEY ("owner_id")
   REFERENCES "users" ("id")
 );
 CREATE UNIQUE INDEX "index_libraries_on_name" ON "libraries" ("name") /*application='Bookwall'*/;
 CREATE UNIQUE INDEX "index_libraries_on_path" ON "libraries" ("path") /*application='Bookwall'*/;
 CREATE INDEX "index_libraries_on_owner_id" ON "libraries" ("owner_id") /*application='Bookwall'*/;
+CREATE INDEX "index_libraries_on_deleting_at" ON "libraries" ("deleting_at") /*application='Bookwall'*/;
 CREATE TABLE IF NOT EXISTS "library_shares" ("library_id" integer NOT NULL, "user_id" integer NOT NULL, "created_at" datetime(6) NOT NULL, PRIMARY KEY ("library_id", "user_id"), CONSTRAINT "fk_rails_48f45bbd77"
 FOREIGN KEY ("library_id")
   REFERENCES "libraries" ("id")
@@ -145,6 +146,7 @@ CREATE INDEX "index_collection_books_on_book_id" ON "collection_books" ("book_id
 CREATE INDEX "index_collection_books_on_book_id_only" ON "collection_books" ("book_id") /*application='Bookwall'*/;
 CREATE TABLE IF NOT EXISTS "scheduled_task_settings" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "daily_scan_enabled" boolean DEFAULT TRUE NOT NULL, "cleanup_enabled" boolean DEFAULT TRUE NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
 INSERT INTO "schema_migrations" (version) VALUES
+('20260529120000'),
 ('20260529100001'),
 ('20260529100000'),
 ('20260529000002'),

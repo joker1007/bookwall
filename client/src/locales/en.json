@@ -337,6 +337,10 @@
       "empty": "No libraries yet.",
       "sharedBadge": "Shared",
       "deleteConfirm": "Delete \"{{name}}\"? All its book metadata will be removed too. Continue?",
+      "deleteStarted": {
+        "title": "Deletion started",
+        "description": "Deletion of \"{{name}}\" has started in the background. It may take a while to finish depending on the number of books."
+      },
       "scanStatus": {
         "runningProgress": "Scanning {{processed}} / {{total}}",
         "runningIndeterminate": "Scanning…",

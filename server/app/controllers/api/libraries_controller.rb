@@ -38,8 +38,11 @@ module Api
     end
 
     def destroy
-      @library.destroy!
-      head :no_content
+      # Hide it immediately, then cascade the (potentially slow) destroy in the
+      # background so the request returns right away.
+      @library.update_column(:deleting_at, Time.current)
+      DestroyLibraryJob.perform_later(@library.id)
+      render json: {status: "deleting"}, status: :accepted
     end
 
     private

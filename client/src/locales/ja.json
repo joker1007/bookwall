@@ -337,6 +337,10 @@
       "empty": "ライブラリはまだありません。",
       "sharedBadge": "共有",
       "deleteConfirm": "「{{name}}」を削除します。書籍メタもまとめて削除されます。よろしいですか?",
+      "deleteStarted": {
+        "title": "削除を開始しました",
+        "description": "「{{name}}」の削除をバックグラウンドで開始しました。書籍数によっては完了まで時間がかかることがあります。"
+      },
       "scanStatus": {
         "runningProgress": "スキャン中 {{processed}} / {{total}}",
         "runningIndeterminate": "スキャン中…",
