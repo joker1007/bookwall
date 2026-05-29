@@ -88,7 +88,8 @@ COPY --chown=rails:rails --from=server_build /rails /rails
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 ENV HTTP_PORT="8237" \
-  TARGET_PORT="3000"
+  TARGET_PORT="3000" \
+  FALCON_INSTANCES="4"
 EXPOSE 8237
 # bin/docker-server boots both the web server (Thruster + Falcon) and
 # the SolidQueue worker in the same container. Override the CMD with

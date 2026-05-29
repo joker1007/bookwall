@@ -20,7 +20,7 @@ shutdown() {
 }
 trap shutdown SIGTERM SIGINT
 
-./bin/thrust bundle exec falcon serve --bind http://0.0.0.0:3000 &
+./bin/thrust bundle exec falcon serve --bind http://0.0.0.0:3000 --count ${FALCON_INSTANCES} &
 pids+=("$!")
 
 ./bin/jobs &
