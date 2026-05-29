@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
+import { TocList } from "@/components/reader/TocList";
 import {
   ReaderFontSizeField,
   ReaderOptionField,
@@ -796,7 +797,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
             {toc.length === 0 ? (
               <p className="text-muted-foreground">{t("reader.toc.empty")}</p>
             ) : (
-              <TocList items={toc} onSelect={goToToc} />
+              <TocList items={toc} onSelect={(item) => goToToc(item.href)} />
             )}
           </nav>
         </SheetContent>
@@ -804,35 +805,5 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
 
       <ReaderHotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
     </div>
-  );
-}
-
-function TocList({
-  items,
-  onSelect,
-  depth = 0,
-}: {
-  items: TocItem[];
-  onSelect: (href: string) => void;
-  depth?: number;
-}) {
-  return (
-    <ul className="flex flex-col gap-0.5">
-      {items.map((item, i) => (
-        <li key={`${depth}-${i}`}>
-          <button
-            type="button"
-            onClick={() => onSelect(item.href)}
-            className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-            style={{ paddingInlineStart: `${depth * 12 + 8}px` }}
-          >
-            {item.label}
-          </button>
-          {item.subitems?.length ? (
-            <TocList items={item.subitems} onSelect={onSelect} depth={depth + 1} />
-          ) : null}
-        </li>
-      ))}
-    </ul>
   );
 }

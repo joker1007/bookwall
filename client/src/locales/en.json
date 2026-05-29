@@ -269,6 +269,14 @@
       "description": "Jump to a chapter.",
       "empty": "No chapters available."
     },
+    "pager": {
+      "prev": "Previous page",
+      "next": "Next page",
+      "status": "{{page}} / {{pages}}"
+    },
+    "pdf": {
+      "encrypted": "This PDF is password-protected and can't be opened in the reader."
+    },
     "scrubber": {
       "ariaLabel": "Jump to page",
       "epubAriaLabel": "Jump to position",

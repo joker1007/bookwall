@@ -9,6 +9,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { EpubReaderView } from "@/components/reader/EpubReaderView";
+import { PdfReaderView } from "@/components/reader/PdfReaderView";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
 import {
@@ -269,6 +270,10 @@ export default function ReaderPage() {
 
   if (book.data.file_format === "epub") {
     return <EpubReaderView book={book.data} />;
+  }
+
+  if (book.data.file_format === "pdf") {
+    return <PdfReaderView key={book.data.id} book={book.data} />;
   }
 
   // Hold the image/CBZ/PDF reader on the loading screen until progress has

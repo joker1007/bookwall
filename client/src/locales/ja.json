@@ -269,6 +269,14 @@
       "description": "章をタップしてジャンプします。",
       "empty": "目次がありません。"
     },
+    "pager": {
+      "prev": "前のページ",
+      "next": "次のページ",
+      "status": "{{page}} / {{pages}}"
+    },
+    "pdf": {
+      "encrypted": "このPDFはパスワード保護されているため、リーダーで開けません。"
+    },
     "scrubber": {
       "ariaLabel": "ページにジャンプ",
       "epubAriaLabel": "位置にジャンプ",

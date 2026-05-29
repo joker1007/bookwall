@@ -101,7 +101,12 @@ module Api
       # re-ingested, so it's a good enough cache key.
       etag = @book.updated_at.to_i.to_s
       response.set_header("Cache-Control", "private, max-age=31536000, immutable")
+      # Advertise range support so pdfjs (and other range-aware clients)
+      # fetch only the byte ranges they need instead of the whole file.
+      response.set_header("Accept-Ranges", "bytes")
       return unless stale?(etag: etag)
+
+      return if serve_byte_range(resolved)
 
       send_file resolved,
         type: Books::FileFormat.mime(@book.file_format),
@@ -110,6 +115,39 @@ module Api
     end
 
     private
+
+    # Handle a single HTTP Range request with a 206 partial response. Returns
+    # false (so the caller falls back to the full send_file) when there's no
+    # range header or the request asks for multiple ranges (multipart, which
+    # pdfjs never does). Falcon's send_file doesn't honour Range on its own,
+    # so we slice the bytes ourselves.
+    def serve_byte_range(path)
+      range_header = request.get_header("HTTP_RANGE")
+      return false if range_header.blank?
+
+      file_size = File.size(path)
+      ranges = Rack::Utils.get_byte_ranges(range_header, file_size)
+      return false if ranges.nil?
+
+      if ranges.empty?
+        response.set_header("Content-Range", "bytes */#{file_size}")
+        head :range_not_satisfiable
+        return true
+      end
+
+      # Multipart (multiple ranges) is something pdfjs never asks for; fall
+      # back to the full body rather than build a multipart/byteranges body.
+      return false if ranges.size != 1
+
+      range = ranges.first
+      response.set_header("Content-Range", "bytes #{range.begin}-#{range.end}/#{file_size}")
+      send_data File.binread(path, range.size, range.begin),
+        type: Books::FileFormat.mime(@book.file_format),
+        disposition: "attachment",
+        filename: Books::FileFormat.download_filename(@book),
+        status: :partial_content
+      true
+    end
 
     def set_book
       @book = find_accessible_book!(params[:id])

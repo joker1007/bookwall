@@ -253,6 +253,44 @@ RSpec.describe "Api::Books", type: :request do
       expect(response).to have_http_status(:not_modified)
     end
 
+    it "advertises range support on the full response" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :pdf,
+        file_path: "sample.pdf")
+
+      get "/api/books/#{book.id}/file"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Accept-Ranges"]).to eq("bytes")
+    end
+
+    it "serves a 206 partial response for a byte range" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :pdf,
+        file_path: "sample.pdf")
+      full = Rails.root.join("spec/fixtures/files/sample.pdf").binread
+      total = full.bytesize
+
+      get "/api/books/#{book.id}/file", headers: {"Range" => "bytes=0-9"}
+
+      expect(response).to have_http_status(:partial_content)
+      expect(response.headers["Content-Range"]).to eq("bytes 0-9/#{total}")
+      expect(response.body.bytesize).to eq(10)
+      expect(response.body.b).to eq(full.byteslice(0, 10))
+    end
+
+    it "returns 416 for an unsatisfiable range" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :pdf,
+        file_path: "sample.pdf")
+      total = Rails.root.join("spec/fixtures/files/sample.pdf").size
+
+      get "/api/books/#{book.id}/file", headers: {"Range" => "bytes=#{total + 10}-#{total + 20}"}
+
+      expect(response).to have_http_status(:range_not_satisfiable)
+      expect(response.headers["Content-Range"]).to eq("bytes */#{total}")
+    end
+
     it "returns 404 for image_dir books (not a single file)" do
       sign_in!
       book = create(:book, library: lib, file_format: :image_dir,
