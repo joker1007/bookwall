@@ -151,9 +151,20 @@ test.describe("PDF reader", () => {
     await expect(page.locator("canvas").first()).toBeVisible();
     // The text layer is what makes selection / copy possible — proving it
     // rendered spans is proof the vector path (not a raster image) is used.
-    await expect
-      .poll(() => page.locator(".textLayer span").count())
-      .toBeGreaterThan(0);
+    const firstSpan = page.locator(".textLayer span").first();
+    await expect(firstSpan).toBeAttached();
+    // Regression guard: a laid-out span must have a real box. If
+    // --total-scale-factor isn't set on the page container, pdfjs collapses
+    // the glyphs and selection silently breaks.
+    const box = await firstSpan.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(0);
+    expect(box?.height ?? 0).toBeGreaterThan(0);
+    // The text is actually selectable.
+    await firstSpan.selectText();
+    const selected = await page.evaluate(
+      () => window.getSelection()?.toString() ?? "",
+    );
+    expect(selected.trim().length).toBeGreaterThan(0);
   });
 
   test("opens a PDF at the saved page", async ({ page, signup }) => {

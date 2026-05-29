@@ -748,7 +748,11 @@ function PdfPageView({
         const canvas = canvasRef.current;
         if (!container || !canvas) return;
 
+        // pdfjs's text/annotation layers size every span and glyph off
+        // `--total-scale-factor` (setLayerDimensions reads it but never sets
+        // it). Without it the text layer collapses and can't be selected.
         container.style.setProperty("--scale-factor", String(renderScale));
+        container.style.setProperty("--total-scale-factor", String(renderScale));
         container.style.width = `${cssWidth}px`;
         container.style.height = `${cssHeight}px`;
 
