@@ -58,6 +58,7 @@ RSpec.describe "Api::Libraries", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["id"]).to eq(library.id)
+      expect(response.parsed_body["auto_scan_enabled"]).to be(true)
     end
   end
 
@@ -72,6 +73,18 @@ RSpec.describe "Api::Libraries", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(library.reload.name).to eq("New")
+    end
+
+    it "toggles auto_scan_enabled" do
+      sign_in!
+      library = create(:library, owner: user, auto_scan_enabled: true)
+
+      patch "/api/libraries/#{library.id}",
+            params: {auto_scan_enabled: false},
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(library.reload.auto_scan_enabled).to be(false)
     end
   end
 

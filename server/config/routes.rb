@@ -17,6 +17,7 @@ Rails.application.routes.draw do
     resources :registrations, only: %i[create]
     resources :api_tokens, only: %i[index create destroy]
     resource :preferences, only: %i[show update]
+    resource :scheduled_task_settings, only: %i[show update]
     resources :libraries do
       resources :scans, only: %i[create index]
     end

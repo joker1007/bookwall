@@ -70,7 +70,7 @@ module Api
     end
 
     def library_params
-      params.permit(:name, :path, shared_user_ids: [])
+      params.permit(:name, :path, :auto_scan_enabled, shared_user_ids: [])
     end
   end
 end

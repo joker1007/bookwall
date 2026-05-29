@@ -3,7 +3,7 @@
 class LibrarySerializer
   include Alba::Resource
 
-  attributes :id, :name, :path, :last_scanned_at, :created_at, :updated_at, :owner_id
+  attributes :id, :name, :path, :last_scanned_at, :created_at, :updated_at, :owner_id, :auto_scan_enabled
 
   # Per-viewer flag: the current user manages (owns) this library.
   attribute :can_manage do |lib|
