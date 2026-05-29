@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Toggle } from "@/components/ui/toggle";
 import {
   ReaderFontSizeField,
   ReaderOptionField,
@@ -41,6 +42,10 @@ import {
   useUpdateUserPreferences,
   useUserPreferences,
 } from "@/hooks/useUserPreferences";
+import {
+  useScheduledTaskSettings,
+  useUpdateScheduledTaskSettings,
+} from "@/hooks/useScheduledTaskSettings";
 import { ApiError } from "@/lib/api";
 import {
   READER_FONT_SIZE_DEFAULT,
@@ -105,6 +110,9 @@ export default function LibrariesSettings() {
                 <TableHead className="w-44 whitespace-nowrap">
                   {t("settings.libraries.columns.lastScannedAt")}
                 </TableHead>
+                <TableHead className="w-28 whitespace-nowrap">
+                  {t("settings.libraries.columns.autoScan")}
+                </TableHead>
                 <TableHead className="w-48 text-right">
                   {t("settings.libraries.columns.actions")}
                 </TableHead>
@@ -113,7 +121,7 @@ export default function LibrariesSettings() {
             <TableBody>
               {list.data!.libraries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     {t("settings.libraries.empty")}
                   </TableCell>
                 </TableRow>
@@ -137,8 +145,92 @@ export default function LibrariesSettings() {
         library={editing}
       />
 
+      <ScheduledTasksSection />
       <ReaderDefaultsSection />
     </section>
+  );
+}
+
+function ScheduledTasksSection() {
+  const { t } = useTranslation();
+  const settings = useScheduledTaskSettings();
+  const update = useUpdateScheduledTaskSettings();
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-border bg-card p-4">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("settings.scheduledTasks.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.scheduledTasks.description")}
+        </p>
+      </header>
+
+      {settings.isPending ? (
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+      ) : settings.isError ? (
+        <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
+      ) : (
+        <div className="grid gap-4">
+          <ScheduledTaskToggle
+            id="scheduled-daily-scan"
+            label={t("settings.scheduledTasks.dailyScan")}
+            hint={t("settings.scheduledTasks.dailyScanHint")}
+            value={settings.data!.daily_scan_enabled}
+            onChange={(v) => update.mutate({ daily_scan_enabled: v })}
+            disabled={update.isPending}
+          />
+          <ScheduledTaskToggle
+            id="scheduled-cleanup"
+            label={t("settings.scheduledTasks.cleanup")}
+            hint={t("settings.scheduledTasks.cleanupHint")}
+            value={settings.data!.cleanup_enabled}
+            onChange={(v) => update.mutate({ cleanup_enabled: v })}
+            disabled={update.isPending}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface ScheduledTaskToggleProps {
+  id: string;
+  label: string;
+  hint: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+}
+
+function ScheduledTaskToggle({
+  id,
+  label,
+  hint,
+  value,
+  onChange,
+  disabled,
+}: ScheduledTaskToggleProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="grid gap-1">
+        <Label htmlFor={id}>{label}</Label>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      </div>
+      <Toggle
+        id={id}
+        pressed={value}
+        onPressedChange={onChange}
+        variant="outline"
+        size="sm"
+        aria-label={label}
+        disabled={disabled}
+      >
+        {value ? t("reader.on") : t("reader.off")}
+      </Toggle>
+    </div>
   );
 }
 
@@ -151,6 +243,7 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
   const { t } = useTranslation();
   const scan = useScanLibrary();
   const remove = useDeleteLibrary();
+  const update = useUpdateLibrary();
   // Only owners can scan; skip polling (which would 403) for shared libraries.
   const scans = useLibraryScans(library.can_manage ? library.id : undefined);
   const latest = scans.data?.scans?.[0];
@@ -178,6 +271,24 @@ function LibraryRow({ library, onEdit }: LibraryRowProps) {
           </span>
           {latest ? <ScanStatusBadge log={latest} /> : null}
         </div>
+      </TableCell>
+      <TableCell>
+        {library.can_manage ? (
+          <Toggle
+            pressed={library.auto_scan_enabled}
+            onPressedChange={(v) => update.mutate({ id: library.id, auto_scan_enabled: v })}
+            variant="outline"
+            size="sm"
+            aria-label={t("settings.libraries.columns.autoScan")}
+            disabled={update.isPending}
+          >
+            {library.auto_scan_enabled ? t("reader.on") : t("reader.off")}
+          </Toggle>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {library.auto_scan_enabled ? t("reader.on") : t("reader.off")}
+          </span>
+        )}
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">

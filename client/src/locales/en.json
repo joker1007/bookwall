@@ -315,6 +315,14 @@
       "preloadAheadHint": "Pages to fetch into the browser cache ahead of the current spread. Higher values reduce flicker but use more memory.",
       "preloadAheadValue": "{{count}} pages"
     },
+    "scheduledTasks": {
+      "title": "Scheduled tasks",
+      "description": "Background jobs that run automatically once a day.",
+      "dailyScan": "Daily library scan",
+      "dailyScanHint": "Scans every library with auto scan enabled each day at 4:00.",
+      "cleanup": "Daily cleanup",
+      "cleanupHint": "Removes books whose files are gone, plus tags and authors left with no books, each day at 4:30."
+    },
     "libraries": {
       "title": "Library settings",
       "description": "Manage the directories that Bookwall scans for books.",
@@ -323,6 +331,7 @@
         "name": "Name",
         "path": "Path",
         "lastScannedAt": "Last scan",
+        "autoScan": "Auto scan",
         "actions": "Actions"
       },
       "empty": "No libraries yet.",

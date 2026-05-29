@@ -315,6 +315,14 @@
       "preloadAheadHint": "現在の表示の先にプリロードするページ数です。多いほどちらつきが減りますが、メモリを多く使います。",
       "preloadAheadValue": "{{count}} ページ"
     },
+    "scheduledTasks": {
+      "title": "スケジュールタスク",
+      "description": "1日1回自動で実行されるバックグラウンドジョブです。",
+      "dailyScan": "毎日のライブラリスキャン",
+      "dailyScanHint": "自動スキャンが有効なライブラリを毎日4:00にスキャンします。",
+      "cleanup": "毎日のクリーンアップ",
+      "cleanupHint": "ファイルが存在しなくなった書籍と、書籍が1件もないタグ・著者を毎日4:30に削除します。"
+    },
     "libraries": {
       "title": "ライブラリ設定",
       "description": "スキャン対象のディレクトリを管理します。",
@@ -323,6 +331,7 @@
         "name": "名前",
         "path": "パス",
         "lastScannedAt": "最終スキャン",
+        "autoScan": "自動スキャン",
         "actions": "操作"
       },
       "empty": "ライブラリはまだありません。",

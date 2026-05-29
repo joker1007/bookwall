@@ -31,6 +31,53 @@ test.describe("settings — libraries", () => {
   });
 });
 
+test.describe("settings — scheduled tasks", () => {
+  test("global task toggles and per-library auto scan persist across reload", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+    await page.goto("/ui/settings/libraries");
+
+    // Global section renders with both switches defaulting to On.
+    const scanToggle = page.getByRole("button", { name: "Daily library scan" });
+    const cleanupToggle = page.getByRole("button", { name: "Daily cleanup" });
+    await expect(scanToggle).toHaveText("On");
+    await expect(cleanupToggle).toHaveText("On");
+
+    // Turn the daily scan off; the PATCH result should stick after a reload.
+    await scanToggle.click();
+    await expect(scanToggle).toHaveText("Off");
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "Daily library scan" }),
+    ).toHaveText("Off");
+    await expect(
+      page.getByRole("button", { name: "Daily cleanup" }),
+    ).toHaveText("On");
+
+    // Create a library; its row auto-scan toggle defaults to On.
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator("#lib-name").fill("Auto Scan Library");
+    await dialog.locator("#lib-path").fill("/tmp/bookwall-auto-scan");
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+
+    const row = page.getByRole("row", { name: /Auto Scan Library/ });
+    const autoScan = row.getByRole("button", { name: "Auto scan" });
+    await expect(autoScan).toHaveText("On");
+
+    // Toggle it off and confirm persistence after a reload.
+    await autoScan.click();
+    await expect(autoScan).toHaveText("Off");
+    await page.reload();
+    await expect(
+      page.getByRole("row", { name: /Auto Scan Library/ }).getByRole("button", { name: "Auto scan" }),
+    ).toHaveText("Off");
+  });
+});
+
 test.describe("settings — API tokens", () => {
   test("issue a token, see plaintext, dismiss, and re-reveal the same value", async ({
     page,

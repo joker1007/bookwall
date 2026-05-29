@@ -30,6 +30,7 @@ module Api
         ApiToken.delete_all
         Session.delete_all
         User.delete_all
+        ScheduledTaskSetting.delete_all
         ActiveRecord::Base.connection.execute("DELETE FROM books_fts")
       end
       cookies.delete(:session_id)

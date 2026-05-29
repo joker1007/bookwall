@@ -54,6 +54,14 @@ export interface Library {
   can_manage: boolean;
   // Users this library is shared with. Only populated for the owner; [] otherwise.
   shared_user_ids: number[];
+  // Whether the daily scheduled scan includes this library.
+  auto_scan_enabled: boolean;
+}
+
+// Application-wide on/off switches for the recurring background tasks.
+export interface ScheduledTaskSettings {
+  daily_scan_enabled: boolean;
+  cleanup_enabled: boolean;
 }
 
 export type ScanStatus = "pending" | "running" | "succeeded" | "failed";
