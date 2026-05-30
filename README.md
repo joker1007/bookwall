@@ -8,9 +8,7 @@ A Rails application that provides e-book management and a web-based reader.
 
 A guided tour (signup → library scan → grid/list browse → CBZ reader → horizontal EPUB → vertical EPUB) recorded with Playwright. See [`docs/demo.mp4`](./docs/demo.mp4) (≈1.3 min, 2.9 MB, H.264).
 
-<div>
-<video src="https://raw.githubusercontent.com/joker1007/bookwall/main/docs/demo.mp4" controls width="720"></video>
-</div>
+https://github.com/user-attachments/assets/1400a191-5fb3-4c34-a9fe-e6dc734a637e
 
 Regenerate it with:
 
