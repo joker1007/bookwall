@@ -4,6 +4,25 @@
 
 [English README](./README.md)
 
+## デモ
+
+Playwright で収録したガイドツアー (サインアップ → ライブラリスキャン → グリッド/リスト切替 → CBZ リーダー → 横書き EPUB → 縦書き EPUB)。[`docs/demo.mp4`](./docs/demo.mp4) (約 1 分 20 秒、2.9 MB、H.264)。
+
+<div>
+<video src="https://raw.githubusercontent.com/joker1007/bookwall/main/docs/demo.mp4" controls width="720"></video>
+</div>
+
+再生成は以下のコマンド:
+
+```sh
+cd client && npm run demo:video
+# Playwright は client/test-results/.../video.webm を吐くので、GitHub の
+# README ビューワで再生できる mp4 に再エンコードする:
+ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/video.webm \
+       -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -an \
+       docs/demo.mp4
+```
+
 ## サブプロジェクト
 
 | ディレクトリ | 役割 | スタック |
@@ -146,6 +165,7 @@ bookwall/
 ├── .dockerignore
 ├── .gitignore
 ├── CLAUDE.md             # プロジェクト要件 (Claude Code 用)
+├── docs/                 # demo.mp4 (Playwright で録ったガイドツアー、H.264)
 ├── server/               # Rails 8.1 API + OPDS。README は server/README.md
 └── client/               # Vite + React + TS SPA。README は client/README.md
 ```

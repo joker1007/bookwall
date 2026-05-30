@@ -4,6 +4,25 @@ A Rails application that provides e-book management and a web-based reader.
 
 [日本語版 README はこちら / Japanese README](./README-ja.md)
 
+## Demo
+
+A guided tour (signup → library scan → grid/list browse → CBZ reader → horizontal EPUB → vertical EPUB) recorded with Playwright. See [`docs/demo.mp4`](./docs/demo.mp4) (≈1.3 min, 2.9 MB, H.264).
+
+<div>
+<video src="https://raw.githubusercontent.com/joker1007/bookwall/main/docs/demo.mp4" controls width="720"></video>
+</div>
+
+Regenerate it with:
+
+```sh
+cd client && npm run demo:video
+# Playwright outputs client/test-results/.../video.webm. Transcode it to mp4
+# so GitHub's README viewer can play it inline:
+ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/video.webm \
+       -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -an \
+       docs/demo.mp4
+```
+
 ## Sub-projects
 
 | Directory | Role | Stack |
@@ -146,6 +165,7 @@ bookwall/
 ├── .dockerignore
 ├── .gitignore
 ├── CLAUDE.md             # Project requirements (for Claude Code)
+├── docs/                 # demo.mp4 (Playwright guided-tour recording, H.264)
 ├── server/               # Rails 8.1 API + OPDS. See server/README.md
 └── client/               # Vite + React + TS SPA. See client/README.md
 ```
