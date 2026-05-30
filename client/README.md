@@ -1,64 +1,66 @@
 # Bookwall client
 
-## 技術スタック
+[日本語版 README はこちら / Japanese README](./README-ja.md)
 
-- **Vite 8** + **React 19** + **TypeScript** (`verbatimModuleSyntax` 有効)
+## Tech stack
+
+- **Vite 8** + **React 19** + **TypeScript** (with `verbatimModuleSyntax` enabled)
 - **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** (Radix + Tailwind)
 - **React Router v7** (`<BrowserRouter basename="/ui">`)
-- **TanStack Query v5** — サーバー状態 (書籍 / セッション / トークン / 読書進捗)
-- **Zustand** — クライアント状態 (`displayMode`, `sortOrder` を `persist` で localStorage に保存)
-- **react-i18next** — 日英 i18n (`src/locales/{en,ja}.json`)
-- **foliate-js** — EPUB レンダラ (`<foliate-view>` カスタム要素 / iframe + shadow DOM)
-- **PDF.js** — PDF レンダラ
-- **lucide-react** — アイコン
+- **TanStack Query v5** — server state (books / session / tokens / reading progress)
+- **Zustand** — client state (`displayMode` and `sortOrder` are persisted to localStorage via `persist`)
+- **react-i18next** — JA/EN i18n (`src/locales/{en,ja}.json`)
+- **foliate-js** — EPUB renderer (`<foliate-view>` custom element / iframe + shadow DOM)
+- **PDF.js** — PDF renderer
+- **lucide-react** — icons
 
-## 開発
+## Development
 
-通常は server 側の `bin/dev` を叩けば foreman が Rails (Falcon) と Vite を両方起動してくれるので、こちらを直接触る必要はない。詳しくはルートの[README](../README.md#3-開発サーバを一括起動) を参照。
+Normally you just run `bin/dev` on the server side; foreman starts both Rails (Falcon) and Vite, so you don't need to touch this directory directly. See the root [README](../README.md#3-start-the-dev-servers-together) for details.
 
-client だけ単独で動かしたいときは:
+To run the client alone:
 
 ```sh
 npm install
 npm run dev          # Vite (http://localhost:5173)
 ```
 
-## ビルド
+## Build
 
-開発用バンドル:
+Development bundle:
 
 ```sh
 npm run build
-# → client/dist/ に index.html + assets を吐く
+# → Emits index.html + assets into client/dist/
 ```
 
-サーバに同梱するときは出力先を server/public/ui に切り替える:
+When bundling alongside the server, switch the output directory to server/public/ui:
 
 ```sh
 npm run build -- --outDir ../server/public/ui --emptyOutDir
 ```
 
-see. [Dockerfile](../Dockerfile)
+See [Dockerfile](../Dockerfile).
 
-## ディレクトリ構成
+## Directory layout
 
 ```
 client/
 ├── index.html                  # <html lang="ja" class="dark">
 ├── vite.config.ts              # base="/ui/" + dev proxy + path alias @/
 ├── tsconfig.app.json           # paths: { "@/*": ["./src/*"] }
-├── components.json             # shadcn/ui 設定
+├── components.json             # shadcn/ui config
 └── src/
     ├── main.tsx
     ├── App.tsx                 # Router + QueryClientProvider + SessionBootstrap
     ├── index.css               # Tailwind v4 + shadcn CSS variables
-    ├── routes/                 # 1 ファイル = 1 ルート
-    │   ├── _layout.tsx         #   AppShell をマウントするだけの薄いラッパ
-    │   ├── home.tsx            #   "/" 最近読んだ本のカルーセル + 最近追加された書籍
-    │   ├── login.tsx           #   "/login" 公開
-    │   ├── signup.tsx          #   "/signup" 公開
+    ├── routes/                 # 1 file = 1 route
+    │   ├── _layout.tsx         #   Thin wrapper that only mounts AppShell
+    │   ├── home.tsx            #   "/" Recently-read carousel + recently-added books
+    │   ├── login.tsx           #   "/login" public
+    │   ├── signup.tsx          #   "/signup" public
     │   ├── books.detail.tsx    #   "/books/:id"
-    │   ├── books.read.tsx      #   "/books/:id/read" CBZ / PDF / image_dir リーダー (EPUB は内包)
+    │   ├── books.read.tsx      #   "/books/:id/read" CBZ / PDF / image_dir reader (EPUB is embedded)
     │   ├── libraries.detail.tsx
     │   ├── series.detail.tsx
     │   ├── authors.detail.tsx
@@ -69,9 +71,9 @@ client/
     │   ├── settings.libraries.tsx
     │   └── settings.api_tokens.tsx
     ├── components/
-    │   ├── ui/                 # shadcn 生成物 (button, card, dialog, table, …)
+    │   ├── ui/                 # shadcn-generated (button, card, dialog, table, …)
     │   ├── layout/             # AppShell, Header, Sidebar
-    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (進捗バー overlay 付き), BookEditDialog, RecentReadsCarousel
+    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (with progress-bar overlay), BookEditDialog, RecentReadsCarousel
     │   ├── reader/             # EpubReaderView, ReaderScrubber, ReaderHotkeysDialog
     │   ├── taxonomy/           # TaxonomyCard
     │   ├── ProtectedRoute.tsx
@@ -88,7 +90,7 @@ client/
     │   └── useApiTokens.ts     # /api/api_tokens
     ├── stores/
     │   ├── authStore.ts
-    │   └── uiStore.ts          # displayMode / sortOrder は persist
+    │   └── uiStore.ts          # displayMode / sortOrder are persisted
     ├── locales/                # en.json / ja.json (react-i18next)
     ├── lib/
     │   ├── api.ts              # fetch wrapper (credentials: "include")
@@ -99,24 +101,29 @@ client/
 
 ## Memo for Claude Code
 
-- **URL を SSoT に**: ソート / ページ / 検索クエリ / ライブラリビューモード
-  (`?view=series`) は URL に乗せる。reload しても状態が復元されるのはこのおかげ。
-- **永続化する UI state は最小限**: グリッド/リスト切替の `displayMode` と
-  最後に選んだ `sortOrder` を Zustand `persist` で localStorage に保存。他は
-  メモリのみ。
-- **認証は Cookie session が真**: `<SessionBootstrap />` が
-  `GET /api/session` を 1 回叩いて authStore を hydrate する。401 を error 扱い
-  しないことで、起動直後の auth status が `unauthenticated` に確定する。
-- **モバイルファースト**: 基準は 390x844。サイドバーは `md:` 以上で固定、未満は
-  Sheet で覆い被せる。書籍カードは `grid-cols-2 → 8` で順次広がる。
-- **EPUB Reader の foliate-js 連携**: `<foliate-view>` は内部で iframe を
-  shadow DOM 内にホストする。書字方向・テーマ・フォントサイズの override CSS
-  は iframe contentDocument 直下に `<style>` を流し込む。relocate event の
-  `fraction` を debounce 付きで `/api/books/:id/progress` に PATCH すると、
-  表紙の進捗バーやホームのカルーセルが同期する。
-- **Pointer Events**: 進捗スクラバーや左右クリックゾーンはマウス / タッチ
-  両方を Pointer Events で扱う (タッチドラッグ中も hover プレビューが追従)。
-- **shadcn の add 時の落とし穴**: `npx shadcn@latest add …` が
-  `@/components/ui/` を literal なディレクトリとして生成することがある (tsconfig に
-  baseUrl が無いため)。生成後は `mv "@/components/ui/"* src/components/ui/ &&
-  rm -rf "@/"` で本来のパスに移す。
+- **URL as the single source of truth**: sort / page / search query / library
+  view mode (`?view=series`) all live in the URL. That's why state is restored
+  after a reload.
+- **Keep persisted UI state minimal**: only the grid/list `displayMode` and
+  the last-picked `sortOrder` are persisted to localStorage via Zustand
+  `persist`. Everything else is in-memory.
+- **The cookie session is the source of truth for auth**: `<SessionBootstrap />`
+  calls `GET /api/session` once to hydrate `authStore`. By not treating 401 as
+  an error, the boot-time auth status settles deterministically to
+  `unauthenticated`.
+- **Mobile-first**: target baseline is 390x844. The sidebar is fixed at `md:`
+  and above; below that it's a Sheet that overlays the content. Book cards
+  scale up progressively from `grid-cols-2 → 8`.
+- **EPUB Reader / foliate-js integration**: `<foliate-view>` internally hosts
+  an iframe inside a shadow DOM. Writing-direction / theme / font-size
+  override CSS is injected as a `<style>` block directly under the iframe's
+  contentDocument. PATCHing the relocate event's `fraction` (debounced) to
+  `/api/books/:id/progress` keeps the cover progress bar and the home
+  carousel in sync.
+- **Pointer Events**: the progress scrubber and the left/right click zones
+  handle mouse and touch uniformly via Pointer Events (hover preview keeps
+  tracking during touch drags).
+- **shadcn gotcha when adding components**: `npx shadcn@latest add …` sometimes
+  generates a literal `@/components/ui/` directory (because there's no
+  `baseUrl` in tsconfig). After generation, move them back with
+  `mv "@/components/ui/"* src/components/ui/ && rm -rf "@/"`.

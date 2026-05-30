@@ -1,68 +1,70 @@
 # Bookwall
 
-電子書籍管理とWebリーダーを提供するRailsアプリケーション。
+A Rails application that provides e-book management and a web-based reader.
 
-## サブプロジェクト
+[日本語版 README はこちら / Japanese README](./README-ja.md)
 
-| ディレクトリ | 役割 | スタック |
+## Sub-projects
+
+| Directory | Role | Stack |
 |---|---|---|
-| [`server/`](server/) | API + OPDS 配信、SQLite + Active Storage、書籍スキャナ、認証 | Rails 8.1 / Ruby 4.0 / Falcon / Thruster / SQLite (FTS5) / SolidQueue |
-| [`client/`](client/) | `/ui` 配下に乗る SPA。書籍一覧・詳細・検索・お気に入り・設定画面・Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
+| [`server/`](server/) | API + OPDS delivery, SQLite + Active Storage, book scanner, authentication | Rails 8.1 / Ruby 4.0 / Falcon / Thruster / SQLite (FTS5) / SolidQueue |
+| [`client/`](client/) | SPA mounted under `/ui`. Book list / detail / search / favorites / settings / Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
 
-## 主な機能
+## Features
 
-### サポートフォーマット
-- CBZ (ComicInfo.xml 対応)
+### Supported formats
+- CBZ (ComicInfo.xml supported)
 - EPUB
 - PDF
-- 画像ディレクトリ
+- Image directories
 
-### スキャン・メタデータ
-- **EPUB 拡張メタ**: `dc:subject` をタグ、Calibre の `calibre:series` / `calibre:series_index` をシリーズ・巻数として取り込む
-- **シリーズ フォールバック**: メタデータにシリーズが無い書籍は親ディレクトリ名を採用
-- **表紙画像**: フォーマットごとに 1 ページ目を抽出して Active Storageに保存
-- **全文検索**: SQLite FTS5 によるタイトル / シリーズ / 著者の AND 検索
-- **タクソノミー閲覧**: シリーズ・著者・タグ別の一覧 + サムネ表示。ライブラリ詳細はブック / シリーズビューをトグル可能
-- **ソート**: 新着順・登録日順・タイトル順・シリーズ順・著者順 (昇降)
+### Scanning & metadata
+- **EPUB extended metadata**: `dc:subject` is imported as tags, and Calibre's `calibre:series` / `calibre:series_index` as series name and volume number.
+- **Series fallback**: Books without series metadata fall back to the parent directory name.
+- **Cover image**: The first page is extracted per format and stored via Active Storage.
+- **Full-text search**: Title / series / author AND search powered by SQLite FTS5.
+- **Taxonomy browsing**: Index pages for series, authors, and tags with thumbnails. Library detail can toggle between book view and series view.
+- **Sorting**: Newest, registration date, title, series, and author (ascending / descending).
 
 ### Web Reader
-- **CBZ / PDF / 画像ディレクトリ**: ページ画像配信 + クライアント側で表示。見開き / 1 ページ表示、LTR / RTL、4 種類のスケールモード
-- **EPUB**: foliate-js ベース。目次、フォントサイズ、テーマ (light / dark / sepia)、書字方向 (auto 自動判定 / horizontal / vertical) を per-book で保存
-- **読書進捗**: ページ位置 (CBZ) と CFI + fraction (EPUB) を自動保存。表紙の下端に進捗バーをオーバーレイ、ホーム画面の最近読んだ本カルーセル、書籍詳細ページに反映
-- **ホバーで現れるスクラバー**: 下端から引き出して任意ページに直接ジャンプ。CBZ はホバー位置のサムネを、EPUB は対応する章ラベルをプレビュー表示
-- **キーボードナビ + ヒント**: 矢印 / Space / Backspace / Esc に加え、CBZ では `2` で見開きトグル、`Shift + 矢印` で 1 ページだけ送り。`?` でショートカット一覧
-- **クリック領域とホバーフィードバック**: 左右 12% のみクリッカブル (中央の文字選択を妨げない)、ホバーティント付き
+- **CBZ / PDF / image directories**: Pages are streamed from the server and rendered client-side. Supports two-page spread / single page, LTR / RTL, and four scale modes.
+- **EPUB**: Built on foliate-js. Table of contents, font size, theme (light / dark / sepia), and writing direction (auto / horizontal / vertical) are stored per book.
+- **Reading progress**: Page position (CBZ) and CFI + fraction (EPUB) are auto-saved. Progress is reflected as a bar overlaid on the cover, in the "recently read" carousel on the home page, and on the book detail page.
+- **Hover-revealed scrubber**: Pulled up from the bottom edge to jump directly to any page. CBZ shows a thumbnail at the hover position, EPUB shows the corresponding chapter label.
+- **Keyboard navigation + hints**: Arrows / Space / Backspace / Esc, plus `2` to toggle spread on CBZ and `Shift + Arrow` to advance by one page. `?` shows the shortcut list.
+- **Click zones & hover feedback**: Only the left and right 12% are clickable (to avoid blocking text selection in the middle), with hover tint.
 
-### 配信・連携
-- **OPDS / OPDS-PSE**: Atom フィードで他のリーダーアプリに配信
-- **認証**: Cookie セッション (UI 用) と Bearer トークン (OPDS / Reader 用) を併存
-- **モバイル対応**: 390px〜の viewport で動作
+### Delivery & integrations
+- **OPDS / OPDS-PSE**: Delivered as Atom feeds to other reader apps.
+- **Authentication**: Cookie sessions (for UI) and Bearer tokens (for OPDS / Reader) coexist.
+- **Mobile support**: Works on viewports starting from 390px.
 
 ## Development
 
-### 1. システム要件
+### 1. System requirements
 
 - Ruby 4.0.3+
 - Node.js 22+ / npm
-- SQLite 3 (FTS5 が有効なビルド)
+- SQLite 3 (build with FTS5 enabled)
 
-### 2. 依存をインストール
+### 2. Install dependencies
 
 ```sh
 (cd server && bundle install && bin/rails db:setup)
 (cd client && npm install)
 ```
 
-### 3. 開発サーバを一括起動
+### 3. Start the dev servers together
 
 ```sh
 cd server
-bin/dev          # foreman 経由で web (Falcon, :3000) と client (Vite, :5173) を同時起動
+bin/dev          # Starts web (Falcon, :3000) and client (Vite, :5173) together via foreman
 ```
 
 ## Docker image
 
-see. [Dockerfile](./Dockerfile)
+See [Dockerfile](./Dockerfile).
 
 ### Example
 
@@ -78,11 +80,11 @@ docker run -d --name bookwall \
   bookwall
 ```
 
-- Thruster がポート **8237** を listen し、内部の Falcon (`TARGET_PORT=3000`) にプロキシする
-- **`/config` ボリューム**には SQLite データベース (primary / cache / queue / cable) と Active Storage の表紙ファイルを保持する。
-- ライブラリ本体 (CBZ / EPUB / PDF 等) は別ボリュームでマウントし、Bookwall の設定画面でそのパスをライブラリとして登録する
+- Thruster listens on port **8237** and proxies to the internal Falcon (`TARGET_PORT=3000`).
+- The **`/config` volume** holds the SQLite databases (primary / cache / queue / cable) and the Active Storage cover files.
+- Mount your actual library (CBZ / EPUB / PDF, etc.) as a separate volume and register its path as a library from Bookwall's settings screen.
 
-## アーキテクチャ概略
+## Architecture overview
 
 ```
                    ┌──────────────────────────┐
@@ -91,7 +93,7 @@ docker run -d --name bookwall \
                                 │ HTTP/1.1, HTTP/2 (Thruster)
                                 ▼
                    ┌──────────────────────────┐
-                   │  Thruster (port 8237)    │  ← Docker のみ
+                   │  Thruster (port 8237)    │  ← Docker only
                    │  static asset cache      │
                    │  X-Sendfile acceleration │
                    └────────────┬─────────────┘
@@ -129,26 +131,27 @@ docker run -d --name bookwall \
                    └──────────────────────────┘
 ```
 
-その他に `/` → `/ui/` への redirect と、Rails 標準の `/up` ヘルスチェックがルーティングされている。`Scheduled*` ジョブ (ScheduledLibraryScanJob / ScheduledCleanupJob) は `config/recurring.yml` で SolidQueue が毎日起動する。
+In addition, `/` redirects to `/ui/`, and Rails' built-in `/up` health check endpoint is routed. The `Scheduled*` jobs (ScheduledLibraryScanJob / ScheduledCleanupJob) are kicked off daily by SolidQueue per `config/recurring.yml`.
 
-書籍ファイルは `Book.file_path` にライブラリ root からの相対パスで保存し、ランタイムで`library.path + file_path` に解決する。
+Book files are stored in `Book.file_path` as paths relative to the library root, and resolved at runtime as `library.path + file_path`.
 
-## リポジトリ構成
+## Repository layout
 
 ```
 bookwall/
-├── README.md             # ← 本ファイル
+├── README.md             # ← this file
+├── README-ja.md          # Japanese translation
 ├── LICENSE               # MIT
 ├── Dockerfile            # multi-stage (client build → server image)
 ├── .dockerignore
 ├── .gitignore
-├── CLAUDE.md             # プロジェクト要件 (Claude Code 用)
-├── server/               # Rails 8.1 API + OPDS。README は server/README.md
-└── client/               # Vite + React + TS SPA。README は client/README.md
+├── CLAUDE.md             # Project requirements (for Claude Code)
+├── server/               # Rails 8.1 API + OPDS. See server/README.md
+└── client/               # Vite + React + TS SPA. See client/README.md
 ```
 
-`server/spec/fixtures/files/` 配下のテスト用書籍ファイル (CBZ / EPUB / PDF / 画像ディレクトリ) の入手元・ライセンスは[`server/spec/fixtures/files/SOURCES.md`](server/spec/fixtures/files/SOURCES.md)。
+The provenance and licenses of the test book fixtures under `server/spec/fixtures/files/` (CBZ / EPUB / PDF / image directories) are documented in [`server/spec/fixtures/files/SOURCES.md`](server/spec/fixtures/files/SOURCES.md).
 
-## ライセンス
+## License
 
 MIT License.
