@@ -9,7 +9,7 @@ export default function TagsIndexPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
-  const query = useTagsList(page);
+  const query = useTagsList({ page, limit: 100 });
 
   const updatePage = (next: number) => {
     const params = new URLSearchParams(searchParams);
