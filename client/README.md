@@ -1,9 +1,5 @@
 # Bookwall client
 
-Bookwall の Web UI。`/ui` prefix の下に乗る React SPA で、書籍一覧 / 詳細 /
-検索 / お気に入り / タクソノミー (シリーズ / 著者 / タグ) ナビゲーション /
-Web Reader (CBZ / PDF / EPUB) / 設定 (ライブラリ管理 / API トークン管理) を提供する。
-
 ## 技術スタック
 
 - **Vite 8** + **React 19** + **TypeScript** (`verbatimModuleSyntax` 有効)
@@ -13,17 +9,12 @@ Web Reader (CBZ / PDF / EPUB) / 設定 (ライブラリ管理 / API トークン
 - **Zustand** — クライアント状態 (`displayMode`, `sortOrder` を `persist` で localStorage に保存)
 - **react-i18next** — 日英 i18n (`src/locales/{en,ja}.json`)
 - **foliate-js** — EPUB レンダラ (`<foliate-view>` カスタム要素 / iframe + shadow DOM)
+- **PDF.js** — PDF レンダラ
 - **lucide-react** — アイコン
-
-ダークテーマを起点 (`<html class="dark">`) として、shadcn の CSS variables を
-`oklch` で定義している。light テーマを追加するときは `:root` の値を上書きする
-セレクタを足せばよい。
 
 ## 開発
 
-通常は server 側の `bin/dev` を叩けば foreman が Rails (Falcon) と Vite を
-両方起動してくれるので、こちらを直接触る必要はない。詳しくはルートの
-[README](../README.md#3-開発サーバを一括起動) を参照。
+通常は server 側の `bin/dev` を叩けば foreman が Rails (Falcon) と Vite を両方起動してくれるので、こちらを直接触る必要はない。詳しくはルートの[README](../README.md#3-開発サーバを一括起動) を参照。
 
 client だけ単独で動かしたいときは:
 
@@ -31,10 +22,6 @@ client だけ単独で動かしたいときは:
 npm install
 npm run dev          # Vite (http://localhost:5173)
 ```
-
-Vite の dev server は `/api` `/opds` `/rails` `/up` を `http://localhost:3000`
-(`server/`) にプロキシするので、ブラウザでは `http://localhost:5173/ui/` だけを
-開けばよい。Cookie もプロキシ越しに透過する。
 
 ## ビルド
 
@@ -51,9 +38,7 @@ npm run build
 npm run build -- --outDir ../server/public/ui --emptyOutDir
 ```
 
-リポジトリルートの Dockerfile はこのビルドを自動でやり、成果物を
-`/rails/public/ui` にコピーする。詳しくはルートの
-[`README.md`](../README.md#クイックスタート-本番--docker) を参照。
+see. [Dockerfile](../Dockerfile)
 
 ## ディレクトリ構成
 
@@ -112,7 +97,7 @@ client/
     └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, ...
 ```
 
-## 設計メモ
+## Memo for Claude Code
 
 - **URL を SSoT に**: ソート / ページ / 検索クエリ / ライブラリビューモード
   (`?view=series`) は URL に乗せる。reload しても状態が復元されるのはこのおかげ。

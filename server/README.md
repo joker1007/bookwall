@@ -1,21 +1,7 @@
 # Bookwall server
 
-Rails 8.1 / Falcon ベースの電子書籍管理 API サーバー。CBZ / EPUB / PDF /
-画像ディレクトリを再帰的にスキャンし、メタデータ・タグ・お気に入りを管理しつつ、
-OPDS / OPDS-PSE フィードと REST API でクライアント (`../client`) や任意の OPDS
-リーダーに配信する。
 
-リポジトリ全体の俯瞰、開発時の起動手順、Docker での本番デプロイは
-[../README.md](../README.md) を参照。本ファイルは Rails アプリ単体の細部を扱う。
-
-## システム要件
-
-- Ruby 4.0.3 (`.ruby-version`)
-- SQLite 3 (FTS5 が有効なビルド)
-- libvips (cover variant 生成に必要)
-- poppler-utils の `pdftocairo` (PDF 1 ページ目のラスタライズに使用)
-
-## セットアップ
+## Setup
 
 ```sh
 bundle install
@@ -34,10 +20,6 @@ bin/dev  # foreman 経由で web (Falcon, :3000) と client (Vite, :5173) を同
          # foreman は初回実行時に自動で gem install される
 ```
 
-`Procfile.dev` には `web` (Falcon) と `client` (`cd ../client && npm run dev`) の
-2 プロセスが定義されており、開発中は `../client` の Vite dev server も合わせて
-立ち上がる。ブラウザは `http://localhost:5173/ui/` を開く (`/api` `/opds` `/rails`
-`/up` は Vite が proxy する)。
 
 Rails だけ単独で動かしたいときは:
 
@@ -45,12 +27,6 @@ Rails だけ単独で動かしたいときは:
 bundle exec falcon serve --bind http://0.0.0.0:3000
 ```
 
-Docker イメージでは Thruster (HTTP/2 + asset caching + X-Sendfile) を前段に
-噛ませて Falcon を子プロセスとして起動する (`./bin/thrust bundle exec falcon
-serve --bind http://0.0.0.0:3000`)。Thruster はホストポート 8237 を listen し、
-内部で Falcon の 3000 (`TARGET_PORT`) にプロキシする。SQLite データベースと
-Active Storage 添付ファイルは `BOOKWALL_DATA_DIR` (Docker では `/config`) 配下に
-集約されるので、本番運用ではこのディレクトリだけを volume に出せばよい。
 
 非同期ジョブ (production):
 
@@ -58,7 +34,7 @@ Active Storage 添付ファイルは `BOOKWALL_DATA_DIR` (Docker では `/config
 bin/jobs  # SolidQueue ワーカー
 ```
 
-## テスト / lint / セキュリティ
+## Test / lint
 
 ```sh
 bundle exec rspec          # RSpec
@@ -107,10 +83,7 @@ OPDS は Bearer トークン (`Authorization: Bearer …`) と HTTP Basic の両
 
 ## client (React SPA) の同梱
 
-本番 image では `client/` を `npm run build` した成果物が `public/ui/` に置かれる
-ため、Rails は `/ui/*` 配下のリクエストすべてに対して `index.html` を返す
-(`SpaController`)。Thruster (Dockerfile の前段) が `public/ui/assets/*` の
-JS/CSS を直接配信する。
+本番 image では `client/` を `npm run build` した成果物が `public/ui/` に置かれるため、Rails は `/ui/*` 配下のリクエストすべてに対して `index.html` を返す(`SpaController`)。Thruster (Dockerfile の前段) が `public/ui/assets/*` のJS/CSS を直接配信する。
 
 開発時に手動で確認したい場合:
 
@@ -122,10 +95,6 @@ bundle exec falcon serve --bind http://0.0.0.0:3000
 # → http://localhost:3000/ で SPA が立ち上がる
 ```
 
-`public/ui/` は `.gitignore` で管理外 (ビルド成果物のため)。
-
 ## 既知の注意点
 
 - `db/structure.sql` は SQLite FTS5 の shadow table (`books_fts_*`) を含むが、`db:test:prepare` での parse 警告は SQLite が自動再生成するため動作上の問題はない。
-- development では `config.active_job.queue_adapter` がデフォルト (`:async`)。SolidQueue を試す場合は `Procfile.dev` の `jobs` 行を有効にして `solid_queue:install` の migrate を適用する。
-- `rails s` (引数なし) は development の binding が `localhost` で、`/etc/hosts` で `localhost` が `::1` だけに解決されかつ IPv6 が無効な環境では `Errno::EADDRNOTAVAIL` で落ちる。`bin/dev` か `bundle exec falcon serve --bind http://0.0.0.0:3000` を使うか、`BINDING=127.0.0.1 bin/rails s` を渡す。
