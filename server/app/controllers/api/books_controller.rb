@@ -2,7 +2,7 @@
 
 module Api
   class BooksController < BaseController
-    before_action :set_book, only: %i[show update destroy favorite unfavorite file]
+    before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series]
     before_action :require_book_owner!, only: %i[update destroy]
 
     def index
@@ -31,6 +31,16 @@ module Api
 
     def show
       render json: serialize_book(@book)
+    end
+
+    # GET /api/books/:id/next_in_series
+    # Returns the next book in the same series (within the user's accessible
+    # scope), or 204 when this is the last volume / has no series. The reader
+    # uses this to roll over to the next book when the last page is reached.
+    def next_in_series
+      next_book = @book.next_in_series(accessible_books)
+      return head :no_content unless next_book
+      render json: serialize_book(next_book)
     end
 
     def update

@@ -55,6 +55,40 @@ RSpec.describe Book, type: :model do
     end
   end
 
+  describe "#next_in_series" do
+    let(:library) { create(:library) }
+    let(:series) { create(:series, library: library) }
+
+    it "returns the next book ordered by volume" do
+      vol1 = create(:book, library: library, series: series, volume: 1)
+      vol2 = create(:book, library: library, series: series, volume: 2)
+      create(:book, library: library, series: series, volume: 3)
+
+      expect(vol1.next_in_series).to eq(vol2)
+    end
+
+    it "returns nil for the last volume" do
+      create(:book, library: library, series: series, volume: 1)
+      vol2 = create(:book, library: library, series: series, volume: 2)
+
+      expect(vol2.next_in_series).to be_nil
+    end
+
+    it "returns nil when the book has no series" do
+      book = create(:book, library: library, series: nil)
+
+      expect(book.next_in_series).to be_nil
+    end
+
+    it "respects the given scope" do
+      vol1 = create(:book, library: library, series: series, volume: 1)
+      vol2 = create(:book, library: library, series: series, volume: 2)
+
+      # A scope that excludes vol2 leaves no next book reachable.
+      expect(vol1.next_in_series(Book.where.not(id: vol2.id))).to be_nil
+    end
+  end
+
   describe "FTS sync via job" do
     include ActiveJob::TestHelper
 

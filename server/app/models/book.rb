@@ -53,6 +53,19 @@ class Book < ApplicationRecord
     self.tags = Tag.upsert_by_name(names)
   end
 
+  # The next book in the same series, following the same ordering the UI
+  # uses for series listings (volume ascending, id as a stable tiebreaker).
+  # `scope` constrains visibility (e.g. accessible_books). Returns nil when
+  # the book has no series or is already the last volume in scope.
+  def next_in_series(scope = self.class.all)
+    return nil unless series_id
+    ordered_ids = scope.where(series_id: series_id).order(:volume, :id).pluck(:id)
+    position = ordered_ids.index(id)
+    return nil if position.nil?
+    next_id = ordered_ids[position + 1]
+    next_id && scope.find_by(id: next_id)
+  end
+
   before_save :ensure_added_at
   # FTS sync runs out-of-band so the writing transaction (API update etc.)
   # doesn't hold the SQLite writer lock while FTS5 internals rewrite

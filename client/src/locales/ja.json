@@ -200,7 +200,8 @@
       "download": "ダウンロード",
       "edit": "編集",
       "deleteMeta": "メタデータを削除",
-      "deleteConfirm": "「{{title}}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?"
+      "deleteConfirm": "「{{title}}」の Bookwall 上のメタを削除します。元ファイルは削除されません。よろしいですか?",
+      "seriesBooksHeading": "{{series}} の一覧"
     },
     "formats": {
       "cbz": "CBZ",

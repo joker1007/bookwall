@@ -31,6 +31,7 @@ import {
   ReaderSpreadField,
 } from "@/components/reader/ReaderSettingsFields";
 import { TocList } from "@/components/reader/TocList";
+import { useNextSeriesBook } from "@/hooks/useBooks";
 import { useFullscreen } from "@/hooks/useFullscreen";
 import { useReaderKeyboard } from "@/hooks/useReaderKeyboard";
 import {
@@ -160,6 +161,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
   const preferences = useUserPreferences();
   const updatePreferences = useUpdateUserPreferences();
   const resolved = useResolvedReaderSettings(book.id);
+  const nextBook = useNextSeriesBook(book);
 
   const [page, setPage] = useState(0);
   const [spread, setSpread] = useState(false);
@@ -292,9 +294,16 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     navigateRef.current = goToPageIndex;
   }, [goToPageIndex]);
 
+  // At the last page, advancing rolls over to the next book in the series
+  // (when one exists) instead of staying put.
   const goNext = useCallback(() => {
+    if (page >= lastPage) {
+      const next = nextBook.data;
+      if (next) navigate(`/books/${next.id}/read`);
+      return;
+    }
     setPage((p) => Math.min(p + step, lastPage));
-  }, [step, lastPage]);
+  }, [page, step, lastPage, nextBook.data, navigate]);
   const goPrev = useCallback(() => {
     setPage((p) => Math.max(p - step, 0));
   }, [step]);

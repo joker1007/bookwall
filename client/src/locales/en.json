@@ -200,7 +200,8 @@
       "download": "Download",
       "edit": "Edit",
       "deleteMeta": "Delete metadata",
-      "deleteConfirm": "Delete Bookwall metadata for \"{{title}}\"? The original file will not be removed. Continue?"
+      "deleteConfirm": "Delete Bookwall metadata for \"{{title}}\"? The original file will not be removed. Continue?",
+      "seriesBooksHeading": "Books in {{series}}"
     },
     "formats": {
       "cbz": "CBZ",

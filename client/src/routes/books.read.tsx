@@ -27,7 +27,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { useBook } from "@/hooks/useBooks";
+import { useBook, useNextSeriesBook } from "@/hooks/useBooks";
 import { useUpdateReadingProgress } from "@/hooks/useReadingProgress";
 import { useResolvedReaderSettings } from "@/hooks/useResolvedReaderSettings";
 import {
@@ -41,7 +41,15 @@ import {
 } from "@/types/api";
 import type { ReaderScale, ReaderSettings } from "@/types/api";
 
+// Keyed on the route param so navigating from one book's reader straight to
+// the next (series roll-over) fully remounts the reader, resetting page /
+// initialized / settings state instead of carrying the previous book's.
 export default function ReaderPage() {
+  const { id } = useParams();
+  return <ReaderPageInner key={id} />;
+}
+
+function ReaderPageInner() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -57,6 +65,7 @@ export default function ReaderPage() {
     }
   }, [navType, navigate, id]);
   const book = useBook(id);
+  const nextBook = useNextSeriesBook(book.data);
   const resolved = useResolvedReaderSettings(id);
   const update = useUpdateReadingProgress(id ?? "");
   const preferences = useUserPreferences();
@@ -91,9 +100,16 @@ export default function ReaderPage() {
   const step = spread ? 2 : 1;
   const lastPage = Math.max(0, total - 1);
 
+  // At the last page, advancing rolls over to the next book in the series
+  // (when one exists) instead of staying put.
   const goNext = useCallback(() => {
+    if (page >= lastPage) {
+      const next = nextBook.data;
+      if (next) navigate(`/books/${next.id}/read`);
+      return;
+    }
     setPage((p) => Math.min(p + step, lastPage));
-  }, [step, lastPage]);
+  }, [page, step, lastPage, nextBook.data, navigate]);
 
   const goPrev = useCallback(() => {
     setPage((p) => Math.max(p - step, 0));

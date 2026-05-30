@@ -2,14 +2,21 @@ import { useCallback, useState } from "react";
 import { Link, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Download, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
-import { useBook, useFavoriteBook } from "@/hooks/useBooks";
+import { useBook, useBookList, useFavoriteBook } from "@/hooks/useBooks";
 import { useDeleteBook } from "@/hooks/useBookMutation";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookCover } from "@/components/books/BookCover";
+import { BookCard } from "@/components/books/BookCard";
 import { BookEditDialog } from "@/components/books/BookEditDialog";
+import { Pagination } from "@/components/common/Pagination";
+import type { Book } from "@/types/api";
+
+// Books from the same series are paginated 50 per page; series with more
+// volumes than that are rare but the grid stays bounded regardless.
+const SERIES_BOOKS_PER_PAGE = 50;
 
 export default function BookDetailPage() {
   const { t } = useTranslation();
@@ -200,7 +207,73 @@ export default function BookDetailPage() {
         </div>
       </div>
 
+      {book.series_id != null ? (
+        <SeriesBooks book={book} />
+      ) : null}
+
       <BookEditDialog book={book} open={editOpen} onOpenChange={setEditOpen} />
+    </section>
+  );
+}
+
+// Grid of every book in the current book's series, ordered by volume and
+// paginated. The book being viewed is highlighted so the reader keeps
+// their place within the series at a glance.
+function SeriesBooks({ book }: { book: Book }) {
+  const { t } = useTranslation();
+  const [page, setPage] = useState(1);
+  const query = useBookList({
+    series_id: book.series_id ?? undefined,
+    sort: "series_asc",
+    limit: SERIES_BOOKS_PER_PAGE,
+    page,
+  });
+
+  // Don't render a section that would only contain the book itself.
+  if (query.data && query.data.pagination.count <= 1) return null;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold tracking-tight">
+        {t("books.detail.seriesBooksHeading", { series: book.series_name })}
+      </h2>
+      {query.isPending ? (
+        <div
+          className="grid gap-3"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+          ))}
+        </div>
+      ) : query.isError || !query.data ? (
+        <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
+      ) : (
+        <>
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}
+          >
+            {query.data.books.map((b) => (
+              <div
+                key={b.id}
+                className={
+                  b.id === book.id
+                    ? "rounded-lg ring-2 ring-primary"
+                    : undefined
+                }
+              >
+                <BookCard book={b} />
+              </div>
+            ))}
+          </div>
+          <Pagination
+            page={query.data.pagination.page}
+            pages={query.data.pagination.pages}
+            onPageChange={setPage}
+          />
+        </>
+      )}
     </section>
   );
 }

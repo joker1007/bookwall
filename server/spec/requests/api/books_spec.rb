@@ -310,4 +310,52 @@ RSpec.describe "Api::Books", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+
+  describe "GET /api/books/:id/next_in_series" do
+    let(:series) { create(:series, library: library) }
+
+    it_behaves_like "requires authentication", :get, "/api/books/1/next_in_series"
+
+    it "returns the next book in the series by volume" do
+      sign_in!
+      vol1 = create(:book, library: library, series: series, volume: 1)
+      vol2 = create(:book, library: library, series: series, volume: 2)
+
+      get "/api/books/#{vol1.id}/next_in_series"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["id"]).to eq(vol2.id)
+    end
+
+    it "returns 204 when this is the last volume" do
+      sign_in!
+      create(:book, library: library, series: series, volume: 1)
+      vol2 = create(:book, library: library, series: series, volume: 2)
+
+      get "/api/books/#{vol2.id}/next_in_series"
+
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "returns 204 when the book has no series" do
+      sign_in!
+      book = create(:book, library: library, series: nil)
+
+      get "/api/books/#{book.id}/next_in_series"
+
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "does not cross into another user's library" do
+      sign_in!
+      other_library = create(:library)
+      other_series = create(:series, library: other_library)
+      book = create(:book, library: other_library, series: other_series, volume: 1)
+      create(:book, library: other_library, series: other_series, volume: 2)
+
+      get "/api/books/#{book.id}/next_in_series"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end
