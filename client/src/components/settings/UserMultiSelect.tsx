@@ -13,7 +13,6 @@ import { useUsers } from "@/hooks/useUsers";
 interface UserMultiSelectProps {
   value: number[];
   onChange: (ids: number[]) => void;
-  // The owner is implicitly allowed and must not appear as a share option.
   excludeUserId?: number;
 }
 
@@ -33,8 +32,7 @@ export function UserMultiSelect({ value, onChange, excludeUserId }: UserMultiSel
 
   return (
     <div className="grid gap-2">
-      {/* Remount on every change so the trigger resets to the placeholder
-          and behaves as an "add" picker rather than a single-select. */}
+      {/* key forces remount so the trigger resets to placeholder (acts as an "add" picker). */}
       <Select key={value.join(",")} onValueChange={add} disabled={selectable.length === 0}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder={t("settings.libraries.dialog.sharePlaceholder")} />

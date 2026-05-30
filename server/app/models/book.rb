@@ -31,20 +31,13 @@ class Book < ApplicationRecord
   validates :file_format, presence: true
   validates :file_size, numericality: {greater_than_or_equal_to: 0}
 
-  # Books reachable by the user: those in a library they own or are shared.
   scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
 
-  # The on-disk path resolved against the owning library's root. Stored
-  # `file_path` is relative (so libraries can be remounted) and consumers
-  # who need to actually open the file go through this method.
   def absolute_path
     return file_path if library.nil?
     File.expand_path(File.join(library.path, file_path))
   end
 
-  # Replace this book's authors/tags from a list of names, creating any new
-  # Author/Tag rows on the way. Blank/duplicate names are normalized away; an
-  # empty list clears the association.
   def replace_authors(names)
     self.authors = Author.upsert_by_name(names)
   end
@@ -53,10 +46,6 @@ class Book < ApplicationRecord
     self.tags = Tag.upsert_by_name(names)
   end
 
-  # The next book in the same series, following the same ordering the UI
-  # uses for series listings (volume ascending, id as a stable tiebreaker).
-  # `scope` constrains visibility (e.g. accessible_books). Returns nil when
-  # the book has no series or is already the last volume in scope.
   def next_in_series(scope = self.class.all)
     return nil unless series_id
     ordered_ids = scope.where(series_id: series_id).order(:volume, :id).pluck(:id)
@@ -67,11 +56,8 @@ class Book < ApplicationRecord
   end
 
   before_save :ensure_added_at
-  # FTS sync runs out-of-band so the writing transaction (API update etc.)
-  # doesn't hold the SQLite writer lock while FTS5 internals rewrite
-  # books_fts_data / books_fts_idx / ... The library scanner sets the
-  # `:bookwall_skip_fts_callback` thread-local to suppress these per-row
-  # callbacks and enqueues one bulk job at the end of the scan instead.
+  # Sync FTS out-of-band to avoid holding the SQLite writer lock during FTS5 rewrites;
+  # the scanner sets :bookwall_skip_fts_callback and bulk-enqueues once at the end.
   after_commit :enqueue_fts_sync, on: %i[create update], unless: :fts_callback_skipped?
   after_commit :enqueue_fts_delete, on: :destroy, unless: :fts_callback_skipped?
 

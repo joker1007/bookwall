@@ -5,18 +5,12 @@ require "brotli"
 require "zstd-ruby"
 
 module Opds
-  # Negotiates a Content-Encoding for OPDS feed bodies based on the request's
-  # Accept-Encoding header. Only the text feeds use this; page images and
-  # downloads (CBZ/EPUB/PDF) are already compressed.
   module Compression
-    # Server preference, best first. Used to break ties when the client gives
-    # equal q-values to multiple codecs.
+    # Server preference order, used to break ties on equal client q-values.
     CODECS = %w[zstd br gzip deflate].freeze
 
     module_function
 
-    # Returns [content_encoding, body]. content_encoding is nil when nothing
-    # acceptable was offered, in which case body is the original data.
     def encode(data, accept_encoding)
       encoding = negotiate(accept_encoding)
       return [nil, data] unless encoding
@@ -45,15 +39,13 @@ module Opds
     def compress(data, encoding)
       case encoding
       when "gzip" then Zlib.gzip(data)
-      # Zlib-wrapped deflate (RFC 1950), the form HTTP clients expect for the
-      # "deflate" content coding.
+      # zlib-wrapped (RFC 1950): the form HTTP clients expect for "deflate".
       when "deflate" then Zlib::Deflate.deflate(data)
       when "br" then Brotli.deflate(data)
       when "zstd" then Zstd.compress(data)
       end
     end
 
-    # Parses "gzip, br;q=0.5, *;q=0" into {"gzip" => 1.0, "br" => 0.5, "*" => 0.0}.
     def parse(header)
       header.split(",").each_with_object({}) do |part, acc|
         token, *params = part.strip.split(";")
@@ -75,8 +67,6 @@ module Opds
       1.0
     end
 
-    # Maps codec aliases to the identifiers used in CODECS, dropping ones we
-    # do not support so they never win negotiation.
     def canonical(token)
       case token
       when "gzip", "x-gzip" then "gzip"

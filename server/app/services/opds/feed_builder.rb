@@ -5,8 +5,7 @@ module Opds
     ATOM_NS = "http://www.w3.org/2005/Atom".freeze
     OPDS_NS = "http://opds-spec.org/2010/catalog".freeze
     PSE_NS = "http://vaemendis.net/opds-pse/ns".freeze
-    # Atom Threading Extensions (RFC 4685): supplies thr:count, the per-facet
-    # result count OPDS clients show next to each filter option.
+    # Atom Threading (RFC 4685): supplies thr:count, the per-facet result count.
     THREAD_NS = "http://purl.org/syndication/thread/1.0".freeze
 
     ACQUISITION_REL = "http://opds-spec.org/acquisition".freeze
@@ -15,16 +14,12 @@ module Opds
     PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream".freeze
     FACET_REL = "http://opds-spec.org/facet".freeze
 
-    # OPDS-PSE clients (Chunky, Panels, KyBook, ...) substitute the literal
-    # "{pageNumber}" token in the link href with a real page number. Rails
-    # path helpers percent-encode `{` / `}` so we route the helper through a
-    # URL-safe sentinel and swap it back to preserve the literal token.
+    # Rails path helpers percent-encode `{`/`}`, so route through a URL-safe
+    # sentinel and swap it back to keep the literal "{pageNumber}" PSE token.
     PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER".freeze
     PSE_TEMPLATE_TOKEN = "{pageNumber}".freeze
 
-    # OPDS-PSE streams image pages, so EPUB (reflowable XHTML/HTML) is not a
-    # valid PSE source. EPUBs are still discoverable via the regular OPDS
-    # acquisition link and downloaded whole by the reader.
+    # PSE streams image pages, so reflowable EPUB is not a valid PSE source.
     PSE_STREAMABLE_FORMATS = %w[cbz pdf image_dir].freeze
 
     def self.navigation(title:, id:, self_url:, entries:)
@@ -62,10 +57,7 @@ module Opds
             xml.updated book.updated_at.iso8601
             book.authors.each { |a| xml.author { xml.name a.name } }
             xml["dc"].language(book_language(book)) if book_language(book)
-            # Spec-correct format identification is the acquisition link's
-            # @type attribute, but some OPDS clients additionally inspect
-            # dc:format and atom:content. Emitting both keeps EPUB recognition
-            # working when other metadata (authors / series / pages) is sparse.
+            # Some OPDS clients inspect dc:format/atom:content for format, not just the link @type.
             xml["dc"].format_(download_mime(book))
             book.tags.each { |t| xml.category(term: t.name) }
             content_text = entry_content(book)
@@ -120,9 +112,7 @@ module Opds
       PSE_STREAMABLE_FORMATS.include?(book.file_format.to_s)
     end
 
-    # image_dir books are exposed to OPDS clients as CBZ: the acquisition
-    # link points at /file.cbz, the controller builds the archive on the fly
-    # from the directory of images, and the response is discarded after send.
+    # image_dir books are exposed as CBZ; the controller builds the archive on the fly.
     def self.acquisition_format(book)
       case book.file_format.to_s
       when "image_dir" then "cbz"
@@ -135,9 +125,7 @@ module Opds
              .sub(PSE_TEMPLATE_SENTINEL, PSE_TEMPLATE_TOKEN)
     end
 
-    # Builds the OPDS-PSE stream link attributes. The {pageNumber} stream is
-    # 0-based, but pse:lastRead is 1-based per the spec, so we map the stored
-    # 0-based current_page to current_page + 1 (clamped to the page count).
+    # pse:lastRead is 1-based per spec while current_page is 0-based, hence +1 (clamped).
     def self.pse_link_attrs(book, helpers, progress)
       attrs = {
         rel: PSE_STREAM_REL,
@@ -159,8 +147,7 @@ module Opds
     end
 
     def self.book_language(book)
-      # Language extraction from EPUB metadata is best-effort; books table
-      # does not yet have a language column, so this is a placeholder.
+      # Placeholder: no language column on books yet.
       nil
     end
 
@@ -168,9 +155,7 @@ module Opds
       Books::FileFormat.mime(book.file_format)
     end
 
-    # Human-readable summary string embedded in <atom:content>. Format label
-    # comes first so clients that scan the body for "EPUB" / "CBZ" / "PDF" can
-    # latch onto it even when title/authors are minimal.
+    # Format label first so clients scanning the body for "EPUB"/"CBZ"/"PDF" still match.
     def self.entry_content(book)
       parts = []
       parts << format_label(book)

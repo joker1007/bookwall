@@ -1,27 +1,21 @@
 import { useEffect } from "react";
 
 interface ReaderKeyboardOptions {
-  // RTL flips ArrowLeft/Right so an arrow always advances in the reading
-  // direction. Space / Backspace stay direction-agnostic by convention.
+  // RTL flips ArrowLeft/Right; Space/Backspace stay direction-agnostic.
   direction: "ltr" | "rtl";
-  // Suspended while a settings / TOC / hotkeys overlay is open so the
-  // overlay's focus trap can use arrows without paging. "?" still works.
+  // Suspended while an overlay is open so its focus trap can use arrows.
   paused: boolean;
   onNext: () => void;
   onPrev: () => void;
   onToggleHotkeys: () => void;
   onToggleFullscreen: () => void;
   onEscape: () => void;
-  // CBZ/PDF only: Shift+Arrow advances by a single page to re-pair an
-  // offset spread, and "2" toggles spread mode.
+  // Shift+Arrow advances a single page to re-pair an offset spread.
   onNextSingle?: () => void;
   onPrevSingle?: () => void;
   onToggleSpread?: () => void;
 }
 
-// Shared keyboard navigation for the page-image (CBZ/PDF) and EPUB readers.
-// Both bind the same set of shortcuts; the optional callbacks cover the
-// page-image reader's extras.
 export function useReaderKeyboard({
   direction,
   paused,
@@ -39,7 +33,7 @@ export function useReaderKeyboard({
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
 
-      // "?" toggles the cheat sheet from anywhere — never gated by an overlay.
+      // "?" works from anywhere, never gated by an overlay.
       if (e.key === "?") {
         e.preventDefault();
         onToggleHotkeys();

@@ -14,18 +14,13 @@ import { BookEditDialog } from "@/components/books/BookEditDialog";
 import { Pagination } from "@/components/common/Pagination";
 import type { Book } from "@/types/api";
 
-// Books from the same series are paginated 50 per page; series with more
-// volumes than that are rare but the grid stays bounded regardless.
 const SERIES_BOOKS_PER_PAGE = 50;
 
 export default function BookDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  // Pop back to whichever list / search page brought the user here.
-  // navigate(-1) alone would also unwind through any reader push, which
-  // is why the reader's own back uses goBack — but a deep-link entry
-  // still needs a sensible fallback (home).
+  // Deep-link entries (no PUSH/REPLACE history) need a home fallback.
   const navType = useNavigationType();
   const goBack = useCallback(() => {
     if (navType === "PUSH" || navType === "REPLACE") {
@@ -181,7 +176,7 @@ export default function BookDetailPage() {
               />
               {isFavorited ? t("books.detail.favorited") : t("books.detail.favorite")}
             </Button>
-            {/* image_dir books aren't a single file, so /file 404s — hide it. */}
+            {/* image_dir books aren't a single file, so /file 404s. */}
             {book.file_format !== "image_dir" ? (
               <Button variant="outline" asChild className="gap-2">
                 <a href={`/api/books/${book.id}/file`} download>
@@ -216,9 +211,6 @@ export default function BookDetailPage() {
   );
 }
 
-// Grid of every book in the current book's series, ordered by volume and
-// paginated. The book being viewed is highlighted so the reader keeps
-// their place within the series at a glance.
 function SeriesBooks({ book }: { book: Book }) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
@@ -229,7 +221,6 @@ function SeriesBooks({ book }: { book: Book }) {
     page,
   });
 
-  // Don't render a section that would only contain the book itself.
   if (query.data && query.data.pagination.count <= 1) return null;
 
   return (

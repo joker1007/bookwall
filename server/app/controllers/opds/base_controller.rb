@@ -46,10 +46,6 @@ module Opds
 
     def render_compressed_xml(xml, content_type)
       response.set_header("Vary", "Accept-Encoding")
-      # The feed body is its own validator: a weak ETag over the rendered XML.
-      # When the client already holds the current revision we return 304 and
-      # skip compression entirely, since the body we would have encoded is the
-      # one thing a 304 omits.
       return unless stale?(etag: xml)
 
       encoding, body = Opds::Compression.encode(xml, request.get_header("HTTP_ACCEPT_ENCODING"))

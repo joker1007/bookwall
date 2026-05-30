@@ -42,8 +42,7 @@ export function BookCard({ book, selectable, selected, onToggleSelect }: BookCar
       </div>
       <div className="flex flex-col gap-0.5">
         <h3 className="line-clamp-2 text-sm font-medium leading-tight">
-          {/* Stretched link: the ::after pseudo-element covers the whole
-              article so clicking anywhere outside BookActions navigates. */}
+          {/* Stretched link: ::after covers the article so clicks outside BookActions navigate. */}
           <Link
             to={`/books/${book.id}`}
             className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
@@ -64,8 +63,6 @@ export function BookCard({ book, selectable, selected, onToggleSelect }: BookCar
         ) : null}
       </div>
       {selectable ? (
-        // Selection mode: a card-wide button toggles selection (and sits above
-        // the stretched title link) instead of navigating.
         <button
           type="button"
           aria-label={book.title}

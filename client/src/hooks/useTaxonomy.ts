@@ -95,8 +95,6 @@ export function useDeleteSeries() {
     mutationFn: (id: number | string) =>
       api(`/api/series/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      // Series listings + the books that lived under the deleted series all
-      // change at once, so invalidate broadly.
       queryClient.invalidateQueries({ queryKey: ["series"] });
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },

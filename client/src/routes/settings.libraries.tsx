@@ -69,8 +69,7 @@ export default function LibrariesSettings() {
   const list = useLibraries();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Library | null>(null);
-  // Lifted here because the row unmounts as soon as the deleted library drops
-  // out of the refetched list, which would take a row-local dialog with it.
+  // Lifted out of the row, which unmounts when the deleted library leaves the list.
   const [deletedName, setDeletedName] = useState<string | null>(null);
 
   const openCreate = () => {

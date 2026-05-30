@@ -1,6 +1,3 @@
-// Shared, recursive table-of-contents list used by both the EPUB and PDF
-// readers. Generic over the node type so each reader keeps its own payload
-// (an EPUB href, a PDF page index) and gets the whole node back on select.
 export interface TocEntry {
   label: string;
   subitems?: TocEntry[];
@@ -10,8 +7,6 @@ interface TocListProps<T extends TocEntry> {
   items: T[];
   onSelect: (item: T) => void;
   depth?: number;
-  // Optional per-node disable (e.g. a PDF bookmark whose destination
-  // couldn't be resolved to a page).
   disabled?: (item: T) => boolean;
 }
 

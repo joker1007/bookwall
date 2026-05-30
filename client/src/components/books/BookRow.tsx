@@ -41,8 +41,7 @@ export function BookRow({ book, selectable, selected, onToggleSelect }: BookRowP
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <h3 className="line-clamp-2 text-sm font-medium leading-tight">
-          {/* Stretched link: ::after covers the whole article so the row is
-              clickable, while BookActions stays on top via z-10. */}
+          {/* Stretched link: ::after covers the article; BookActions stays atop via z-10. */}
           <Link
             to={`/books/${book.id}`}
             className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"

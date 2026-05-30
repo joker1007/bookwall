@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-# Shared Alba attribute macros for the taxonomy serializers (Author, Tag,
-# Series). Index endpoints batch-preload per-record counts and first books
-# into params so we don't fire one query per row; each macro falls back to
-# the record's own association for single-record (#show) responses.
 module TaxonomyAttributes
   extend ActiveSupport::Concern
 

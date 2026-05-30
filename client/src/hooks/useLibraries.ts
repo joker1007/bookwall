@@ -66,8 +66,6 @@ export function useScanLibrary() {
     mutationFn: (id: number) =>
       api(`/api/libraries/${id}/scans`, { method: "POST" }),
     onSuccess: (_, id) => {
-      // Surface the new "running" log in the UI as soon as the worker
-      // creates it instead of waiting for the next poll cycle.
       queryClient.invalidateQueries({ queryKey: ["library_scans", id] });
     },
   });
@@ -77,9 +75,6 @@ interface LibraryScansResponse {
   scans: ScanLog[];
 }
 
-// Polls /api/libraries/:id/scans every 2 seconds while a scan is
-// running and falls back to a slow (60s) refresh once it's done, so
-// the UI shows live progress without hammering the server.
 export function useLibraryScans(id: number | undefined) {
   return useQuery<LibraryScansResponse>({
     queryKey: ["library_scans", id],

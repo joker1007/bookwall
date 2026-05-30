@@ -7,8 +7,6 @@ interface BookCoverProps {
   book: Book;
   size?: "thumb" | "full";
   className?: string;
-  // Hide the reading-progress bar overlay. Useful when a separate UI
-  // already conveys progress more prominently.
   hideProgress?: boolean;
 }
 
@@ -60,9 +58,7 @@ export function BookCover({
   );
 }
 
-// Show the bar when we have a numeric fraction and the user has made
-// genuine progress without finishing — both 0% and 100% would just be
-// noise on the cover.
+// Hide the bar at 0% and 100% — both would just be noise on the cover.
 function renderableProgress(book: Book): number | null {
   const fraction = book.reading_progress?.fraction;
   if (typeof fraction !== "number") return null;

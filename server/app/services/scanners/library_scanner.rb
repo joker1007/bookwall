@@ -6,13 +6,10 @@ module Scanners
   class LibraryScanner
     include SqliteRetryable
 
-    # One worker per CPU core, with a floor of 2 so single-core hosts
-    # still get parser + hash overlap. Override with BOOKWALL_SCAN_POOL_SIZE.
+    # Floor of 2 so single-core hosts still overlap parse + hash.
     DEFAULT_POOL_SIZE = ENV.fetch("BOOKWALL_SCAN_POOL_SIZE") { [Etc.nprocessors, 2].max }.to_i
 
-    # Flush in-flight progress to the cache every N books so the UI endpoint
-    # has fresh data without hammering Solid Cache (which is an SQLite write of
-    # its own under the hood).
+    # Each flush is a Solid Cache write (SQLite), so batch rather than flush per book.
     PROGRESS_FLUSH_EVERY = 10
     PROGRESS_CACHE_TTL = 1.hour
 
@@ -24,9 +21,7 @@ module Scanners
     end
 
     def call
-      # Suppress Book#after_commit's per-row FTS enqueue during the scan;
-      # we collect the touched ids and enqueue a single bulk job at the
-      # end so SQLite's writer lock is exercised once, not N times.
+      # Suppress Book#after_commit's per-row FTS enqueue; replaced by one bulk job at the end.
       previous_skip = Thread.current[:bookwall_skip_fts_callback]
       Thread.current[:bookwall_skip_fts_callback] = true
 
@@ -34,10 +29,6 @@ module Scanners
       jobs = Scanners::LibraryDiscovery.new(library.path).call.freeze
       diff = Scanners::LibraryDiff.new(library).call(jobs)
 
-      # Surface totals to the UI as soon as we know them so the
-      # progress indicator can show "X / Y" while parse_and_apply
-      # runs. found_count is also useful even if there's nothing to
-      # add or update.
       log.update_columns(
         found_count: jobs.size,
         added_count: diff[:add].size,
@@ -45,15 +36,10 @@ module Scanners
         removed_count: 0
       )
 
-      # The scan no longer prunes books whose files have disappeared. That
-      # work belongs to a dedicated cleanup job (to be added) so the scan
-      # only does add / update writes and keeps the writer-lock window
-      # short.
+      # Pruning of vanished files is intentionally left to a separate cleanup job.
       total = diff[:add].size + diff[:update].size
       upserted_ids = parse_and_apply(diff[:add] + diff[:update], scan_log_id: log.id, total: total)
 
-      # Resolve cover thumbnails up-front so the web side never has to
-      # write to active_storage_variant_records under request load.
       Scanners::ThumbnailPreprocessor.new(pool_size: @pool_size).call(upserted_ids)
 
       library.update!(last_scanned_at: Time.current)
@@ -74,7 +60,6 @@ module Scanners
       Thread.current[:bookwall_skip_fts_callback] = previous_skip
     end
 
-    # Public so ScansController can read the same key.
     def self.progress_cache_key(scan_log_id)
       "scan_progress:#{scan_log_id}"
     end
@@ -86,16 +71,8 @@ module Scanners
       Books::FtsSyncJob.perform_later(upserted_ids, "upsert")
     end
 
-    # Pipeline parse and DB write so the main thread can start upserting
-    # the first book while later books are still being parsed. Workers
-    # on a FixedThreadPool open / parse / cover-extract each file and
-    # push the result onto a queue; the caller (this main thread)
-    # consumes the queue and applies each result through the same
-    # per-book transaction. Total wall time approaches
-    # max(parse_time, write_time) instead of their sum.
-    #
-    # Returns the ids of books that were created or updated so the
-    # caller can dispatch the FTS sync in bulk.
+    # Parses files on a worker pool while the main thread consumes the queue and writes,
+    # overlapping parse and write time. Returns the ids of created/updated books.
     def parse_and_apply(jobs, scan_log_id: nil, total: nil)
       return [] if jobs.empty?
 
@@ -182,21 +159,14 @@ module Scanners
       library.series.find_or_create_by!(name: name)
     end
 
-    # When a book carries no series metadata of its own, fall back to the
-    # name of the directory containing it — e.g. `<library>/Akira/vol1.cbz`
-    # joins the "Akira" series. Books sitting at the library root get no
-    # series, since the root directory isn't a series in any meaningful
-    # sense.
+    # Books at the library root get no series; the root dir is not a series.
     def fallback_series_from_path(path)
       parent = File.expand_path(File.dirname(path))
       return nil if parent == library_root
       File.basename(parent).presence
     end
 
-    # Strip the library root prefix off an absolute discovered path so we
-    # can store it relative in the DB. Anything that doesn't sit under
-    # the library root is returned unchanged — that's a configuration
-    # bug worth surfacing rather than papering over.
+    # Paths outside the library root are returned unchanged to surface the misconfiguration.
     def relative_to_library(path)
       absolute = File.expand_path(path)
       prefix = "#{library_root}/"

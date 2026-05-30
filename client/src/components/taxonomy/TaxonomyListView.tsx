@@ -31,10 +31,6 @@ interface TaxonomyListViewProps<T> {
   renderItem: (item: T) => ReactNode;
 }
 
-// Presentational shell for the grid-style taxonomy list pages. State lives in
-// useTaxonomyListState; the data hook is called by the page so the Rules of
-// Hooks stay satisfied. This component only renders the header, control bar,
-// grid / skeleton / empty / error states, and pager.
 export function TaxonomyListView<T>({
   title,
   description,

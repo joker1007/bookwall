@@ -4,10 +4,7 @@ module Api
   class TestSupportController < BaseController
     allow_unauthenticated_access only: %i[reset]
 
-    # POST /api/test_support/reset
-    # Truncates application tables and clears Active Storage blobs so that
-    # E2E tests can run against a known empty state. Routes are mounted only
-    # when ENV["BOOKWALL_E2E_RESET"] == "1", so production never exposes it.
+    # Route mounted only when ENV["BOOKWALL_E2E_RESET"] == "1"; never exposed in production.
     def reset
       ActiveRecord::Base.transaction do
         Favorite.delete_all

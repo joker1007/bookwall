@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-# Pure-ruby worker invoked from a Concurrent::FixedThreadPool by
-# Scanners::LibraryScanner. The worker MUST NOT touch ActiveRecord — the
-# connection is not thread-safe to share, and writes are routed back to
-# the main thread which serializes them through SQLite's single writer.
+# MUST NOT touch ActiveRecord: runs on a thread pool where the AR connection is unsafe to share.
 module Scanners
   module ParseWorker
     module_function

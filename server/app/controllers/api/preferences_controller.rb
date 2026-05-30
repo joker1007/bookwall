@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 module Api
-  # Per-user preferences (currently just reader defaults). Used by the
-  # reader UI to apply a sensible starting state for books that haven't
-  # been opened before.
   class PreferencesController < BaseController
     def show
       render json: serialize_preferences

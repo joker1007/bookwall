@@ -8,9 +8,6 @@ export function RecentReadsCarousel() {
   const { t } = useTranslation();
   const query = useRecentReads();
 
-  // Hide the section entirely when the user hasn't started any books
-  // yet — there's nothing useful to show, and a blank carousel above
-  // the recent-additions list would just be visual noise.
   if (query.isError) return null;
   if (!query.isPending && (query.data?.books.length ?? 0) === 0) return null;
 

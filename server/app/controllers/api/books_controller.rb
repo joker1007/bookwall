@@ -33,10 +33,6 @@ module Api
       render json: serialize_book(@book)
     end
 
-    # GET /api/books/:id/next_in_series
-    # Returns the next book in the same series (within the user's accessible
-    # scope), or 204 when this is the last volume / has no series. The reader
-    # uses this to roll over to the next book when the last page is reached.
     def next_in_series
       next_book = @book.next_in_series(accessible_books)
       return head :no_content unless next_book
@@ -70,8 +66,6 @@ module Api
       head :no_content
     end
 
-    # POST /api/books/bulk_favorite  { book_ids: [...] }
-    # Favorite every accessible book in the list (idempotent).
     def bulk_favorite
       rows = accessible_books.where(id: bulk_ids).ids.map do |book_id|
         {user_id: Current.user.id, book_id: book_id, created_at: Time.current}
@@ -80,24 +74,17 @@ module Api
       head :no_content
     end
 
-    # DELETE /api/books/bulk_favorite  { book_ids: [...] }
     def bulk_unfavorite
       Favorite.where(user_id: Current.user.id, book_id: bulk_ids).delete_all
       head :no_content
     end
 
-    # POST /api/books/bulk_destroy  { book_ids: [...] }
-    # Deletes metadata only, and only for books the user owns — shared
-    # (read-only) books in the selection are left untouched.
+    # Only books in owned libraries are destroyed; shared books are skipped.
     def bulk_destroy
       accessible_books.where(id: bulk_ids, library_id: owned_library_ids).destroy_all
       head :no_content
     end
 
-    # GET /api/books/:id/file
-    # Streams the raw book file (.epub / .cbz / .pdf) to the SPA, used by
-    # the in-browser EPUB reader (foliate-js) and any other download flow.
-    # image_dir books aren't single files, so they 404.
     def file
       return head :not_found if @book.file_format == "image_dir"
 
@@ -107,12 +94,8 @@ module Api
         return head :forbidden
       end
 
-      # The library scanner bumps updated_at whenever the file is
-      # re-ingested, so it's a good enough cache key.
       etag = @book.updated_at.to_i.to_s
       response.set_header("Cache-Control", "private, max-age=31536000, immutable")
-      # Advertise range support so pdfjs (and other range-aware clients)
-      # fetch only the byte ranges they need instead of the whole file.
       response.set_header("Accept-Ranges", "bytes")
       return unless stale?(etag: etag)
 
@@ -126,11 +109,8 @@ module Api
 
     private
 
-    # Handle a single HTTP Range request with a 206 partial response. Returns
-    # false (so the caller falls back to the full send_file) when there's no
-    # range header or the request asks for multiple ranges (multipart, which
-    # pdfjs never does). Falcon's send_file doesn't honour Range on its own,
-    # so we slice the bytes ourselves.
+    # Falcon's send_file ignores Range, so slice the bytes ourselves. Returns
+    # false (caller does the full send_file) for no/multipart range requests.
     def serve_byte_range(path)
       range_header = request.get_header("HTTP_RANGE")
       return false if range_header.blank?
@@ -145,8 +125,6 @@ module Api
         return true
       end
 
-      # Multipart (multiple ranges) is something pdfjs never asks for; fall
-      # back to the full body rather than build a multipart/byteranges body.
       return false if ranges.size != 1
 
       range = ranges.first
@@ -163,8 +141,6 @@ module Api
       @book = find_accessible_book!(params[:id])
     end
 
-    # Editing/deleting book metadata mutates library content — owner only.
-    # Shared (read-only) users get 403; the book is already known-visible.
     def require_book_owner!
       raise ManagementForbidden unless @book.library.owner_id == Current.user.id
     end
@@ -181,9 +157,7 @@ module Api
       Array(params[:book_ids]).map(&:to_i)
     end
 
-    # Resolve the collection_id filter only when it belongs to the current
-    # user — a foreign/bogus id raises 404 rather than leaking another user's
-    # curation. Returns nil when no collection filter was requested.
+    # Scoped to Current.user so a foreign id is 404, not a leak.
     def own_collection_id
       return nil if params[:collection_id].blank?
       Current.user.collections.find(params[:collection_id]).id

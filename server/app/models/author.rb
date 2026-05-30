@@ -10,7 +10,6 @@ class Author < ApplicationRecord
 
   validates :name, presence: true, uniqueness: true
 
-  # Authors are global; only surface those with at least one accessible book.
   scope :accessible_by, ->(user) {
     where(id: BookAuthor.joins(:book)
                         .where(books: {library_id: Library.accessible_by(user).select(:id)})

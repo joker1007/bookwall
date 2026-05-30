@@ -22,8 +22,7 @@ export default function LibraryDetailPage() {
     const params = new URLSearchParams(searchParams);
     if (next === "books") params.delete("view");
     else params.set("view", next);
-    // Reset paginator when switching modes — book pages and series pages
-    // share the `?page` slot but they index different collections.
+    // Book and series pages share the `?page` slot, so reset it on switch.
     params.delete("page");
     setSearchParams(params, { replace: false });
   };

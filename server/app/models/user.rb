@@ -14,7 +14,6 @@ class User < ApplicationRecord
   has_many :library_shares, dependent: :destroy
   has_many :shared_libraries, through: :library_shares, source: :library
 
-  # Libraries this user owns or has been shared (the visibility set).
   def accessible_libraries
     Library.accessible_by(self)
   end
@@ -28,8 +27,6 @@ class User < ApplicationRecord
 
   has_one :preference, class_name: "UserPreference", dependent: :destroy
 
-  # Convenience helper: returns the persisted reader defaults Hash, or {}
-  # when no preference row exists yet.
   def reader_defaults
     preference&.reader_defaults || {}
   end

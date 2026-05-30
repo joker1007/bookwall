@@ -1,21 +1,14 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { ReaderScale } from "@/types/api";
-// `?url` hands us the hashed asset URL (base "/ui/" aware) without pulling
-// the worker code into the importing chunk. pdfjs spins up its own module
-// worker from this URL, so a document `destroy()` never tears down a shared
-// port (which would break the next open).
+// `?url` gives the hashed asset URL so pdfjs spins up its own worker from it;
+// a document `destroy()` then never tears down a shared port.
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-// Text- and annotation-layer styles. Small, and only ships in whatever chunk
-// the PDF reader lands in.
 import "pdfjs-dist/web/pdf_viewer.css";
 
 type PdfjsModule = typeof import("pdfjs-dist");
 
 let pdfjsPromise: Promise<PdfjsModule> | null = null;
 
-// Load the (heavy) pdfjs runtime lazily and wire the worker exactly once.
-// Callers get the module back so they can reach getDocument / TextLayer /
-// AnnotationLayer without a second import.
 export function loadPdfjs(): Promise<PdfjsModule> {
   if (!pdfjsPromise) {
     pdfjsPromise = import("pdfjs-dist").then((mod) => {
@@ -26,8 +19,7 @@ export function loadPdfjs(): Promise<PdfjsModule> {
   return pdfjsPromise;
 }
 
-// Scale a single page's natural (scale-1) dimensions into the available slot.
-// The caller is responsible for halving the width when laying out a spread.
+// Caller must halve the width when laying out a spread.
 export function computePdfScale(
   mode: ReaderScale,
   pageWidth: number,
@@ -48,7 +40,6 @@ export function computePdfScale(
   }
 }
 
-// Minimal shape of one `PDFDocumentProxy.getOutline()` entry that we read.
 interface RawOutlineItem {
   title: string;
   dest: string | unknown[] | null;
@@ -64,8 +55,6 @@ export interface PdfTocItem {
   subitems: PdfTocItem[];
 }
 
-// Resolve a PDF destination (named string or explicit array) to a 0-based
-// page index. Returns null when the destination can't be resolved.
 export async function resolveDestToPageIndex(
   doc: PDFDocumentProxy,
   dest: string | unknown[] | null | undefined,
@@ -86,8 +75,7 @@ export async function resolveDestToPageIndex(
   }
 }
 
-// Flatten the PDF outline tree into our TOC shape, resolving each entry's
-// destination to a page index up front so clicks are synchronous.
+// Resolve each destination up front so TOC clicks are synchronous.
 export async function resolveOutline(
   doc: PDFDocumentProxy,
   items: RawOutlineItem[] | null | undefined,

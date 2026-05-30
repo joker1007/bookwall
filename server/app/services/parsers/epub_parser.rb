@@ -26,7 +26,6 @@ module Parsers
       raise Error, "spine index out of range: #{index}"
     end
 
-    # exposed for spec convenience
     def page_progression_direction
       book.spine.page_progression_direction
     end
@@ -60,11 +59,7 @@ module Parsers
       list.map { |meta| meta.content.to_s.strip }.reject(&:empty?).uniq
     end
 
-    # Reads a legacy OPF2-style `<meta name="..." content="..."/>` value.
-    # Calibre stores series info this way regardless of the EPUB version,
-    # so it's the right hook for both calibre:series and
-    # calibre:series_index. The value lives in the `content=` attribute,
-    # not in element text — so we go through Meta#[] rather than #content.
+    # Calibre stores series info as OPF2 oldstyle meta; value is in content= attr, not element text.
     def calibre_meta_value(name)
       metadata = book.metadata rescue nil
       entries = metadata&.oldstyle_meta || []
@@ -72,8 +67,7 @@ module Parsers
       meta&.[]("content").to_s.strip.presence
     end
 
-    # Calibre writes the index as "1.0" / "2.5"; books.volume is an
-    # integer column, so truncate and treat zero / unparseable as absent.
+    # Calibre writes the index as "1.0" / "2.5"; volume is an integer column.
     def parse_series_index(raw)
       return nil if raw.blank?
       n = Float(raw, exception: false)&.to_i

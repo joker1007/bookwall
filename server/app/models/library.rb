@@ -13,15 +13,10 @@ class Library < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :path, presence: true, uniqueness: true
 
-  # Libraries pending background deletion are hidden everywhere; the record
-  # lingers only until DestroyLibraryJob finishes cascading the destroy.
   scope :not_deleting, -> { where(deleting_at: nil) }
 
   scope :owned_by, ->(user) { not_deleting.where(owner_id: user.id) }
 
-  # The canonical visibility scope: libraries the user owns OR has been
-  # shared. Everything browsable (Book/Series/Tag/Author) is derived from
-  # the set of accessible library ids this produces.
   scope :accessible_by, ->(user) {
     left_joins(:library_shares)
       .where("libraries.owner_id = :uid OR library_shares.user_id = :uid", uid: user.id)

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module Api
-  # Books the current user has favorited, ordered by the most recent
-  # favorite creation time. Powers the home page's "Favorites" carousel.
   class RecentFavoritesController < BaseController
     LIMIT = 25
 

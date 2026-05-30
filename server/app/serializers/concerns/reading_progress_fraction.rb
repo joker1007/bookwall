@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# Computes a 0..1 reading progress fraction for a Book given its
-# ReadingProgress. Returns nil when no usable signal is available so
-# the UI can hide the progress bar instead of pretending.
 module ReadingProgressFraction
   module_function
 

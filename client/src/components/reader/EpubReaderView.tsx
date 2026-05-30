@@ -54,9 +54,7 @@ import type {
   ReaderWritingMode,
 } from "@/types/api";
 
-// Minimal slice of foliate-js's <foliate-view> custom element that we
-// actually call. The library doesn't ship TS types, so we declare the
-// surface we use ourselves.
+// foliate-js ships no TS types, so we declare the surface we use.
 interface FoliateView extends HTMLElement {
   open(file: Blob): Promise<void>;
   init(opts: { lastLocation?: string; showTextStart?: boolean }): Promise<void>;
@@ -72,8 +70,7 @@ interface FoliateView extends HTMLElement {
   };
   book?: {
     toc?: TocItem[];
-    // OPF's `<spine page-progression-direction>` — "rtl" for most
-    // vertically-typeset Japanese books.
+    // OPF's `<spine page-progression-direction>`; "rtl" for most vertical JP books.
     dir?: string;
     sections?: unknown[];
   };
@@ -89,10 +86,6 @@ interface EpubReaderViewProps {
   book: Book;
 }
 
-// Flatten a TOC tree into a list, preserving the original order so we
-// can pick the entry whose section index is closest to (but not past)
-// a given section. foliate-js doesn't expose section index → TOC
-// directly, so this is a best-effort lookup for the scrubber preview.
 function flattenToc(items: TocItem[]): TocItem[] {
   const out: TocItem[] = [];
   const walk = (list: TocItem[]) => {
@@ -142,8 +135,7 @@ function buildBookStyles({
   theme: ReaderTheme;
   writingMode: ReaderWritingMode;
 }): string {
-  // "auto" → don't touch writing-mode so the book's own CSS wins.
-  // "horizontal" / "vertical" → force-override with !important.
+  // "auto" leaves writing-mode untouched so the book's own CSS wins.
   const writing =
     writingMode === "vertical"
       ? `html, body { writing-mode: vertical-rl !important; }`
@@ -162,10 +154,7 @@ function buildBookStyles({
 export function EpubReaderView({ book }: EpubReaderViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  // Pop the history entry that brought us here so the user lands back
-  // on whatever list / search page opened the detail page in the
-  // first place. Falls back to the detail page itself on a deep-link
-  // entry where there's no in-app history to pop.
+  // Falls back to the detail page on a deep-link entry with no history to pop.
   const navType = useNavigationType();
   const goBack = useCallback(() => {
     if (navType === "PUSH" || navType === "REPLACE") {
@@ -191,15 +180,9 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
     useFullscreen(readerContainerRef);
   const [toc, setToc] = useState<TocItem[]>([]);
-  // foliate-js's relocate event exposes a `fraction` (0..1) for the
-  // current position. We stash it so the bottom scrubber can show
-  // progress and seek via view.goToFraction.
   const [fraction, setFraction] = useState(0);
   const [sectionTotal, setSectionTotal] = useState(0);
 
-  // Resolved settings (per-book ReadingProgress.settings beats user defaults
-  // beats hard-coded defaults). The merge + settled-gate live in the shared
-  // hook so this reader and the image reader can't drift apart.
   const resolved = useResolvedReaderSettings(book.id);
   const resolvedSettings = useMemo(
     () => ({
@@ -213,18 +196,13 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
   const [fontSize, setFontSize] = useState<number>(READER_FONT_SIZE_DEFAULT);
   const [theme, setTheme] = useState<ReaderTheme>("light");
   const [writingMode, setWritingMode] = useState<ReaderWritingMode>("auto");
-  // Set once we can answer "is this book vertical?" — driven by
-  // view.book.dir at open and the iframe's computed writing-mode on
-  // load. Stays "horizontal" if we never spot a vertical signal.
   const [detectedWritingMode, setDetectedWritingMode] = useState<
     "horizontal" | "vertical"
   >("horizontal");
   const detectedVerticalRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate UI state from server once the resolved settings have settled.
-  // Done during render (not in an effect) so the resolved settings are
-  // applied in the same commit, avoiding an extra render pass.
+  // Hydrate during render (not an effect) so settings apply in the same commit.
   if (!hydrated && resolved.ready) {
     setFontSize(resolvedSettings.fontSize);
     setTheme(resolvedSettings.theme);
@@ -232,10 +210,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     setHydrated(true);
   }
 
-  // Debounced position save. CFI restores the exact reading point on
-  // re-open; progress_fraction powers the cover progress bar across the
-  // library views. Declared before the mount effect so its `relocate`
-  // listener can reference it.
   const locationDebounce = useRef<number | null>(null);
   const saveLocation = useCallback(
     (cfi: string, fraction: number | undefined) => {
@@ -250,10 +224,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     [update],
   );
 
-  // Mount <foliate-view> and stream the book in. We wait for the
-  // progress query to settle before kicking foliate off — otherwise
-  // `progress.data` is still undefined when `view.init({ lastLocation })`
-  // runs, and the user's saved CFI never gets restored.
+  // Wait for progress to settle before init, else the saved CFI isn't restored.
   useEffect(() => {
     if (progress.isPending) return;
     let cancelled = false;
@@ -285,14 +256,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           if (detail?.cfi) saveLocation(detail.cfi, clampedFraction);
         });
 
-        // Sniff the iframe's computed writing-mode the first time we see
-        // a vertical section — some EPUBs have a horizontal cover page
-        // followed by vertical body sections, so we wait for "first
-        // vertical signal" rather than "first section". The actual user
-        // stylesheet (font_size / theme / writing_mode) is applied via
-        // foliate's renderer.setStyles in a separate effect — that route
-        // is the one foliate's own re-flow path observes, so it survives
-        // settings changes against already-rendered sections.
+        // Wait for the first vertical section, not the first section: some
+        // EPUBs open with a horizontal cover then switch to vertical body.
         view.addEventListener("load", (e: Event) => {
           if (!detectedVerticalRef.current) {
             const detail = (e as CustomEvent<{ doc: Document }>).detail;
@@ -319,10 +284,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         const blob = await res.blob();
         if (cancelled || !view) return;
 
-        // foliate-js inspects `file.name` (string#endsWith) to pick the
-        // right format adapter, so a bare Blob (which has no `name`)
-        // makes it crash. Wrap with a File and supply an extension that
-        // matches the book's actual format.
+        // foliate-js picks its format adapter off file.name#endsWith, so a
+        // bare Blob (no name) crashes; wrap in a File with a matching ext.
         const filename = `book.${book.file_format === "image_dir" ? "epub" : book.file_format}`;
         const file = new File([blob], filename, {
           type: blob.type || "application/epub+zip",
@@ -330,28 +293,15 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         await view.open(file);
         if (cancelled || !view) return;
 
-        // Static signal for "is this a vertically-typeset book?": OPF's
-        // `<spine page-progression-direction>` lands on view.book.dir.
-        // RTL page progression is the canonical marker for Japanese
-        // vertical EPUBs (and is also the marker we need anyway to flip
-        // ArrowLeft/Right). The iframe computed-style sniff in the load
-        // listener is a fallback for books that omit the OPF attribute.
+        // RTL page progression marks a vertical JP book; the load-listener
+        // style sniff is the fallback for books that omit this OPF attribute.
         if (view.book?.dir === "rtl") {
           detectedVerticalRef.current = true;
           setDetectedWritingMode("vertical");
         }
 
-        // foliate-js's paginator defaults to a narrow column (~720px max
-        // inline-size + sizable margins) which leaves a lot of empty
-        // space on a typical desktop viewport. Let the content stretch
-        // to the actual viewport with only a small margin so the reader
-        // looks comfortable on both desktop and mobile.
-        //
-        // max-column-count switches between 1 (phones) and 2 (tablet+
-        // desktop) — a phone-width split into two columns shrinks each
-        // line so far that single Japanese characters break across
-        // columns, which is unreadable. The matching effect below keeps
-        // the attribute in sync on rotation / window resize.
+        // max-column-count stays 1 below 768px: splitting a phone width into
+        // two columns shrinks lines until single JP characters break across them.
         const renderer = view.renderer;
         renderer?.setAttribute?.("max-inline-size", "100%");
         renderer?.setAttribute?.("max-block-size", "100%");
@@ -362,12 +312,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         renderer?.setAttribute?.("margin", "16px");
         renderer?.setAttribute?.("gap", "5%");
 
-        // Seed renderer.setStyles with the resolved user stylesheet
-        // BEFORE init() so the first section load picks it up — foliate
-        // caches the last call to setStyles and replays it on every
-        // section transition via its `onLoad` hook. Without this seed,
-        // sections load with no font_size / theme applied until the
-        // useEffect below catches up, producing a visible re-flow.
+        // Seed setStyles before init(): foliate caches the last call and
+        // replays it per section, so without this the first load re-flows.
         renderer?.setStyles?.(
           buildBookStyles({
             fontSize: resolvedSettings.fontSize,
@@ -376,13 +322,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           }),
         );
 
-        // foliate-js doesn't render the first section until we navigate
-        // to it explicitly. If we have a saved CFI, init({ lastLocation })
-        // takes us there. With no CFI, init({ showTextStart: true })
-        // tries to honour the EPUB's "text-start" landmark — but plenty
-        // of books don't expose one, in which case the viewport stays
-        // blank until the user manually pages forward. Skip the landmark
-        // dance and just `goTo(0)` for a fresh open.
+        // foliate won't render until navigated explicitly; goTo(0) on a fresh
+        // open since many books lack the "text-start" landmark showTextStart needs.
         const cfi = progress.data?.epub_cfi ?? undefined;
         try {
           if (cfi) {
@@ -402,16 +343,11 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
           }
         }
 
-        // Capture the TOC for the sidebar.
         const bookToc = view.book?.toc;
         if (bookToc) setToc(bookToc);
         const sections = view.book?.sections;
         if (Array.isArray(sections)) setSectionTotal(sections.length);
 
-        // The "settings change" effect below picks up loadStatus === "ready"
-        // and applies the current font_size / theme / writing_mode to the
-        // renderer + any already-loaded iframes, so we don't need to call
-        // it explicitly here.
         setLoadStatus("ready");
       } catch (err) {
         console.error("[EpubReaderView] failed to load book", err);
@@ -429,27 +365,11 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
       view?.remove?.();
       viewRef.current = null;
     };
-    // book.id intentionally captures the current book — re-mounting on
-    // book change is fine. progress.isPending lets the effect bail out
-    // until the saved CFI is in hand, then re-run once it lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book.id, progress.isPending]);
 
-  // Whenever the user changes a setting, push it through foliate's
-  // renderer.setStyles, which (a) writes into the high-priority $style
-  // slot inside the section iframe, (b) replays the same CSS into every
-  // future section the user navigates to, and (c) triggers foliate's
-  // internal re-flow (expand + columnize) so font-size changes
-  // re-paginate immediately.
-  //
-  // Earlier this code also walked the iframe tree with `collectIframes`
-  // and injected its own <style> as a backup. That walk never actually
-  // reached anything — foliate's <foliate-view> and <foliate-paginator>
-  // use `attachShadow({ mode: "closed" })`, so `el.shadowRoot` is null
-  // and the iframe is unreachable from outside. The leftover stale
-  // <style> from the load event also sat at the END of head with
-  // `!important` and beat foliate's $style on every settings change,
-  // which is why font_size / theme used to refuse to re-apply.
+  // setStyles is the only reliable path: foliate's shadow roots are closed
+  // (mode: "closed"), so the iframes can't be reached to inject styles directly.
   useEffect(() => {
     if (loadStatus !== "ready") return;
     const renderer = viewRef.current?.renderer;
@@ -457,10 +377,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     renderer?.setStyles?.(css);
   }, [loadStatus, fontSize, theme, writingMode]);
 
-  // Keep the renderer's max-column-count in sync with the viewport.
-  // Rotating a phone from portrait to landscape (or resizing the window
-  // on desktop) should re-flow between single- and two-column layout
-  // without having to reload the reader.
   useEffect(() => {
     if (loadStatus !== "ready") return;
     const mql = window.matchMedia("(min-width: 768px)");
@@ -475,7 +391,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     return () => mql.removeEventListener("change", apply);
   }, [loadStatus]);
 
-  // Save settings (debounced through the same mutation that handles CFI).
   const saveSettings = useCallback(
     (patch: ReaderSettings) => {
       update.mutate({
@@ -507,11 +422,8 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     saveSettings({ writing_mode: next });
   };
 
-  // "auto" resolves to whatever we sniffed from the book; explicit
-  // horizontal / vertical from the user wins. effectiveDirection
-  // governs ArrowLeft/Right flip + tap-zone flip in this reader.
-  // (foliate-js itself already flips page-turn direction based on
-  // view.book.dir, so we don't need to tell it anything.)
+  // Drives only our Arrow/tap-zone flip; foliate already flips its own
+  // page-turn direction off view.book.dir.
   const effectiveWritingMode = useMemo<"horizontal" | "vertical">(
     () => (writingMode === "auto" ? detectedWritingMode : writingMode),
     [writingMode, detectedWritingMode],
@@ -545,7 +457,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
     onEscape: handleEscape,
   });
 
-  // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = effectiveDirection === "ltr" ? goPrev : goNext;
   const onRightHalfClick = effectiveDirection === "ltr" ? goNext : goPrev;
 
@@ -640,10 +551,7 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
         className="relative flex-1 select-none overflow-hidden bg-white"
       >
         <div ref={containerRef} className="absolute inset-0" />
-        {/* Click hot-zones — limited to the outer ~12% margins on each
-            side so the column in the middle stays selectable (text
-            copy still works). Direction-aware, so the labels and
-            behaviour follow the book's effective writing direction. */}
+        {/* Hot-zones limited to the outer 12% so the middle stays selectable. */}
         <button
           type="button"
           aria-label={t("reader.pager.prev")}
@@ -676,9 +584,6 @@ export function EpubReaderView({ book }: EpubReaderViewProps) {
               const f = n / 1000;
               const idx = Math.min(sectionTotal - 1, Math.floor(f * sectionTotal));
               const flat = flattenToc(toc);
-              // Walk the flat TOC backwards looking for the chapter that
-              // covers this section. No perfect mapping is possible
-              // without rendering, so this is best-effort.
               let label: string | undefined;
               for (let i = Math.min(idx, flat.length - 1); i >= 0; i--) {
                 if (flat[i]?.label) {

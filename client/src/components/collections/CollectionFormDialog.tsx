@@ -25,7 +25,6 @@ interface CollectionFormDialogProps {
   onSubmit: (name: string) => void;
 }
 
-// Shared name-only form used for both creating and renaming a collection.
 export function CollectionFormDialog({
   open,
   onOpenChange,
@@ -40,8 +39,6 @@ export function CollectionFormDialog({
   const { t } = useTranslation();
   const [name, setName] = useState(initialName);
 
-  // Reset the field whenever the dialog transitions to open — done during
-  // render (tracking the previous open state) rather than in an effect.
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);

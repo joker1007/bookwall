@@ -38,8 +38,7 @@ module Api
     end
 
     def destroy
-      # Hide it immediately, then cascade the (potentially slow) destroy in the
-      # background so the request returns right away.
+      # Soft-hide now, cascade the slow destroy in the background.
       @library.update_column(:deleting_at, Time.current)
       DestroyLibraryJob.perform_later(@library.id)
       render json: {status: "deleting"}, status: :accepted
@@ -55,8 +54,7 @@ module Api
       @library = find_owned_library!(params[:id])
     end
 
-    # Replaces the share set with the requested users, ignoring unknown ids and
-    # never sharing back to the owner. nil means "no change requested".
+    # nil = no change; owner is never shared back to.
     def sync_shares(library, ids)
       return if ids.nil?
       wanted = User.where(id: Array(ids).map(&:to_i)).where.not(id: library.owner_id).ids

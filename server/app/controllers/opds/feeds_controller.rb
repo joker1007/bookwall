@@ -30,8 +30,6 @@ module Opds
       render_acquisition_feed("Recent", "urn:bookwall:recent", view_context_helpers.opds_recent_path, books)
     end
 
-    # Books the current user has opened, newest-read first (the OPDS counterpart
-    # of the SPA's "Continue reading" carousel).
     def recent_reads
       books = ReadingProgress
         .for_user(Current.user)
@@ -106,8 +104,6 @@ module Opds
 
     def series_show
       series = Series.accessible_by(Current.user).find(params[:series_id])
-      # Series in Bookwall are basically reading order: sort by volume,
-      # then title to keep ties stable.
       books = series.books.includes(:authors, :tags).with_attached_cover.order(:volume, :title)
       render_acquisition_feed(series.name, "urn:bookwall:series:#{series.id}",
                               view_context_helpers.opds_series_path(series_id: series.id), books)
@@ -171,9 +167,6 @@ module Opds
       Rails.application.routes.url_helpers
     end
 
-    # Builds an Opds::Facets for the given base scope. The block receives a
-    # filters hash ({series_id:, tag_id:} with nils omitted) and returns the
-    # feed path for that combination.
     def build_facets(scope, &path_for)
       Opds::Facets.new(
         scope: scope,

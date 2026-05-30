@@ -10,9 +10,6 @@ module Api
       head :accepted
     end
 
-    # Returns the most recent scan logs for a library so the UI can show
-    # status + live progress for an in-flight scan, and a brief history
-    # of past runs.
     def index
       library = find_owned_library!(params[:library_id])
       logs = library.scan_logs.order(started_at: :desc).limit(LATEST_LIMIT)

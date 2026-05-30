@@ -7,10 +7,7 @@ class ScanLogSerializer
     :found_count, :added_count, :updated_count, :removed_count,
     :error_message
 
-  # Live progress for an in-flight scan. The scanner flushes
-  # `{ processed:, total: }` into Rails.cache every 10 books, so this
-  # is at most 10 books behind reality. Reflects 0 / nil for scans
-  # that aren't currently running.
+  # Cache is flushed every 10 books, so this lags reality by up to 10.
   attribute :processed_count do |log|
     next nil unless log.running?
     cached = Rails.cache.read(Scanners::LibraryScanner.progress_cache_key(log.id))

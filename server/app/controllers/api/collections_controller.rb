@@ -45,8 +45,7 @@ module Api
 
     private
 
-    # Collections are user-private: scope every lookup to the current user so
-    # another user's collection (or a bogus id) is a 404, not a leak.
+    # User-scoped so a foreign id is 404, not a leak.
     def set_collection
       @collection = Current.user.collections.find(params[:id])
     end

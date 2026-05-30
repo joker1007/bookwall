@@ -1,18 +1,12 @@
 # frozen_string_literal: true
 
 module Opds
-  # Applies the active series_id / tag_id query filters to an acquisition
-  # feed's book scope and builds the matching OPDS facet links. Counts in one
-  # group are scoped by the other group's active facet, so each count reflects
-  # how many books selecting that facet would actually yield.
   class Facets
     SERIES_GROUP = "Series"
     TAGS_GROUP = "Tags"
 
     Facet = Data.define(:group, :title, :href, :count, :active)
 
-    # url_builder is called as url_builder.call(series_id:, tag_id:) and must
-    # return the feed path for that combination of filters.
     def initialize(scope:, series_id:, tag_id:, url_builder:)
       @scope = scope
       @series_id = series_id.presence&.to_i
@@ -23,8 +17,7 @@ module Opds
     def books
       relation = @scope
       relation = relation.where(series_id: @series_id) if @series_id
-      # Filter through a subquery rather than joining :tags so the controller's
-      # includes(:tags) still eager-loads every tag, not just the matched one.
+      # Subquery (not joins :tags) so the controller's includes(:tags) still eager-loads all tags.
       relation = relation.where(id: BookTag.where(tag_id: @tag_id).select(:book_id)) if @tag_id
       relation
     end

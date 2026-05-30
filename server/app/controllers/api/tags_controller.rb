@@ -40,9 +40,7 @@ module Api
       @tag = Tag.accessible_by(Current.user).find(params[:id])
     end
 
-    # Tags are global metadata with no owner. To preserve the read-only
-    # guarantee for shared users, only allow rename/delete when the tag is
-    # reachable through a library the current user owns.
+    # Global metadata: only manageable via an owned library (read-only for shared users).
     def require_tag_manageable!
       raise ManagementForbidden unless @tag.manageable_via?(owned_library_ids)
     end

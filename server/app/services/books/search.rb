@@ -49,7 +49,6 @@ module Books
       fts_match = ActiveRecord::Base.sanitize_sql_array(["books_fts MATCH ?", fts_query])
       scope.joins("JOIN books_fts ON books_fts.rowid = books.id AND #{fts_match}")
     rescue ActiveRecord::StatementInvalid
-      # malformed FTS query — fall back to LIKE on title
       like = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
       scope.where("books.title LIKE ?", like)
     end
@@ -71,11 +70,7 @@ module Books
       end
     end
 
-    # Books have many authors, so left-joining and ordering by authors.name
-    # would multiply rows and break pagination. Use a correlated subquery
-    # to pull the alphabetically-first author per book as a single sort key
-    # — same key used for both asc and desc so multi-author books order
-    # consistently across the two directions.
+    # Subquery (not a join) so multi-author books don't multiply rows and break pagination.
     AUTHOR_SORT_KEY = <<~SQL.squish.freeze
       (SELECT MIN(authors.name)
          FROM book_authors

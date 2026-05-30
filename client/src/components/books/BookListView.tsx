@@ -58,9 +58,7 @@ export function BookListView({
   const setPerPage = useUiStore((s) => s.setPerPage);
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
-  // URL `?sort=` wins so a shared link reproduces the exact view; with
-  // nothing in the URL fall through to whatever the user last picked
-  // (persisted in localStorage via uiStore).
+  // URL `?sort=` wins so a shared link reproduces the exact view.
   const sort = searchParams.get("sort") ?? sortOrder;
 
   const query = useBookList({
@@ -81,21 +79,16 @@ export function BookListView({
     const next = Number(value) as PerPage;
     if (!PER_PAGE_OPTIONS.includes(next)) return;
     setPerPage(next);
-    // Page-size changes shift what's on each page, so resetting to
-    // page 1 keeps the "what am I looking at" anchor stable.
     if (page !== 1) updateParam("page", null);
   };
 
   const data = query.data;
   const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
-  // --- Bulk selection -----------------------------------------------------
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  // Clear the selection whenever the list contents change (different
-  // collection/library/sort or a new page) so stale ids never leak into a
-  // bulk action. Done at render time to avoid a setState-in-effect.
+  // Clear selection when list contents change so stale ids never leak into a bulk action.
   const listKey = `${JSON.stringify(baseParams ?? {})}|${sort}|${page}`;
   const [prevKey, setPrevKey] = useState(listKey);
   if (listKey !== prevKey) {

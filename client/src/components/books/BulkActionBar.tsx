@@ -25,7 +25,6 @@ interface BulkActionBarProps {
   allSelected: boolean;
   onSelectAll: () => void;
   onClear: () => void;
-  // When viewing a single collection, expose "remove from this collection".
   collectionId?: number | string;
 }
 

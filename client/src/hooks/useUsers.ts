@@ -6,7 +6,6 @@ interface UserListResponse {
   users: User[];
 }
 
-// Directory of users for the library share picker.
 export function useUsers() {
   return useQuery<UserListResponse>({
     queryKey: ["users"],

@@ -41,9 +41,7 @@ module Api
       @author = Author.accessible_by(Current.user).find(params[:id])
     end
 
-    # Authors are global metadata with no owner. Only allow rename/delete when
-    # reachable through a library the current user owns (read-only guarantee
-    # for shared users).
+    # Global metadata: only manageable via an owned library (read-only for shared users).
     def require_author_manageable!
       raise ManagementForbidden unless @author.manageable_via?(owned_library_ids)
     end

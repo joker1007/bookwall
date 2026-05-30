@@ -1,7 +1,3 @@
-// Thin fetch wrapper that always sends credentials (the Rails session
-// cookie) and parses JSON. Throws ApiError on non-2xx responses so that
-// TanStack Query treats them as failures.
-
 export class ApiError extends Error {
   status: number;
   body: unknown;

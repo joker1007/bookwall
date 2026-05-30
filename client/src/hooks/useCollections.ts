@@ -52,7 +52,6 @@ export function useUpdateCollection() {
     mutationFn: ({ id, name }: { id: number | string; name: string }) =>
       api<Collection>(`/api/collections/${id}`, { method: "PATCH", body: { name } }),
     onSuccess: () => {
-      // Both the list and any detail query reflect a rename.
       queryClient.invalidateQueries({ queryKey: ["collections"] });
       queryClient.invalidateQueries({ queryKey: ["collection"] });
     },

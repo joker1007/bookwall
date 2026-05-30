@@ -43,7 +43,6 @@ module Api
       @series = Series.accessible_by(Current.user).find(params[:id])
     end
 
-    # Renaming/deleting a series mutates library content — owner only.
     def require_series_owner!
       raise ManagementForbidden unless @series.library.owner_id == Current.user.id
     end

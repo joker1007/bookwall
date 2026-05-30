@@ -20,9 +20,6 @@ class UserPreference < ApplicationRecord
   validates :reader_writing_mode,
     inclusion: {in: %w[auto horizontal vertical], allow_nil: true}
 
-  # Hash form used by the API and consumed by the reader UI. Only keys
-  # whose values are actually set are returned, so the client can layer
-  # them on top of its own built-in defaults.
   def reader_defaults
     {
       "spread" => reader_spread,

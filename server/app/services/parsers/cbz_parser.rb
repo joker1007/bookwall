@@ -39,10 +39,7 @@ module Parsers
 
     private
 
-    # The scanner's hot path is `metadata` then `cover_bytes`. Pulling
-    # both pieces of state out in a single Zip::File.open avoids
-    # parsing the central directory three times per book (once each
-    # for image entries, ComicInfo.xml, and the cover image).
+    # Single Zip::File.open avoids parsing the central directory three times per book.
     def load_once
       return if @loaded
       Zip::File.open(@path) do |zip|

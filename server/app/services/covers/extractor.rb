@@ -10,8 +10,6 @@ module Covers
 
     module_function
 
-    # Attach pre-extracted bytes (typically retrieved by ParseWorker on a
-    # background thread). No-op when bytes is nil or empty.
     def attach(book, bytes)
       return if bytes.nil? || bytes.empty?
       filename = "book-#{book.id || SecureRandom.hex(4)}-cover#{detect_extension(bytes)}"
@@ -25,8 +23,6 @@ module Covers
       nil
     end
 
-    # Convenience for code paths that already have a persisted book and want
-    # the cover extracted synchronously (used by tests and one-off rake tasks).
     def call(book)
       parser = Parsers.for(book.absolute_path)
       attach(book, parser.cover_bytes)

@@ -10,7 +10,6 @@ class Tag < ApplicationRecord
 
   validates :name, presence: true, uniqueness: true
 
-  # Tags are global; only surface those carrying at least one accessible book.
   scope :accessible_by, ->(user) {
     where(id: BookTag.joins(:book)
                      .where(books: {library_id: Library.accessible_by(user).select(:id)})

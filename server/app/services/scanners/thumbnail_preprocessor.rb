@@ -1,11 +1,8 @@
 # frozen_string_literal: true
 
 module Scanners
-  # Bulk-generates the :thumb variant for every book the scan touched so its
-  # active_storage_variant_record exists before the web side ever asks for the
-  # thumbnail URL. Without this, a 200-cover grid view would trigger 200
-  # parallel INSERT bursts against SQLite's single writer under request load.
-  # Idempotent — `.processed` no-ops when the variant_record already exists.
+  # Pre-creates :thumb variant_records during the scan so a cover grid view doesn't
+  # trigger a burst of INSERTs against SQLite's single writer under request load.
   class ThumbnailPreprocessor
     include SqliteRetryable
 
@@ -20,9 +17,7 @@ module Scanners
       books.select! { |b| b.cover.attached? }
       return if books.empty?
 
-      # Cap workers at the AR pool size so we don't block waiting on connection
-      # checkouts — each .processed call grabs a connection to write the
-      # variant_record row.
+      # Cap workers at the AR pool size; each .processed checks out a connection.
       pool_size = [@pool_size, books.size, ActiveRecord::Base.connection_pool.size].min
       pool_size = 1 if pool_size < 1
       pool = Concurrent::FixedThreadPool.new(pool_size)

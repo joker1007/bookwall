@@ -1,19 +1,14 @@
 # frozen_string_literal: true
 
 module Scanners
-  # Compares the discovered jobs against the library's existing book rows and
-  # partitions them into {add:, update:}. Deleted files are intentionally not
-  # reported — pruning is handled by a separate cleanup job so the scan's
-  # writer-lock window stays short.
+  # Partitions discovered jobs into {add:, update:}; deletions are intentionally not reported.
   class LibraryDiff
     def initialize(library)
       @library = library
     end
 
     def call(jobs)
-      # Files on disk are seen as absolute paths during discovery, but the DB
-      # holds them library-relative. Re-absolutise the DB rows for the
-      # comparison so existing-record lookup still works.
+      # DB stores paths library-relative; re-absolutise to match discovery's absolute paths.
       root = File.expand_path(@library.path)
       existing = @library.books.pluck(:file_path, :scanned_at).to_h do |rel, scanned_at|
         [File.expand_path(File.join(root, rel)), scanned_at]

@@ -1,20 +1,10 @@
 # frozen_string_literal: true
 
 module Scanners
-  # Walks a library root and returns the set of book "jobs" to ingest. Each
-  # job is a frozen hash {path:, format:, mtime:}. Uses two C-level globs:
-  #   1. Find every image file and treat its parent directory as an image_dir
-  #      book.
-  #   2. Find every CBZ / EPUB / PDF. Files inside an already-identified
-  #      image_dir are skipped so "image_dir wins, prune everything below it"
-  #      semantics hold.
-  # Extension matching is case-insensitive (`.JPG`, `.EPUB`, ...) so users
-  # don't have to normalise their library by hand.
+  # Returns the set of book jobs {path:, format:, mtime:}; an image_dir wins over
+  # any book file nested below it.
   class LibraryDiscovery
-    # Dir.glob silently ignores File::FNM_CASEFOLD, so we make matching
-    # case-insensitive by expanding each alphabetic character of the
-    # extension into a `[lower UPPER]` character class — e.g. ".cbz" becomes
-    # ".[cC][bB][zZ]".
+    # Dir.glob ignores File::FNM_CASEFOLD, so expand each letter into a `[lU]` class.
     def self.casefold_glob(ext)
       ext.chars.map { |c| /[a-z]/i.match?(c) ? "[#{c.downcase}#{c.upcase}]" : c }.join
     end
@@ -33,9 +23,7 @@ module Scanners
     def call
       image_dirs = collect_image_dirs
       jobs = image_dirs.map do |dir|
-        # mtime is left nil and resolved lazily in LibraryDiff only when an
-        # existing row needs to be compared — first-scan image dirs avoid the
-        # per-child stat.
+        # mtime left nil and resolved lazily in LibraryDiff to skip the per-child stat.
         {path: dir.freeze, format: :image_dir, mtime: nil}.freeze
       end
 
@@ -65,8 +53,7 @@ module Scanners
         Dir.glob(pattern, base: @root) do |rel|
           next if hidden_path?(rel)
           parent_rel = File.dirname(rel)
-          # Library root itself is never a book, even if loose images got
-          # dropped there.
+          # Loose images at the library root never form a book.
           next if parent_rel == "."
           dirs << File.join(@root, parent_rel)
         end

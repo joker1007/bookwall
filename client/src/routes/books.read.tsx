@@ -41,9 +41,8 @@ import {
 } from "@/types/api";
 import type { ReaderScale, ReaderSettings } from "@/types/api";
 
-// Keyed on the route param so navigating from one book's reader straight to
-// the next (series roll-over) fully remounts the reader, resetting page /
-// initialized / settings state instead of carrying the previous book's.
+// Keyed on the route param so a series roll-over remounts the reader,
+// resetting page / initialized / settings state.
 export default function ReaderPage() {
   const { id } = useParams();
   return <ReaderPageInner key={id} />;
@@ -53,9 +52,7 @@ function ReaderPageInner() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  // Pop the entry that brought us here so a deep stack
-  // (list → detail → reader) collapses back to the list when the user
-  // taps back twice. Falls back to the detail page on a deep link.
+  // Deep-link entries (no PUSH/REPLACE history) fall back to the detail page.
   const navType = useNavigationType();
   const goBack = useCallback(() => {
     if (navType === "PUSH" || navType === "REPLACE") {
@@ -82,12 +79,8 @@ function ReaderPageInner() {
   const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
     useFullscreen(readerContainerRef);
 
-  // Restore once useResolvedReaderSettings reports both queries have
-  // settled (see that hook for the merge / settled-gate rationale). Done
-  // during render (not in an effect) so the restored values land in the
-  // same commit, before the reader is allowed to paint (gated on
-  // `initialized` below) — otherwise page 0 flashes briefly before
-  // jumping to the saved page.
+  // Restore during render (not an effect) so the saved page lands in the
+  // same commit as the first paint, avoiding a page-0 flash.
   if (!initialized && resolved.ready) {
     setPage(resolved.currentPage);
     setSpread(resolved.settings.spread ?? false);
@@ -100,8 +93,7 @@ function ReaderPageInner() {
   const step = spread ? 2 : 1;
   const lastPage = Math.max(0, total - 1);
 
-  // At the last page, advancing rolls over to the next book in the series
-  // (when one exists) instead of staying put.
+  // At the last page, advancing rolls over to the next series book if any.
   const goNext = useCallback(() => {
     if (page >= lastPage) {
       const next = nextBook.data;
@@ -115,8 +107,7 @@ function ReaderPageInner() {
     setPage((p) => Math.max(p - step, 0));
   }, [step]);
 
-  // Single-page nudges (Shift+Arrow). Useful in spread mode when the
-  // pages are offset by one and the reader needs to re-pair them.
+  // Single-page nudge to re-pair an offset spread.
   const goNextOne = useCallback(() => {
     setPage((p) => Math.min(p + 1, lastPage));
   }, [lastPage]);
@@ -125,8 +116,7 @@ function ReaderPageInner() {
     setPage((p) => Math.max(p - 1, 0));
   }, []);
 
-  // Debounced progress save (only after we've restored, so we don't clobber
-  // the saved value with the initial 0).
+  // Save only after restore, so we don't clobber the saved value with 0.
   const debounceRef = useRef<number | null>(null);
   useEffect(() => {
     if (!initialized || !id) return;
@@ -137,7 +127,6 @@ function ReaderPageInner() {
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-    // update.mutate is stable enough; intentionally only depend on page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, initialized, id]);
 
@@ -170,9 +159,8 @@ function ReaderPageInner() {
       return next;
     });
   }, [saveSettings, direction, scale]);
-  // In fullscreen, the browser's own Esc handler exits fullscreen already
-  // (apiFullscreen path) but pseudo-fullscreen needs us to clear it
-  // explicitly. Either way, don't navigate away on the same Esc press.
+  // Esc exits fullscreen first (pseudo-fullscreen needs explicit clear),
+  // never navigating away on the same press.
   const handleEscape = useCallback(() => {
     if (isFullscreen) exitFullscreen();
     else goBack();
@@ -191,7 +179,6 @@ function ReaderPageInner() {
     onEscape: handleEscape,
   });
 
-  // LTR: left half = prev / right half = next. RTL inverts.
   const onLeftHalfClick = direction === "ltr" ? goPrev : goNext;
   const onRightHalfClick = direction === "ltr" ? goNext : goPrev;
 
@@ -201,9 +188,7 @@ function ReaderPageInner() {
     return direction === "rtl" ? [...base].reverse() : base;
   }, [page, spread, direction, total]);
 
-  // Pages to preload into the browser cache so the next page-turn
-  // doesn't re-download. We always look 1 page behind and N pages
-  // ahead, where N is the user preference (default 4).
+  // Preload 1 page behind and N ahead (N = user preference) into cache.
   const preloadPages = useMemo(() => {
     if (total === 0) return [];
     const ahead =
@@ -221,13 +206,8 @@ function ReaderPageInner() {
     return [...ids];
   }, [page, spread, total, visiblePages, preferences.data]);
 
-  // Tailwind classes per scale mode. Spread layouts apply the same scale to
-  // the **pair** of pages as a single unit — `fit` shrinks both side-by-side
-  // until either edge hits the viewport; `fit_width` splits the viewport
-  // width 50/50 between the two pages; etc.
   const viewportClass = useMemo(() => {
-    // No gap between pages: in spread mode the two pages must butt up
-    // against each other so they read as a single canvas.
+    // No gap: spread pages must butt up against each other.
     const base = "flex px-2";
     switch (scale) {
       case "fit":
@@ -244,19 +224,13 @@ function ReaderPageInner() {
   const imageClass = useMemo(() => {
     switch (scale) {
       case "fit":
-        // `h-full w-auto` makes the <img> element take its width from its
-        // natural aspect ratio (so no horizontal gap is rendered around
-        // the image itself), while still scaling up to fill the height.
-        // `max-w-[50%]` in spread mode prevents either page from spilling
-        // past the viewport's midline so the two halves meet flush.
+        // max-w-[50%] in spread mode keeps each page on its half so they meet flush.
         return spread
           ? "h-full w-auto max-w-[50%] object-contain"
           : "h-full w-auto max-w-full object-contain";
       case "fit_height":
         return "h-full max-w-none w-auto";
       case "fit_width":
-        // Spread: each page gets half the viewport width so the pair lines
-        // up flush. Single: full viewport width.
         return spread ? "w-1/2 max-h-none h-auto" : "w-full max-h-none h-auto";
       case "original":
         return "max-w-none max-h-none";
@@ -292,9 +266,7 @@ function ReaderPageInner() {
     return <PdfReaderView key={book.data.id} book={book.data} />;
   }
 
-  // Hold the image/CBZ/PDF reader on the loading screen until progress has
-  // been restored, so the saved page is the first thing painted instead of
-  // page 0 flashing before the jump.
+  // Hold on the loading screen until restored, so page 0 never flashes.
   if (!initialized) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white">
@@ -364,10 +336,7 @@ function ReaderPageInner() {
           size="icon"
           aria-label={t("reader.fullscreen.exit")}
           onClick={toggleFullscreen}
-          // The pill sits above the page area and outside any click-to-page
-          // zone so a thumb-tap to exit never doubles as a page advance.
-          // pt-[env(safe-area-inset-top)] / pr-[env(safe-area-inset-right)]
-          // honors notches on mobile.
+          // Sits outside the click-to-page zones so exiting never advances a page.
           className="fixed right-2 top-2 z-40 size-10 rounded-full bg-black/40 text-white opacity-60 backdrop-blur transition-opacity hover:bg-black/60 hover:opacity-100 focus-visible:opacity-100"
           style={{
             top: "max(0.5rem, env(safe-area-inset-top))",
@@ -387,10 +356,8 @@ function ReaderPageInner() {
         ) : (
           <div className={viewportClass}>
             {visiblePages.map((p, slot) => (
-              // Slot-based key keeps the same <img> element across page
-              // turns so the browser holds onto the previous image until
-              // the new src has decoded — that's the main trick that
-              // eliminates the blank-frame flicker.
+              // Slot-based key reuses the same <img> across page turns,
+              // holding the old image until the new src decodes (no flicker).
               <img
                 key={`slot-${slot}`}
                 src={`/api/books/${id}/pages/${p}`}
@@ -403,10 +370,6 @@ function ReaderPageInner() {
             ))}
           </div>
         )}
-        {/* Click hot-zones — limited to the outer ~12% margins on each
-            side, leaving the middle of the page free for a future
-            zoom / context-menu / overlay UI. RTL inverts the mapping
-            (see onLeftHalfClick / onRightHalfClick above). */}
         <button
           type="button"
           aria-label={t("reader.pager.prev")}
@@ -420,10 +383,7 @@ function ReaderPageInner() {
           className="absolute inset-y-0 right-0 z-10 w-[12%] cursor-pointer bg-transparent transition-colors duration-150 hover:bg-white/10 focus-visible:bg-white/10 focus:outline-none"
         />
 
-        {/* Hidden preload pool — keeps the next few pages (and the page
-            we just left) warm in the browser cache so navigation feels
-            instant. position:absolute + size 0 keeps it out of layout
-            without `display:none` (which can suppress some fetches). */}
+        {/* Preload pool: size-0 + absolute, not display:none (which can suppress fetches). */}
         <div
           aria-hidden
           className="pointer-events-none absolute size-0 overflow-hidden opacity-0"
@@ -444,9 +404,7 @@ function ReaderPageInner() {
             value={page}
             min={0}
             max={Math.max(0, total - 1)}
-            // Always advance by one page on the slider, even when spread
-            // is on — otherwise the user can never land on an "odd"
-            // page to re-pair an offset spread.
+            // Always step 1, even in spread, so an odd page can re-pair the spread.
             step={1}
             direction={direction}
             onSeek={(n) => setPage(n)}

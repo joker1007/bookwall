@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 module Api
-  # Read-only directory browser for the "add library" UI. The user types
-  # absolute paths into Bookwall the rails process can see; this just
-  # makes the typing a click. Authenticated and limited to listing
-  # subdirectories the process actually has permission to read.
   class FilesystemController < BaseController
     DEFAULT_ROOT = "/"
     MAX_ENTRIES = 500
@@ -43,9 +39,7 @@ module Api
 
     def parent_of(dir)
       parent = dir.parent
-      # Pathname("/").parent == Pathname("/"), so the only way "we're at
-      # the root and there's no further up" surfaces is by checking
-      # against the path itself.
+      # Pathname("/").parent == Pathname("/"); detect root by self-equality.
       return nil if parent.to_s == dir.to_s
       parent.to_s
     end
@@ -58,7 +52,6 @@ module Api
         entries << {name: basename.to_s, path: full.to_s}
         break if entries.size >= MAX_ENTRIES
       end
-      # Sort case-insensitively so /home/user/Books shows above /home/user/code.
       entries.sort_by { |e| e[:name].downcase }
     rescue Errno::EACCES, Errno::ENOENT
       []

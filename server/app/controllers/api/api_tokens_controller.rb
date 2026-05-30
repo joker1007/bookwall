@@ -32,9 +32,7 @@ module Api
       nil
     end
 
-    # The plaintext token is intentionally returned on every read because
-    # Bookwall is designed for a private/VPN deployment where convenient
-    # re-display matters more than zero-trust digest-only storage.
+    # Plaintext token intentionally re-displayed on read (private/VPN deployment).
     def serialize_token(token)
       {
         id: token.id,

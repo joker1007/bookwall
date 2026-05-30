@@ -3,16 +3,9 @@
 require "retriable"
 
 module Scanners
-  # Wraps a SQLite write block so it survives transient BUSY errors from other
-  # writers (e.g. the web process committing favorites or reading progress
-  # while the scanner is also writing). The driver already honors busy_timeout;
-  # this adds an application-level retry on top so very long contention windows
-  # still succeed instead of failing the whole scan.
+  # Application-level retry on SQLite BUSY, layered on top of the driver's busy_timeout.
   module SqliteRetryable
-    # ActiveRecord::StatementInvalid whose message (or wrapped cause) matches
-    # one of these patterns means SQLite returned BUSY — the writer can retry
-    # safely. Other StatementInvalid causes (constraint violations etc.) are
-    # not retried.
+    # Only StatementInvalid matching this (BUSY) is retried; constraint violations are not.
     SQLITE_BUSY_PATTERN = /database is locked|SQLITE_BUSY|SQLite3::BusyException/
 
     def with_busy_retry(&block)

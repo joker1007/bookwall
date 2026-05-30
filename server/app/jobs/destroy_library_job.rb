@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-# Cascading a library destroy through its books/series/scan_logs can be slow
-# for large libraries, so the controller marks deleting_at and offloads the
-# actual destroy here. The record stays hidden (see Library.not_deleting)
-# until this finishes.
+# Offloaded cascade destroy; record stays hidden via Library.not_deleting until done.
 class DestroyLibraryJob < ApplicationJob
   queue_as :default
 

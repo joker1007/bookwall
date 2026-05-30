@@ -31,8 +31,6 @@ interface CollectionAssignDialogProps {
   onAssigned?: () => void;
 }
 
-// Adds the selected books to a collection. The user can pick an existing
-// collection or type a name to create a new one in the same step.
 export function CollectionAssignDialog({
   open,
   onOpenChange,
@@ -47,7 +45,6 @@ export function CollectionAssignDialog({
   const [existingId, setExistingId] = useState<string>("");
   const [newName, setNewName] = useState("");
 
-  // Reset the form whenever the dialog (re)opens (render-time, no effect).
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -73,7 +70,7 @@ export function CollectionAssignDialog({
       onOpenChange(false);
       onAssigned?.();
     } catch {
-      // Errors surface via the mutation state below.
+      /* empty */
     }
   };
 

@@ -12,13 +12,9 @@ export const ITEM_SIZE_DEFAULT = 160;
 
 interface UiState {
   displayMode: DisplayMode;
-  // Last sort order the user picked in any BookListView. Used as the
-  // fallback when a page's URL doesn't carry `?sort=`, so navigating
-  // between book lists carries the preference along.
+  // Fallback when a page's URL doesn't carry `?sort=`.
   sortOrder: string;
   sidebarOpen: boolean;
-  // Minimum width of one grid cell, in px. Drives the auto-fill grid
-  // template so the user can dial cover thumbnails up or down.
   itemSize: number;
   perPage: PerPage;
   setDisplayMode: (mode: DisplayMode) => void;

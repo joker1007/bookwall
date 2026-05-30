@@ -11,8 +11,6 @@ interface ReaderScrubberProps {
   min: number;
   max: number;
   step?: number;
-  // direction reverses the visual orientation of the slider (RTL books
-  // expect the start to be on the right).
   direction?: "ltr" | "rtl";
   onSeek: (next: number) => void;
   onCommit?: (next: number) => void;
@@ -21,16 +19,8 @@ interface ReaderScrubberProps {
   ariaLabel: string;
 }
 
-/**
- * A page-jump scrubber that auto-hides until the user hovers near the
- * bottom of the reader. Showing a preview (book page thumbnail / chapter
- * label) as the user drags or hovers over the track makes long jumps
- * feel less like a roulette spin.
- *
- * Uses pointer events throughout instead of mouse events so the hover
- * preview works the same on touch — once a finger lands on the slider
- * iOS / Android stop firing mousemove, but pointermove still arrives.
- */
+// Pointer events throughout, not mouse events: once a finger lands on the
+// slider iOS / Android stop firing mousemove, but pointermove still arrives.
 export function ReaderScrubber({
   value,
   min,
@@ -43,22 +33,14 @@ export function ReaderScrubber({
   formatLabel,
   ariaLabel,
 }: ReaderScrubberProps) {
-  // Track which value the cursor is hovering over (separate from the
-  // current scrubber value so the preview can show the *destination*
-  // while the user is still deciding).
   const trackRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const [hoverState, setHoverState] = useState<{
     value: number;
     clientX: number;
-    // Preview anchor (px from the track's left edge), computed at
-    // pointer time so render never has to read the ref.
     offset: number;
   } | null>(null);
-  // Mirrors the dragging ref into renderable state so the visible
-  // panel can stay at full opacity for the entire touch interaction
-  // (touch devices have no hover; without this the scrubber would
-  // remain at 30% opacity even while the user is sliding their finger).
+  // Touch has no hover; without this the panel stays at 30% opacity while sliding.
   const [touchActive, setTouchActive] = useState(false);
 
   const range = Math.max(0, max - min);
@@ -86,10 +68,6 @@ export function ReaderScrubber({
     updateHoverFromPointer(e.clientX);
   };
 
-  // Mouse-only event — fires when the cursor exits the track without a
-  // drag in progress. Touch never sends a leave during a drag (the
-  // pointer is captured by the input), so guarding by draggingRef
-  // prevents accidental preview dismissal while sliding.
   const handlePointerLeave = (e: ReactPointerEvent<HTMLElement>) => {
     if (e.pointerType === "touch") return;
     if (draggingRef.current) return;
@@ -111,9 +89,6 @@ export function ReaderScrubber({
   const handlePointerUp = (e: ReactPointerEvent<HTMLInputElement>) => {
     draggingRef.current = false;
     onCommit?.(value);
-    // For touch, no idle hover state exists — dismiss the preview and
-    // drop the panel back to its faint resting opacity now so it
-    // doesn't linger after the finger lifts.
     if (e.pointerType === "touch") {
       setHoverState(null);
       setTouchActive(false);
@@ -126,16 +101,12 @@ export function ReaderScrubber({
     setTouchActive(false);
   };
 
-  // The preview is anchored to the hovered X coordinate (clamped inside
-  // the track at pointer time, see updateHoverFromPointer).
   const previewStyle = hoverState
     ? ({ left: `${hoverState.offset}px` } as const)
     : undefined;
 
   return (
     <div className="group pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-stretch">
-      {/* Lower capture strip — invisible, but expands the hover hit area
-          so the user doesn't have to land precisely on a thin slider. */}
       <div className="pointer-events-auto h-12" aria-hidden />
 
       <div
@@ -184,8 +155,7 @@ export function ReaderScrubber({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
-              // Block the browser from interpreting horizontal touches
-              // here as page scrolls — the slider needs the gesture.
+              // touchAction none: stop the browser treating horizontal touch as scroll.
               style={{ touchAction: "none" }}
               className="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent
                 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none

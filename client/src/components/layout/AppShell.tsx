@@ -14,12 +14,10 @@ export function AppShell() {
       <Header onOpenSidebar={() => setMobileNavOpen(true)} />
 
       <div className="flex flex-1">
-        {/* desktop sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
           <Sidebar />
         </aside>
 
-        {/* mobile sidebar */}
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetContent
             side="left"

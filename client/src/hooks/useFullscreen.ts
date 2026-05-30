@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { RefObject } from "react";
 
-/**
- * Toggleable fullscreen state for an element, with a graceful CSS-only
- * fallback for browsers (notably iOS Safari) that refuse the Fullscreen
- * API on arbitrary elements.
- *
- * `isFullscreen` is true when EITHER the native API succeeded OR the
- * pseudo-fullscreen flag is on, so consumers can collapse their UI
- * chrome without caring which mode they're in.
- */
+// CSS-only pseudo-fullscreen fallback for browsers (iOS Safari) that refuse
+// the Fullscreen API on arbitrary elements.
 export function useFullscreen(targetRef?: RefObject<HTMLElement | null>) {
   const [apiFullscreen, setApiFullscreen] = useState(
     typeof document !== "undefined" && !!document.fullscreenElement,
@@ -22,8 +15,7 @@ export function useFullscreen(targetRef?: RefObject<HTMLElement | null>) {
     return () => document.removeEventListener("fullscreenchange", sync);
   }, []);
 
-  // Leave fullscreen on unmount so navigating away from the reader
-  // doesn't leave the browser stuck in fullscreen.
+  // Leave fullscreen on unmount.
   useEffect(() => {
     return () => {
       if (document.fullscreenElement) {
@@ -39,7 +31,7 @@ export function useFullscreen(targetRef?: RefObject<HTMLElement | null>) {
         await target.requestFullscreen();
         return;
       } catch {
-        // permission denied or unsupported on this element/platform
+        // denied/unsupported: fall through to pseudo-fullscreen
       }
     }
     setPseudoFullscreen(true);
@@ -50,7 +42,7 @@ export function useFullscreen(targetRef?: RefObject<HTMLElement | null>) {
       try {
         await document.exitFullscreen();
       } catch {
-        // ignore — apiFullscreen will desync but pseudo path still works
+        // ignore: pseudo path still resets below
       }
     }
     setPseudoFullscreen(false);

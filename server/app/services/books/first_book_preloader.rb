@@ -1,23 +1,13 @@
 # frozen_string_literal: true
 
 module Books
-  # Batch-resolve the "first book" of each Series / Author / Tag in a
-  # collection so the taxonomy index pages can render thumbnails without
-  # firing the N queries (book lookup) + 3N queries (Active Storage
-  # cover preload) that calling `record.first_book` per row would.
-  #
-  # Each method returns a Hash<parent_id, Book> where the returned Book
-  # already has its cover attachment / blob / variant_records preloaded.
-  #
-  # Pass library_ids to restrict the sample book to accessible libraries so a
-  # tag/author spanning a private library does not leak a cover from it. nil
-  # means "no restriction".
+  # Batch-resolves each parent's "first book" (with cover preloaded) to avoid
+  # the N + 3N queries of calling record.first_book per row. library_ids
+  # restricts the sample so a parent spanning a private library can't leak its
+  # cover; nil means no restriction.
   module FirstBookPreloader
     module_function
 
-    # Series.first_book picks the earliest volume (NULLs last). Uses a
-    # correlated subquery to find one book id per series, then loads
-    # those books in a single query with cover preloads chained.
     def for_series(series_records, library_ids: nil)
       ids = series_records.map(&:id)
       return {} if ids.empty?
@@ -40,15 +30,10 @@ module Books
       Book.where(id: first_book_ids).with_attached_cover.index_by(&:series_id)
     end
 
-    # Author joins through the book_authors table; the first book is the
-    # earliest added_at. The pattern below works for any HABTM-style
-    # "first per parent" lookup — pass the join model name and foreign key.
     def for_authors(author_records, library_ids: nil)
       first_book_per_join("book_authors", :author_id, author_records.map(&:id), library_ids: library_ids)
     end
 
-    # Collections group books through collection_books; the first book is the
-    # earliest added_at, same shape as authors.
     def for_collections(collection_records, library_ids: nil)
       first_book_per_join("collection_books", :collection_id, collection_records.map(&:id), library_ids: library_ids)
     end

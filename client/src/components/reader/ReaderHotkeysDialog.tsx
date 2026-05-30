@@ -12,9 +12,6 @@ import {
 interface ReaderHotkeysDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // CBZ / PDF / image_dir support a spread mode where one arrow press
-  // advances two pages — Shift+Arrow nudges by one to re-pair them.
-  // EPUB has no equivalent so we omit the row there.
   showSinglePageNudge?: boolean;
 }
 

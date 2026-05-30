@@ -1,13 +1,8 @@
 # frozen_string_literal: true
 
 module Cleanup
-  # Prunes metadata whose backing data is gone: books whose files have
-  # disappeared from disk, then the tags/authors left carrying no books.
-  # Files on disk are never touched — only the records.
-  #
-  # Books must be processed first because destroying a book cascades its
-  # BookTag / BookAuthor joins, which is exactly what leaves a tag/author
-  # orphaned for the subsequent passes to sweep up.
+  # Books must be pruned before tags/authors: destroying a book cascades its
+  # join rows, which is what leaves the tags/authors orphaned for later passes.
   class OrphanCleaner
     Result = Struct.new(:removed_books, :removed_tags, :removed_authors, keyword_init: true)
 
@@ -29,16 +24,12 @@ module Cleanup
 
     def remove_missing_file_books
       removed_ids = []
-      # Suppress Book#after_commit's per-row FTS delete; collect the ids and
-      # enqueue a single bulk delete at the end so SQLite's writer lock is
-      # exercised once, mirroring the scanner.
+      # Suppress per-row FTS callback; do a single bulk delete to hit SQLite's writer lock once.
       previous_skip = Thread.current[:bookwall_skip_fts_callback]
       Thread.current[:bookwall_skip_fts_callback] = true
       begin
         Library.find_each do |library|
-          # If the library root itself is unavailable (e.g. an unmounted
-          # drive) skip it wholesale, so a temporarily missing mount can't
-          # mass-delete every book under it.
+          # Skip an unavailable root (e.g. unmounted drive) so it can't mass-delete every book under it.
           next unless Dir.exist?(library.path)
 
           library.books.find_each do |book|

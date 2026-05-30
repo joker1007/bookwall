@@ -8,8 +8,7 @@ module Parsers
       @path = path
     end
 
-    # @return [Hash{Symbol=>Object}] title:, series:, volume:, authors:[],
-    #   tags:[], published_at:, page_count:
+    # @return [Hash] title:, series:, volume:, authors:[], tags:[], published_at:, page_count:
     def metadata
       raise NotImplementedError
     end
@@ -18,19 +17,15 @@ module Parsers
       raise NotImplementedError
     end
 
-    # @return [String] binary image bytes (JPEG/PNG/WebP)
     def cover_bytes
       raise NotImplementedError
     end
 
-    # @param index [Integer] 0-based page index
-    # @return [String] binary image bytes
+    # index is 0-based.
     def page_bytes(index)
       raise NotImplementedError
     end
 
-    # @param index [Integer] 0-based page index
-    # @return [String] MIME type of the bytes returned by #page_bytes(index)
     def page_content_type(_index)
       "image/jpeg"
     end

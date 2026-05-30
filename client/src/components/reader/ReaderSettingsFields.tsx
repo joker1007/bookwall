@@ -16,15 +16,10 @@ interface ReaderOptionFieldProps<V extends string> {
   optionLabel: (value: V) => string;
   onChange: (value: V) => void;
   disabled?: boolean;
-  // Most option sets wrap (theme / scale / writing-mode); the two-item
-  // direction toggle stays on one line.
   wrap?: boolean;
   hint?: ReactNode;
 }
 
-// Labeled single-select ToggleGroup over a fixed, validated option set.
-// Used for direction / scale / theme / writing-mode in every reader settings
-// surface.
 export function ReaderOptionField<V extends string>({
   label,
   value,

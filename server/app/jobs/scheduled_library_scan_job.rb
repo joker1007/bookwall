@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# Fired daily by SolidQueue. Enqueues a scan for every library that opts in,
-# but only while the global daily-scan switch is on. The actual scanning is
-# delegated to the existing ScanLibraryJob so each library runs independently.
 class ScheduledLibraryScanJob < ApplicationJob
   queue_as :default
 

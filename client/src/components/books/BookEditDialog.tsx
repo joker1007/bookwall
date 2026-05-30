@@ -30,9 +30,6 @@ export function BookEditDialog({ book, open, onOpenChange }: BookEditDialogProps
   const [authorNames, setAuthorNames] = useState(book.authors.map((a) => a.name).join(", "));
   const [tagNames, setTagNames] = useState(book.tags.map((tag) => tag.name).join(", "));
 
-  // Re-seed the form from the book whenever the dialog (re)opens or the
-  // target book changes while open, discarding any unsaved edits. Done
-  // during render (not in an effect) so there's no extra render pass.
   const [syncedKey, setSyncedKey] = useState<number | null>(null);
   const activeKey = open ? book.id : null;
   if (activeKey !== syncedKey) {
@@ -59,7 +56,7 @@ export function BookEditDialog({ book, open, onOpenChange }: BookEditDialogProps
       });
       onOpenChange(false);
     } catch {
-      // shown below
+      /* empty */
     }
   };
 

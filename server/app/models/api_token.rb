@@ -33,8 +33,6 @@ class ApiToken < ApplicationRecord
     end
   end
 
-  # Backwards-compat alias kept for code that read the issued plaintext via
-  # the previous API. The plaintext is now persisted on the `token` column.
   def plain_token
     token
   end

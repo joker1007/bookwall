@@ -1,10 +1,7 @@
 # frozen_string_literal: true
 
 module Books
-  # Single source of truth for mapping a book's file_format to its download
-  # extension, MIME type, and a safe Content-Disposition filename. image_dir
-  # books are repackaged as CBZ at download time, so they share CBZ's
-  # extension and MIME.
+  # image_dir books are repackaged as CBZ at download time, so they share CBZ's extension/MIME.
   module FileFormat
     EXTENSIONS = {
       "cbz" => ".cbz",
@@ -22,8 +19,7 @@ module Books
 
     DEFAULT_MIME = "application/octet-stream"
 
-    # Path separators, control chars, and quotes are stripped so the title
-    # can't break out of the Content-Disposition filename header.
+    # Stripped to prevent breaking out of the Content-Disposition filename header.
     UNSAFE_FILENAME_CHARS = /[\x00-\x1f\x7f"\/\\]/
 
     module_function

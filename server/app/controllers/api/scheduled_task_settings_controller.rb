@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 module Api
-  # Application-wide on/off switches for the recurring background tasks
-  # (daily library scan, cleanup). A single shared row; any authenticated
-  # user may read and toggle it.
   class ScheduledTaskSettingsController < BaseController
     def show
       render json: serialize(ScheduledTaskSetting.instance)

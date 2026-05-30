@@ -9,9 +9,6 @@ import type { Book } from "@/types/api";
 
 interface BookActionsProps {
   book: Book;
-  // "overlay" floats over the cover (used by BookCard); "inline" sits flush
-  // in the row's flex layout (used by BookRow). Both render above the
-  // sibling stretched <Link> via z-10.
   layout?: "overlay" | "inline";
 }
 
@@ -21,8 +18,6 @@ export function BookActions({ book, layout = "inline" }: BookActionsProps) {
   const remove = useDeleteBook();
 
   const handleFavorite = (e: MouseEvent) => {
-    // Stretched-link sibling: the click never reaches the link below, but
-    // stopPropagation guards against any wrapper that might also listen.
     e.preventDefault();
     e.stopPropagation();
     favorite.mutate({ id: book.id, favorited: book.favorited });

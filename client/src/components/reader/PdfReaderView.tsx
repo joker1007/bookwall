@@ -59,23 +59,16 @@ import type { Book, ReaderScale, ReaderSettings } from "@/types/api";
 
 type PdfjsModule = Awaited<ReturnType<typeof loadPdfjs>>;
 
-// A canvas wider/taller than this many device pixels gets its render scale
-// clamped down so a huge page can't allocate a multi-hundred-MB bitmap.
+// Clamp render scale above this so a huge page can't allocate a giant bitmap.
 const MAX_CANVAS_PIXELS = 16_777_216;
 
-// Minimal PDFLinkService implementation: enough for the annotation layer to
-// wire up internal GoTo links (resolved to a page index, then routed back
-// through `onNavigate`) and external URL links (opened in a new tab). The
-// full PDFLinkService drags the whole pdfjs viewer component into the bundle.
+// Minimal PDFLinkService: the full one drags the whole pdfjs viewer component
+// into the bundle. Handles internal GoTo links and external URL links only.
 class ReaderLinkService {
   externalLinkEnabled = true;
-  // LinkTarget.BLANK — open external URLs in a new tab.
-  externalLinkTarget = 2;
+  externalLinkTarget = 2; // LinkTarget.BLANK
   externalLinkRel = "noopener noreferrer nofollow";
   #doc: PDFDocumentProxy;
-  // Routes an internal-link target back to the reader. Passed a stable
-  // wrapper that reads the latest setter from a ref, so the service never
-  // needs re-creating when the page-setter identity changes.
   #navigate: (pageIndex: number) => void;
 
   constructor(doc: PDFDocumentProxy, navigate: (pageIndex: number) => void) {
@@ -145,8 +138,7 @@ interface PdfReaderViewProps {
 export function PdfReaderView({ book }: PdfReaderViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  // Pop the entry that brought us here so back collapses the deep stack
-  // (list → detail → reader). Falls back to the detail page on a deep link.
+  // Falls back to the detail page on a deep-link entry with no history to pop.
   const navType = useNavigationType();
   const goBack = useCallback(() => {
     if (navType === "PUSH" || navType === "REPLACE") {
@@ -178,18 +170,13 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
-  // pdfjs / doc / linkService live in state (not refs) so render can hand
-  // them to the page views and re-render once the document is open.
   const [pdfjs, setPdfjs] = useState<PdfjsModule | null>(null);
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [linkService, setLinkService] = useState<ReaderLinkService | null>(null);
 
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  // Always-current page navigator for the link service (mutated in an effect
-  // below; refs are the React-sanctioned mutable escape hatch).
   const navigateRef = useRef<(pageIndex: number) => void>(() => {});
-  // Rendered-thumbnail data-URL cache, reset per book.
   const thumbCache = useMemo(() => {
     void book.id;
     return new Map<number, string>();
@@ -198,8 +185,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
   const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
     useFullscreen(readerContainerRef);
 
-  // Restore saved page + settings during render (not in an effect) so they
-  // land in the same commit, before the reader is allowed to paint — see
+  // Restore during render (not an effect) so it lands before paint — see
   // books.read.tsx for the page-0-flash rationale.
   if (!initialized && resolved.ready) {
     setPage(resolved.currentPage);
@@ -209,8 +195,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     setInitialized(true);
   }
 
-  // Load pdfjs + open the document. Range-fetched so a huge scanned PDF
-  // streams the pages we look at instead of downloading everything up front.
+  // Range-fetched (disableAutoFetch) so a huge scanned PDF streams on demand.
   useEffect(() => {
     if (progress.isPending) return;
     let cancelled = false;
@@ -261,11 +246,8 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
       }
       createdDoc?.destroy();
     };
-    // book.id captures the current book; progress.isPending gates the open
-    // until the saved page/settings are in hand, then re-runs once settled.
   }, [book.id, progress.isPending]);
 
-  // Measure the page area so each page can be scaled to fit.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -288,14 +270,13 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     [total],
   );
 
-  // Keep the link service's navigation closure current without re-creating
-  // the service (it's bound to the AnnotationLayer of already-rendered pages).
+  // Via ref so the link service (bound to already-rendered AnnotationLayers)
+  // never needs re-creating when goToPageIndex changes identity.
   useEffect(() => {
     navigateRef.current = goToPageIndex;
   }, [goToPageIndex]);
 
-  // At the last page, advancing rolls over to the next book in the series
-  // (when one exists) instead of staying put.
+  // At the last page, advancing rolls over to the next book in the series.
   const goNext = useCallback(() => {
     if (page >= lastPage) {
       const next = nextBook.data;
@@ -314,8 +295,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     setPage((p) => Math.max(p - 1, 0));
   }, []);
 
-  // Debounced progress save (only after restore, so we never clobber the
-  // saved page with the initial 0).
+  // Gated on `initialized` so we never clobber the saved page with the initial 0.
   const debounceRef = useRef<number | null>(null);
   useEffect(() => {
     if (!initialized) return;
@@ -385,9 +365,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     return direction === "rtl" ? [...base].reverse() : base;
   }, [page, spread, direction, total]);
 
-  // Warm the pages around the current spread so a page-turn renders without
-  // a fetch round-trip first (Range loading means an un-warmed page would
-  // otherwise stall on its byte ranges).
+  // Warm nearby pages so a page-turn doesn't stall on Range byte-range fetches.
   useEffect(() => {
     if (!doc || loadStatus !== "ready" || total === 0) return;
     const ahead =
@@ -428,8 +406,6 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     }
   }, [scale]);
 
-  // Width budget per page: a spread splits the viewport in half so the two
-  // pages meet flush, like the CBZ reader.
   const availWidth = spread ? viewportSize.width / 2 : viewportSize.width;
 
   if (loadStatus === "loading" || !initialized) {
@@ -554,8 +530,7 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
           ))}
         </div>
 
-        {/* Edge-only page-turn hot-zones; the middle stays free so text can
-            be selected and copied. */}
+        {/* Hot-zones limited to the outer 12% so the middle stays selectable. */}
         <button
           type="button"
           aria-label={t("reader.pager.prev")}
@@ -687,9 +662,8 @@ interface PdfPageViewProps {
   availHeight: number;
 }
 
-// One page slot: canvas (rendered off-screen then swapped in, so the
-// previous page stays visible until the new one is ready) plus an overlaid
-// text layer (selection / copy) and annotation layer (links).
+// Renders off-screen then swaps in, so the previous page stays visible until
+// the new one is ready (no blank flash between turns).
 function PdfPageView({
   pdfjs,
   doc,
@@ -730,8 +704,6 @@ function PdfPageView({
         );
         const viewport = page.getViewport({ scale: renderScale });
 
-        // Clamp the device-pixel multiplier so an enormous page can't
-        // allocate an unbounded bitmap.
         let outputScale = window.devicePixelRatio || 1;
         const area = viewport.width * viewport.height;
         if (area * outputScale * outputScale > MAX_CANVAS_PIXELS) {
@@ -757,23 +729,19 @@ function PdfPageView({
         const canvas = canvasRef.current;
         if (!container || !canvas) return;
 
-        // pdfjs's text/annotation layers size every span and glyph off
-        // `--total-scale-factor` (setLayerDimensions reads it but never sets
-        // it). Without it the text layer collapses and can't be selected.
+        // pdfjs layers size off `--total-scale-factor` (setLayerDimensions
+        // reads but never sets it); without it the text layer collapses.
         container.style.setProperty("--scale-factor", String(renderScale));
         container.style.setProperty("--total-scale-factor", String(renderScale));
         container.style.width = `${cssWidth}px`;
         container.style.height = `${cssHeight}px`;
 
-        // Swap the freshly rendered bitmap into the visible canvas in one
-        // step so the page never flashes blank between turns.
         canvas.width = offscreen.width;
         canvas.height = offscreen.height;
         canvas.style.width = `${cssWidth}px`;
         canvas.style.height = `${cssHeight}px`;
         canvas.getContext("2d")?.drawImage(offscreen, 0, 0);
 
-        // Text layer (selection / copy).
         const textDiv = textLayerRef.current;
         if (textDiv) {
           textLayerObjRef.current?.cancel();
@@ -789,7 +757,6 @@ function PdfPageView({
           if (cancelled) return;
         }
 
-        // Annotation layer (internal + external links).
         const annotDiv = annotationLayerRef.current;
         if (annotDiv && linkService) {
           annotDiv.replaceChildren();
@@ -868,12 +835,7 @@ interface PdfThumbProps {
   cache: Map<number, string>;
 }
 
-// Client-rendered scrubber thumbnail. Caches the rendered data URL per page
-// so re-hovering the same spot doesn't re-rasterize.
 function PdfThumb({ doc, pageNumber, cache }: PdfThumbProps) {
-  // Holds the most recently rendered (uncached) page so we can show it once
-  // its async render resolves. Cached pages are read straight from the map
-  // during render, so no synchronous state update is needed on a cache hit.
   const [rendered, setRendered] = useState<{ page: number; src: string } | null>(
     null,
   );

@@ -66,9 +66,8 @@ export function useBook(id: number | string | undefined) {
   });
 }
 
-// The next book in the same series, or null when this is the last volume.
-// The endpoint replies 204 (parsed as undefined) when there is no next
-// book, which we normalize to null so the query still resolves to data.
+// 204 (parsed as undefined) when no next book; normalize to null so the
+// query still resolves to data.
 export function useNextSeriesBook(book: Book | undefined) {
   return useQuery<Book | null>({
     queryKey: ["book_next_in_series", String(book?.id)],

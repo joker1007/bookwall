@@ -7,13 +7,10 @@ class ReadingProgress < ApplicationRecord
   belongs_to :book
 
   scope :for_user, ->(user) { where(user_id: user.id) }
-  # Rows the user has actually opened. last_read_at is NOT NULL today, so this
-  # is a defensive guard preserving the recent-reads query's original intent.
+  # Defensive: last_read_at is currently NOT NULL, but this preserves recent-reads intent.
   scope :read, -> { where.not(last_read_at: nil) }
   scope :in_libraries, ->(library_ids) { joins(:book).where(books: {library_id: library_ids}) }
 
-  # {book_id => progress} for the user across the given book ids — batch
-  # preload for BookSerializer's reading_progress block.
   def self.by_book_id_for(user, book_ids)
     return {} if book_ids.empty?
     for_user(user).where(book_id: book_ids).index_by(&:book_id)
@@ -21,8 +18,6 @@ class ReadingProgress < ApplicationRecord
 
   validates :current_page, numericality: {only_integer: true, greater_than_or_equal_to: 0}
 
-  # Settings are stored as a JSON string. Expose them as a Hash via these
-  # helpers so callers don't have to deal with parsing/serializing.
   def settings
     return {} if settings_json.blank?
     JSON.parse(settings_json)
