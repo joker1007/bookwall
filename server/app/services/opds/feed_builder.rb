@@ -27,12 +27,6 @@ module Opds
     # acquisition link and downloaded whole by the reader.
     PSE_STREAMABLE_FORMATS = %w[cbz pdf image_dir].freeze
 
-    # Served by Thruster / Rails static file server from server/public/opds/.
-    # Used when a book has no Active Storage cover attached so OPDS readers
-    # always have an image to render instead of a broken-link icon.
-    PLACEHOLDER_COVER_PATH = "/opds/placeholder-cover.jpg".freeze
-    PLACEHOLDER_THUMB_PATH = "/opds/placeholder-thumb.jpg".freeze
-
     def self.navigation(title:, id:, self_url:, entries:)
       build_feed do |xml|
         xml.title title
@@ -89,8 +83,8 @@ module Opds
                 xml.link(rel: THUMB_REL, href: helpers.rails_representation_path(variant, only_path: true), type: "image/jpeg")
               end
             else
-              xml.link(rel: IMAGE_REL, href: PLACEHOLDER_COVER_PATH, type: "image/jpeg")
-              xml.link(rel: THUMB_REL, href: PLACEHOLDER_THUMB_PATH, type: "image/jpeg")
+              xml.link(rel: IMAGE_REL, href: CoverPlaceholder::COVER_PATH, type: "image/jpeg")
+              xml.link(rel: THUMB_REL, href: CoverPlaceholder::THUMB_PATH, type: "image/jpeg")
             end
 
             if pse_streamable?(book) && book.page_count.to_i > 0

@@ -28,7 +28,7 @@ class BookSerializer
     helpers = Rails.application.routes.url_helpers
     {
       url: helpers.rails_blob_path(b.cover, only_path: true),
-      thumb_url: helpers.rails_representation_path(b.cover.variant(:thumb), only_path: true)
+      thumb_url: CoverUrlHelper.cover_thumb_url(b)
     }
   end
 

@@ -49,6 +49,14 @@ RSpec.describe BookSerializer do
       expect(cover[:url]).to be_present
       expect(cover[:thumb_url]).to be_present
     end
+
+    it "falls back to a placeholder thumb when the cover is not variable" do
+      book = attach_cover(create(:book, library: library),
+        filename: "cover.svg", content_type: "image/svg+xml")
+      cover = serialize(book)["cover"]
+      expect(cover[:url]).to be_present
+      expect(cover[:thumb_url]).to eq("/opds/placeholder-thumb.jpg")
+    end
   end
 
   describe "reading_progress" do
