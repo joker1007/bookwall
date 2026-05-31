@@ -6,6 +6,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
+import net.joker1007.bookwall.data.opds.FeedParser
+import net.joker1007.bookwall.data.opds.OpdsParser
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
 import javax.inject.Singleton
@@ -21,4 +23,7 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun bindServerRepository(impl: ServerRepositoryImpl): ServerRepository
+
+    @Binds
+    abstract fun bindFeedParser(impl: OpdsParser): FeedParser
 }
