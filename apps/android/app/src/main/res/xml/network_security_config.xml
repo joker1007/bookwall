@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  OPDS servers are user-supplied and commonly self-hosted, so cleartext HTTP
+  is permitted. HTTPS still validates against system + user-installed CAs;
+  self-signed certificates are handled per-server in the OkHttp layer when the
+  user explicitly opts in.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
