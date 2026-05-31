@@ -10,6 +10,8 @@ import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
+import net.joker1007.bookwall.network.ServerImageLoaderFactory
+import net.joker1007.bookwall.network.ServerImageLoaderProvider
 import javax.inject.Singleton
 
 @Module
@@ -26,4 +28,8 @@ abstract class BindingsModule {
 
     @Binds
     abstract fun bindFeedParser(impl: OpdsParser): FeedParser
+
+    @Binds
+    @Singleton
+    abstract fun bindServerImageLoaderProvider(impl: ServerImageLoaderFactory): ServerImageLoaderProvider
 }

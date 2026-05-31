@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -36,6 +38,7 @@ import net.joker1007.bookwall.data.server.OpdsServer
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServersScreen(
+    onOpenServer: (Long) -> Unit,
     onAddServer: () -> Unit,
     onEditServer: (Long) -> Unit,
     viewModel: ServersViewModel = hiltViewModel(),
@@ -70,7 +73,8 @@ fun ServersScreen(
                 items(servers, key = { it.id }) { server ->
                     ServerRow(
                         server = server,
-                        onClick = { onEditServer(server.id) },
+                        onClick = { onOpenServer(server.id) },
+                        onEdit = { onEditServer(server.id) },
                         onDelete = { viewModel.deleteServer(server.id) },
                     )
                 }
@@ -102,31 +106,42 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ServerRow(server: OpdsServer, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun ServerRow(server: OpdsServer, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = server.name, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = server.baseUrl,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = server.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = server.baseUrl,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (server.authType == AuthType.BASIC) {
                     Text(text = "Basic 認証", style = MaterialTheme.typography.labelSmall)
                 }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.testTag(ServersScreenTags.deleteTag(server.id)),
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "削除")
-                }
+            }
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier.testTag(ServersScreenTags.editTag(server.id)),
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "編集")
+            }
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.testTag(ServersScreenTags.deleteTag(server.id)),
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "削除")
             }
         }
     }
@@ -136,5 +151,6 @@ object ServersScreenTags {
     const val ROOT = "servers_screen_root"
     const val EMPTY_MESSAGE = "servers_empty_message"
     const val ADD_FAB = "servers_add_fab"
+    fun editTag(id: Long) = "servers_edit_$id"
     fun deleteTag(id: Long) = "servers_delete_$id"
 }
