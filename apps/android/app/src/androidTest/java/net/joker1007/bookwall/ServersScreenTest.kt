@@ -2,6 +2,7 @@ package net.joker1007.bookwall
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import net.joker1007.bookwall.robot.onServerForm
 import net.joker1007.bookwall.robot.onServersScreen
 import org.junit.Rule
 import org.junit.Test
@@ -14,10 +15,16 @@ class ServersScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun showsEmptyStateOnLaunch() {
+    fun serverListShowsAddButton() {
         composeRule.onServersScreen {
             assertScreenDisplayed()
-            assertEmptyStateShown()
+            assertAddButtonDisplayed()
         }
+    }
+
+    @Test
+    fun tappingAddOpensServerForm() {
+        composeRule.onServersScreen { clickAdd() }
+        composeRule.onServerForm { assertDisplayed() }
     }
 }

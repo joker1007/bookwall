@@ -39,9 +39,9 @@ Bookwall サーバーの OPDS フィードを参照し、CBZ / EPUB / PDF / 画�
 
 ## 実装フェーズ
 
-- Phase 0: Compose/Hilt 基盤、Robot E2E 基盤 ← 進行中
-- Phase 1: OPDS サーバー管理(Basic 認証・SSL/自己署名)+ 認証情報の暗号化保管
-- Phase 2: OPDS クライアント(パーサ + リポジトリ)とカタログ取得
+- Phase 0: Compose/Hilt 基盤、Robot E2E 基盤 ✅
+- Phase 1: OPDS サーバー管理(Basic 認証・SSL/自己署名)+ 認証情報の暗号化保管 ✅
+- Phase 2: OPDS クライアント(パーサ + リポジトリ)とカタログ取得 ← 次
 - Phase 3: カタログ UI(リスト/グリッド・ソート・サムネキャッシュ・詳細・進捗表示)
 - Phase 4: 画像系リーダー(PSE 主軸、見開き・LTR/RTL・タップゾーン・プリロード・スクロールバー)
 - Phase 5: EPUB リーダー(Readium、TOC・フォント・縦書き・ルビ)

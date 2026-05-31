@@ -3,6 +3,7 @@ package net.joker1007.bookwall.robot
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import net.joker1007.bookwall.feature.servers.ServersScreenTags
 
 /** Robot driving the OPDS server list screen. */
@@ -12,8 +13,16 @@ class ServersRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
         composeRule.onNodeWithTag(ServersScreenTags.ROOT).assertIsDisplayed()
     }
 
+    fun assertAddButtonDisplayed() = apply {
+        composeRule.onNodeWithTag(ServersScreenTags.ADD_FAB).assertIsDisplayed()
+    }
+
     fun assertEmptyStateShown() = apply {
         composeRule.onNodeWithTag(ServersScreenTags.EMPTY_MESSAGE).assertIsDisplayed()
+    }
+
+    fun clickAdd() = apply {
+        composeRule.onNodeWithTag(ServersScreenTags.ADD_FAB).performClick()
     }
 }
 
