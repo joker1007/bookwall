@@ -27,7 +27,10 @@ data class ReaderUiState(
     val currentPage: Int = 0,
     val direction: ReadingDirection = ReadingDirection.RTL,
     val spreadEnabled: Boolean = false,
+    /** Shifts spread pairing by one page to realign mismatched spreads (0 or 1). */
+    val pageOffset: Int = 0,
     val menuVisible: Boolean = false,
+    val settingsVisible: Boolean = false,
 )
 
 @HiltViewModel
@@ -96,11 +99,24 @@ class ReaderViewModel @Inject constructor(
 
     fun toggleMenu() = _state.update { it.copy(menuVisible = !it.menuVisible) }
 
+    fun openSettings() = _state.update { it.copy(settingsVisible = true) }
+
+    fun closeSettings() = _state.update { it.copy(settingsVisible = false) }
+
     fun setDirection(direction: ReadingDirection) {
         if (direction == _state.value.direction) return
         _state.update { it.copy(direction = direction) }
         persist()
     }
+
+    fun setSpread(enabled: Boolean) {
+        if (enabled == _state.value.spreadEnabled) return
+        _state.update { it.copy(spreadEnabled = enabled) }
+        persist()
+    }
+
+    /** Shifts spread pairing by one page (transient; not persisted). */
+    fun nudgeOffset() = _state.update { it.copy(pageOffset = (it.pageOffset + 1) % 2) }
 
     private fun clampPage(page: Int): Int = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
 

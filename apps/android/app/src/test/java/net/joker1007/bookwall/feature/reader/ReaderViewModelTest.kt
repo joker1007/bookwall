@@ -103,4 +103,28 @@ class ReaderViewModelTest {
         vm.toggleMenu()
         assertTrue(vm.state.value.menuVisible)
     }
+
+    @Test
+    fun `setSpread updates and persists`() = runTest {
+        val vm = viewModel(initialPage = 0)
+        advanceUntilIdle()
+
+        vm.setSpread(true)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.spreadEnabled)
+        assertTrue(readerRepo.saved.values.first().spreadEnabled)
+    }
+
+    @Test
+    fun `nudgeOffset toggles between 0 and 1`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(0, vm.state.value.pageOffset)
+        vm.nudgeOffset()
+        assertEquals(1, vm.state.value.pageOffset)
+        vm.nudgeOffset()
+        assertEquals(0, vm.state.value.pageOffset)
+    }
 }
