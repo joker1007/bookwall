@@ -58,3 +58,7 @@ data class OpdsFacet(
     val count: Int? = null,
     val active: Boolean = false,
 )
+
+/** Numeric Bookwall id parsed from an "urn:bookwall:book:<id>" entry id, or null. */
+val OpdsEntry.Book.numericId: Long?
+    get() = id.substringAfterLast(':').toLongOrNull()

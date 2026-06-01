@@ -51,6 +51,7 @@ import net.joker1007.bookwall.data.opds.OpdsEntry
 @Composable
 fun CatalogScreen(
     onOpenFeed: (feedUrl: String) -> Unit,
+    onOpenReader: (OpdsEntry.Book) -> Unit,
     onBack: () -> Unit,
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
@@ -102,7 +103,14 @@ fun CatalogScreen(
 
     selectedBook?.let { book ->
         ModalBottomSheet(onDismissRequest = viewModel::dismissBook) {
-            BookDetail(book, Modifier.testTag(CatalogTags.DETAIL_SHEET))
+            BookDetail(
+                book = book,
+                onRead = {
+                    viewModel.dismissBook()
+                    onOpenReader(it)
+                },
+                modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),
+            )
         }
     }
 }

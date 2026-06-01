@@ -4,17 +4,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import net.joker1007.bookwall.data.opds.OpdsEntry
 
 /** Book metadata detail shown in a bottom sheet, including server-side reading progress. */
 @Composable
-fun BookDetail(book: OpdsEntry.Book, modifier: Modifier = Modifier) {
+fun BookDetail(book: OpdsEntry.Book, onRead: (OpdsEntry.Book) -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -47,8 +49,21 @@ fun BookDetail(book: OpdsEntry.Book, modifier: Modifier = Modifier) {
                 progress = { lastRead.toFloat() / pse.pageCount.toFloat() },
                 modifier = Modifier.fillMaxWidth(),
             )
+            Button(
+                onClick = { onRead(book) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .testTag(BookDetailTags.READ_BUTTON),
+            ) {
+                Text("読む")
+            }
         }
     }
+}
+
+object BookDetailTags {
+    const val READ_BUTTON = "book_detail_read"
 }
 
 @Composable

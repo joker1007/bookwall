@@ -8,6 +8,8 @@ import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
+import net.joker1007.bookwall.data.reader.ReaderStateRepository
+import net.joker1007.bookwall.data.reader.ReaderStateRepositoryImpl
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
 import net.joker1007.bookwall.network.ServerImageLoaderFactory
@@ -32,4 +34,7 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun bindServerImageLoaderProvider(impl: ServerImageLoaderFactory): ServerImageLoaderProvider
+
+    @Binds
+    abstract fun bindReaderStateRepository(impl: ReaderStateRepositoryImpl): ReaderStateRepository
 }
