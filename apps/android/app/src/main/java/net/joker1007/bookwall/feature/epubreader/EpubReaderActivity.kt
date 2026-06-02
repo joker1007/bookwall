@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -82,6 +83,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 listener = this,
             )
 
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContent {

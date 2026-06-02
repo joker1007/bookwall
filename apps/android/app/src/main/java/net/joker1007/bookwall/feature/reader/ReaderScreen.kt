@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -40,14 +43,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import android.app.Activity
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
@@ -70,6 +80,8 @@ fun ReaderScreen(
     val state by viewModel.state.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
     val tapConfig by viewModel.tapZoneConfig.collectAsState()
+
+    ImmersiveReaderEffect(menuVisible = state.menuVisible)
 
     Box(
         modifier = Modifier
@@ -389,7 +401,11 @@ private fun PageScrubber(
         }
 
         Surface(color = Color.Black.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
                 Text(
                     text = "${shown + 1} / $pageCount",
                     color = Color.White,
@@ -410,6 +426,45 @@ private fun PageScrubber(
                 )
             }
         }
+    }
+}
+
+/**
+ * While the reader is shown, hides the system bars for immersive reading
+ * (shown again when the menu is open) and lets page images extend into the
+ * display cutout. Restores the defaults when leaving the reader.
+ */
+@Composable
+private fun ImmersiveReaderEffect(menuVisible: Boolean) {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+    val window = (view.context as Activity).window
+
+    DisposableEffect(Unit) {
+        val originalCutoutMode = window.attributes.layoutInDisplayCutoutMode
+        window.attributes = window.attributes.apply {
+            layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        onDispose {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = originalCutoutMode
+            }
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    DisposableEffect(menuVisible) {
+        val controller = WindowCompat.getInsetsController(window, view)
+        if (menuVisible) {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose {}
     }
 }
 
