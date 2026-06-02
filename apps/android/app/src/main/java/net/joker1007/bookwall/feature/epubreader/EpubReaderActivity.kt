@@ -122,10 +122,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         val nav = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as EpubNavigatorFragment
         navigator = nav
 
-        // DirectionalNavigationAdapter turns exactly one page per edge tap and
-        // honours the reading progression (RTL / vertical) itself. It consumes
-        // edge taps; the second listener then receives only center taps.
-        nav.addInputListener(DirectionalNavigationAdapter(nav, handleTapsWhileScrolling = true))
+        // DirectionalNavigationAdapter turns one page per edge tap and honours
+        // the reading progression itself. It consumes edge taps only in
+        // paginated mode; in scroll mode (which Readium forces for vertical CJK
+        // text) it ignores taps, so the book is read by swiping and every tap
+        // just toggles the menu via the second listener.
+        nav.addInputListener(DirectionalNavigationAdapter(nav))
         nav.addInputListener(
             object : InputListener {
                 override fun onTap(event: TapEvent): Boolean {
