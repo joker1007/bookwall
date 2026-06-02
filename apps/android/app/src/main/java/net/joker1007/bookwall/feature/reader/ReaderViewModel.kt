@@ -6,15 +6,21 @@ import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.reader.OpdsPageSource
 import net.joker1007.bookwall.data.reader.PageSource
+import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.TapAction
+import net.joker1007.bookwall.data.reader.TapZone
+import net.joker1007.bookwall.data.reader.TapZoneConfig
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
 import javax.inject.Inject
@@ -37,6 +43,7 @@ data class ReaderUiState(
 class ReaderViewModel @Inject constructor(
     private val serverRepository: ServerRepository,
     private val readerStateRepository: ReaderStateRepository,
+    private val preferencesRepository: ReaderPreferencesRepository,
     private val imageLoaderProvider: ServerImageLoaderProvider,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -53,6 +60,9 @@ class ReaderViewModel @Inject constructor(
 
     private val _imageLoader = MutableStateFlow<ImageLoader?>(null)
     val imageLoader: StateFlow<ImageLoader?> = _imageLoader.asStateFlow()
+
+    val tapZoneConfig: StateFlow<TapZoneConfig> = preferencesRepository.tapZoneConfig
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TapZoneConfig())
 
     var pageSource: PageSource? = null
         private set
@@ -117,6 +127,10 @@ class ReaderViewModel @Inject constructor(
 
     /** Shifts spread pairing by one page (transient; not persisted). */
     fun nudgeOffset() = _state.update { it.copy(pageOffset = (it.pageOffset + 1) % 2) }
+
+    fun setZoneAction(zone: TapZone, action: TapAction) {
+        viewModelScope.launch { preferencesRepository.setZoneAction(zone, action) }
+    }
 
     private fun clampPage(page: Int): Int = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
 

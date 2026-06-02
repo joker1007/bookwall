@@ -8,6 +8,8 @@ import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
+import net.joker1007.bookwall.data.reader.DataStoreReaderPreferencesRepository
+import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepositoryImpl
 import net.joker1007.bookwall.data.server.ServerRepository
@@ -37,4 +39,10 @@ abstract class BindingsModule {
 
     @Binds
     abstract fun bindReaderStateRepository(impl: ReaderStateRepositoryImpl): ReaderStateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReaderPreferencesRepository(
+        impl: DataStoreReaderPreferencesRepository,
+    ): ReaderPreferencesRepository
 }

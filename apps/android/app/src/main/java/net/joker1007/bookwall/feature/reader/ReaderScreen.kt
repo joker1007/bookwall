@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,14 +29,16 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -46,11 +51,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.reader.PageSource
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.TapAction
+import net.joker1007.bookwall.data.reader.TapZone
+import net.joker1007.bookwall.data.reader.TapZoneConfig
 import net.joker1007.bookwall.data.reader.buildSpreads
 import net.joker1007.bookwall.data.reader.slotIndexForPage
+import net.joker1007.bookwall.data.reader.tapTargetPage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +68,7 @@ fun ReaderScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
-    val scope = rememberCoroutineScope()
+    val tapConfig by viewModel.tapZoneConfig.collectAsState()
 
     Box(
         modifier = Modifier
@@ -109,10 +117,11 @@ fun ReaderScreen(
                         }
                     }
 
-                    val advance: (Boolean) -> Unit = { forward ->
-                        val target = (if (forward) pagerState.currentPage + 1 else pagerState.currentPage - 1)
-                            .coerceIn(0, slots.lastIndex.coerceAtLeast(0))
-                        scope.launch { pagerState.animateScrollToPage(target) }
+                    val dispatchTap: (TapZone) -> Unit = { zone ->
+                        when (val action = tapConfig.actionFor(zone)) {
+                            TapAction.TOGGLE_MENU -> viewModel.toggleMenu()
+                            else -> tapTargetPage(action, slots, state.currentPage)?.let(viewModel::goToPage)
+                        }
                     }
 
                     HorizontalPager(
@@ -128,9 +137,7 @@ fun ReaderScreen(
                             direction = state.direction,
                             pageSource = viewModel.pageSource,
                             imageLoader = imageLoader,
-                            onLeftTap = { if (state.direction == ReadingDirection.LTR) advance(false) else advance(true) },
-                            onRightTap = { if (state.direction == ReadingDirection.LTR) advance(true) else advance(false) },
-                            onCenterTap = viewModel::toggleMenu,
+                            onTapZone = dispatchTap,
                         )
                     }
                 }
@@ -158,6 +165,8 @@ fun ReaderScreen(
                     PageScrubber(
                         currentPage = state.currentPage,
                         pageCount = state.pageCount,
+                        pageSource = viewModel.pageSource,
+                        imageLoader = imageLoader,
                         onScrub = viewModel::goToPage,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -170,9 +179,11 @@ fun ReaderScreen(
         ReaderSettingsSheet(
             direction = state.direction,
             spreadEnabled = state.spreadEnabled,
+            tapConfig = tapConfig,
             onDirectionChange = viewModel::setDirection,
             onSpreadChange = viewModel::setSpread,
             onNudgeOffset = viewModel::nudgeOffset,
+            onZoneAction = viewModel::setZoneAction,
             onDismiss = viewModel::closeSettings,
         )
     }
@@ -184,22 +195,21 @@ private fun SpreadSlot(
     direction: ReadingDirection,
     pageSource: PageSource?,
     imageLoader: ImageLoader?,
-    onLeftTap: () -> Unit,
-    onRightTap: () -> Unit,
-    onCenterTap: () -> Unit,
+    onTapZone: (TapZone) -> Unit,
 ) {
     val ordered = if (direction == ReadingDirection.RTL) pages.reversed() else pages
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(direction) {
+            .pointerInput(Unit) {
                 detectTapGestures { offset ->
                     val third = size.width / 3f
-                    when {
-                        offset.x < third -> onLeftTap()
-                        offset.x > size.width - third -> onRightTap()
-                        else -> onCenterTap()
+                    val zone = when {
+                        offset.x < third -> TapZone.LEFT
+                        offset.x > size.width - third -> TapZone.RIGHT
+                        else -> TapZone.CENTER
                     }
+                    onTapZone(zone)
                 }
             },
     ) {
@@ -224,9 +234,11 @@ private fun SpreadSlot(
 private fun ReaderSettingsSheet(
     direction: ReadingDirection,
     spreadEnabled: Boolean,
+    tapConfig: TapZoneConfig,
     onDirectionChange: (ReadingDirection) -> Unit,
     onSpreadChange: (Boolean) -> Unit,
     onNudgeOffset: () -> Unit,
+    onZoneAction: (TapZone, TapAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -260,8 +272,57 @@ private fun ReaderSettingsSheet(
                     Text("ページを1つずらす")
                 }
             }
+
+            Text("タップ操作", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            TapZoneRow("左", tapConfig.left, { onZoneAction(TapZone.LEFT, it) }, ReaderTags.TAP_LEFT)
+            TapZoneRow("中央", tapConfig.center, { onZoneAction(TapZone.CENTER, it) }, ReaderTags.TAP_CENTER)
+            TapZoneRow("右", tapConfig.right, { onZoneAction(TapZone.RIGHT, it) }, ReaderTags.TAP_RIGHT)
         }
     }
+}
+
+@Composable
+private fun TapZoneRow(
+    zoneLabel: String,
+    action: TapAction,
+    onSelect: (TapAction) -> Unit,
+    testTag: String,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(zoneLabel, style = MaterialTheme.typography.bodyLarge)
+        Box {
+            TextButton(onClick = { expanded = true }, modifier = Modifier.testTag(testTag)) {
+                Text(tapActionLabel(action))
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                TapAction.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(tapActionLabel(option)) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun tapActionLabel(action: TapAction): String = when (action) {
+    TapAction.NONE -> "なし"
+    TapAction.TOGGLE_MENU -> "メニュー"
+    TapAction.PREVIOUS -> "前へ"
+    TapAction.NEXT -> "次へ"
+    TapAction.PREVIOUS_SINGLE -> "前へ(単ページ)"
+    TapAction.NEXT_SINGLE -> "次へ(単ページ)"
+    TapAction.PREVIOUS_CONTINUOUS -> "前へ(連続)"
+    TapAction.NEXT_CONTINUOUS -> "次へ(連続)"
 }
 
 @Composable
@@ -285,28 +346,62 @@ private fun SettingSwitchRow(
 private fun PageScrubber(
     currentPage: Int,
     pageCount: Int,
+    pageSource: PageSource?,
+    imageLoader: ImageLoader?,
     onScrub: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = Color.Black.copy(alpha = 0.6f),
+    var dragging by remember { mutableStateOf<Int?>(null) }
+    val shown = dragging ?: currentPage
+
+    Column(
         modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text(
-                text = "${currentPage + 1} / $pageCount",
-                color = Color.White,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            Slider(
-                value = currentPage.toFloat(),
-                onValueChange = { onScrub(it.toInt()) },
-                valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
+        if (dragging != null && imageLoader != null) {
+            Surface(
+                color = Color.Black.copy(alpha = 0.8f),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(ReaderTags.SCRUBBER),
-            )
+                    .padding(bottom = 4.dp)
+                    .testTag(ReaderTags.SCRUB_THUMBNAIL),
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    AsyncImage(
+                        model = pageSource?.pageModel(shown),
+                        contentDescription = null,
+                        imageLoader = imageLoader,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(width = 100.dp, height = 140.dp),
+                    )
+                    Text("${shown + 1}", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+        Surface(color = Color.Black.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(
+                    text = "${shown + 1} / $pageCount",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Slider(
+                    value = shown.toFloat(),
+                    onValueChange = { dragging = it.toInt() },
+                    onValueChangeFinished = {
+                        dragging?.let(onScrub)
+                        dragging = null
+                    },
+                    valueRange = 0f..(pageCount - 1).coerceAtLeast(1).toFloat(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(ReaderTags.SCRUBBER),
+                )
+            }
         }
     }
 }
@@ -322,4 +417,8 @@ object ReaderTags {
     const val SPREAD_SWITCH = "reader_spread_switch"
     const val OFFSET_BUTTON = "reader_offset_button"
     const val SCRUBBER = "reader_scrubber"
+    const val SCRUB_THUMBNAIL = "reader_scrub_thumbnail"
+    const val TAP_LEFT = "reader_tap_left"
+    const val TAP_CENTER = "reader_tap_center"
+    const val TAP_RIGHT = "reader_tap_right"
 }

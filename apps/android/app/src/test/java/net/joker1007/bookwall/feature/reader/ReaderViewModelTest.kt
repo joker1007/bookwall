@@ -6,10 +6,13 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.joker1007.bookwall.MainDispatcherRule
 import net.joker1007.bookwall.data.FakeOpdsServerDao
+import net.joker1007.bookwall.data.FakeReaderPreferencesRepository
 import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.FakeSecretCipher
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.TapAction
+import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
 import org.junit.Assert.assertEquals
@@ -25,6 +28,7 @@ class ReaderViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val readerRepo = FakeReaderStateRepository()
+    private val prefsRepo = FakeReaderPreferencesRepository()
 
     private suspend fun viewModel(
         pageCount: Int = 10,
@@ -43,7 +47,7 @@ class ReaderViewModelTest {
                 ReaderViewModel.ARG_PSE_TEMPLATE to "/opds/books/7/pages/{pageNumber}",
             ),
         )
-        return ReaderViewModel(serverRepo, readerRepo, { null }, handle)
+        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, handle)
     }
 
     @Test
@@ -126,5 +130,16 @@ class ReaderViewModelTest {
         assertEquals(1, vm.state.value.pageOffset)
         vm.nudgeOffset()
         assertEquals(0, vm.state.value.pageOffset)
+    }
+
+    @Test
+    fun `setZoneAction persists to preferences`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.setZoneAction(TapZone.CENTER, TapAction.NEXT_CONTINUOUS)
+        advanceUntilIdle()
+
+        assertEquals(TapAction.NEXT_CONTINUOUS, prefsRepo.current().center)
     }
 }
