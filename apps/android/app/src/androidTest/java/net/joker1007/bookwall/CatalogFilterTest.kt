@@ -69,7 +69,9 @@ class CatalogFilterTest {
 
         composeRule.onCatalogScreen {
             openFilter()
-            typeFilter("Zzz Book")
+            // A prefix of the kept title: narrows to "Zzz Book" without the
+            // filter field text itself echoing the full asserted title.
+            typeFilter("Zzz B")
             assertEntryShown("Zzz Book")
             assertEntryAbsent("Aaa Book")
         }

@@ -2,10 +2,10 @@ package net.joker1007.bookwall.robot
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import net.joker1007.bookwall.feature.catalog.CatalogTags
@@ -33,12 +33,13 @@ class CatalogRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
         composeRule.onNodeWithTag(CatalogTags.FILTER_FIELD).performTextInput(query)
     }
 
+    // Match the clickable entry cell, not the filter field that may echo the query text.
     fun assertEntryShown(title: String) = apply {
-        composeRule.onNodeWithText(title).assertIsDisplayed()
+        composeRule.onNode(hasText(title) and hasClickAction()).assertIsDisplayed()
     }
 
     fun assertEntryAbsent(title: String) = apply {
-        composeRule.onAllNodesWithText(title).assertCountEquals(0)
+        composeRule.onAllNodes(hasText(title) and hasClickAction()).assertCountEquals(0)
     }
 }
 
