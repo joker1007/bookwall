@@ -17,7 +17,12 @@ import net.joker1007.bookwall.data.opds.isReadable
 
 /** Book metadata detail shown in a bottom sheet, including server-side reading progress. */
 @Composable
-fun BookDetail(book: OpdsEntry.Book, onRead: (OpdsEntry.Book) -> Unit, modifier: Modifier = Modifier) {
+fun BookDetail(
+    book: OpdsEntry.Book,
+    onRead: (OpdsEntry.Book) -> Unit,
+    modifier: Modifier = Modifier,
+    localCurrentPage: Int? = null,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -40,7 +45,9 @@ fun BookDetail(book: OpdsEntry.Book, onRead: (OpdsEntry.Book) -> Unit, modifier:
 
         val pse = book.pse
         if (pse != null && pse.pageCount > 0) {
-            val lastRead = pse.lastRead ?: 0
+            // Prefer the local reading position; fall back to the server's
+            // pse:lastRead (the two are not synced yet).
+            val lastRead = localCurrentPage?.plus(1) ?: pse.lastRead ?: 0
             Text(
                 text = "進捗: $lastRead / ${pse.pageCount} ページ",
                 style = MaterialTheme.typography.bodyMedium,

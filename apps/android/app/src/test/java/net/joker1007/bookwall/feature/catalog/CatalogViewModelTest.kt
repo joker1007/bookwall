@@ -8,6 +8,7 @@ import net.joker1007.bookwall.MainDispatcherRule
 import net.joker1007.bookwall.data.FakeOpdsServerDao
 import net.joker1007.bookwall.data.FakeSecretCipher
 import net.joker1007.bookwall.data.epub.EpubOpener
+import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.epub.EpubReaderHolder
 import net.joker1007.bookwall.data.epub.EpubSession
 import net.joker1007.bookwall.data.opds.FeedParser
@@ -67,7 +68,10 @@ class CatalogViewModelTest {
         val opdsRepo = OpdsRepository(OkHttpClientFactory(OkHttpClient()), feedParser, mainDispatcherRule.dispatcher)
         val handle = SavedStateHandle(mapOf(CatalogViewModel.ARG_SERVER_ID to id, CatalogViewModel.ARG_FEED_URL to ""))
         val epubOpener = EpubOpener { _, _ -> Result.failure<EpubSession>(IllegalStateException("not used")) }
-        return CatalogViewModel(serverRepo, opdsRepo, { null }, epubOpener, EpubReaderHolder(), handle)
+        return CatalogViewModel(
+            serverRepo, opdsRepo, { null }, epubOpener, EpubReaderHolder(),
+            FakeReaderStateRepository(), handle,
+        )
     }
 
     @Test

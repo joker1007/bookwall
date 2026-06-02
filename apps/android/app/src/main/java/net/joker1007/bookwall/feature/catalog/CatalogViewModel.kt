@@ -16,7 +16,9 @@ import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.OpdsFeed
 import net.joker1007.bookwall.data.opds.OpdsRepository
+import net.joker1007.bookwall.data.opds.numericId
 import net.joker1007.bookwall.data.opds.resolveOpdsHref
+import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
@@ -44,6 +46,7 @@ class CatalogViewModel @Inject constructor(
     private val imageLoaderFactory: ServerImageLoaderProvider,
     private val epubOpener: EpubOpener,
     private val epubHolder: EpubReaderHolder,
+    private val readerStateRepository: ReaderStateRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -55,6 +58,10 @@ class CatalogViewModel @Inject constructor(
 
     private val _selectedBook = MutableStateFlow<OpdsEntry.Book?>(null)
     val selectedBook: StateFlow<OpdsEntry.Book?> = _selectedBook.asStateFlow()
+
+    /** Local reading position (0-based) for the selected book, or null if none saved. */
+    private val _selectedLocalPage = MutableStateFlow<Int?>(null)
+    val selectedLocalPage: StateFlow<Int?> = _selectedLocalPage.asStateFlow()
 
     private val _epubSessionId = MutableStateFlow<Long?>(null)
     val epubSessionId: StateFlow<Long?> = _epubSessionId.asStateFlow()
@@ -77,10 +84,18 @@ class CatalogViewModel @Inject constructor(
 
     fun selectBook(book: OpdsEntry.Book) {
         _selectedBook.value = book
+        _selectedLocalPage.value = null
+        val bookId = book.numericId
+        if (bookId != null) {
+            viewModelScope.launch {
+                _selectedLocalPage.value = readerStateRepository.load(serverId, bookId)?.currentPage
+            }
+        }
     }
 
     fun dismissBook() {
         _selectedBook.value = null
+        _selectedLocalPage.value = null
     }
 
     fun openEpub(book: OpdsEntry.Book) {
