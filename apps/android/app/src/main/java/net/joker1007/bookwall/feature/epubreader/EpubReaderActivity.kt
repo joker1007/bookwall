@@ -36,6 +36,7 @@ import net.joker1007.bookwall.ui.theme.BookwallTheme
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
+import org.readium.r2.navigator.preferences.ReadingProgression
 import org.readium.r2.shared.util.AbsoluteUrl
 import javax.inject.Inject
 
@@ -124,9 +125,16 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 override fun onTap(event: TapEvent): Boolean {
                     val width = resources.displayMetrics.widthPixels
                     val third = width / 3f
+                    // Right-to-left (including vertical writing) reads with the
+                    // physical-left tap advancing, so flip the edges. Use the
+                    // navigator's resolved settings so it reflects the
+                    // publication's own direction, not just the user toggle.
+                    val resolved = nav.settings.value
+                    val rtl = resolved.verticalText ||
+                        resolved.readingProgression == ReadingProgression.RTL
                     when {
-                        event.point.x < third -> lifecycleScope.launch { nav.goBackward(animated = true) }
-                        event.point.x > width - third -> lifecycleScope.launch { nav.goForward(animated = true) }
+                        event.point.x < third -> page(nav, forward = rtl)
+                        event.point.x > width - third -> page(nav, forward = !rtl)
                         else -> viewModel.toggleMenu()
                     }
                     return true
@@ -148,6 +156,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     }
                 }
             }
+        }
+    }
+
+    private fun page(nav: EpubNavigatorFragment, forward: Boolean) {
+        lifecycleScope.launch {
+            if (forward) nav.goForward(animated = true) else nav.goBackward(animated = true)
         }
     }
 
