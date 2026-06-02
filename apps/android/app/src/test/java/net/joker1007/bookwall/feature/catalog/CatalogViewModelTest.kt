@@ -130,6 +130,66 @@ class CatalogViewModelTest {
     }
 
     @Test
+    fun `filter narrows books by title author and tag`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ACQUISITION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        vm.setFilter("zzz")
+        // Matches "Zzz Book" by title and "Zzz Author" on the other book.
+        assertEquals(2, vm.state.value.books.size)
+
+        vm.setFilter("aaa author")
+        assertEquals(1, vm.state.value.books.size)
+        assertEquals("Zzz Book", vm.state.value.books.first().title)
+    }
+
+    @Test
+    fun `clearing filter restores all entries`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ACQUISITION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        vm.setFilter("aaa book")
+        assertEquals(1, vm.state.value.books.size)
+
+        vm.setFilter("")
+        assertEquals(2, vm.state.value.books.size)
+    }
+
+    @Test
+    fun `sort applies to the filtered subset without losing entries`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ACQUISITION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        vm.setFilter("book")
+        vm.setSort(BookSort.AUTHOR, SortDirection.ASC)
+        assertEquals(2, vm.state.value.books.size)
+        assertEquals("Zzz Book", vm.state.value.books.first().title)
+
+        // Clearing the filter still yields the full, sorted set.
+        vm.setFilter("")
+        assertEquals(2, vm.state.value.books.size)
+        assertEquals("Zzz Book", vm.state.value.books.first().title)
+    }
+
+    @Test
+    fun `filter narrows navigation entries by title`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(NAVIGATION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        vm.setFilter("alp")
+        assertEquals(1, vm.state.value.navEntries.size)
+        assertEquals("Alpha", vm.state.value.navEntries.first().title)
+    }
+
+    @Test
     fun `http error surfaces an error message`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
 
