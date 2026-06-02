@@ -18,11 +18,14 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -31,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import dagger.hilt.android.AndroidEntryPoint
+import net.joker1007.bookwall.feature.epubreader.EpubReaderViewModel
 import net.joker1007.bookwall.ui.theme.BookwallTheme
 import java.io.File
 import java.io.FileInputStream
@@ -44,11 +48,21 @@ import java.io.IOException
  *
  * Native chrome (top bar, settings, TOC, scrubber, immersive) is layered in P2.
  */
+/** Escapes a string for embedding inside a single-quoted JS string literal. */
+private fun String.jsEscape(): String = replace("\\", "\\\\").replace("'", "\\'")
+
 @AndroidEntryPoint
 class FoliateReaderActivity : ComponentActivity() {
 
+    private val viewModel: EpubReaderViewModel by viewModels()
+
     private lateinit var epubFile: File
+    private lateinit var title: String
     private var loadState by mutableStateOf<LoadState>(LoadState.Loading)
+    private var toc by mutableStateOf<List<TocEntry>>(emptyList())
+    private var fraction by mutableStateOf(0f)
+    /** True for right-to-left / vertical books, used to flip tap-zone paging. */
+    private var rtl by mutableStateOf(false)
 
     private var webView: WebView? = null
 
@@ -60,15 +74,35 @@ class FoliateReaderActivity : ComponentActivity() {
             return
         }
         epubFile = File(path)
+        title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val initialCfi = intent.getStringExtra(EXTRA_INITIAL_CFI)
 
         enableEdgeToEdge()
         setContent {
             BookwallTheme {
+                val settings by viewModel.settings.collectAsState()
+                val chrome by viewModel.chrome.collectAsState()
+
+                LaunchedEffect(settings) {
+                    runJs("window.foliateGlue.setStyles('${foliateStylesJson(settings)}')")
+                }
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { context -> createWebView(context, initialCfi) },
+                    )
+                    FoliateReaderChrome(
+                        title = title,
+                        toc = toc,
+                        fraction = fraction,
+                        viewModel = viewModel,
+                        onTocClick = { entry ->
+                            entry.href?.let { runJs("window.foliateGlue.goTo('${it.jsEscape()}')") }
+                            viewModel.closeToc()
+                        },
+                        onSeek = { f -> runJs("window.foliateGlue.goToFraction($f)") },
+                        onBack = { finish() },
                     )
                     when (val s = loadState) {
                         LoadState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -80,6 +114,7 @@ class FoliateReaderActivity : ComponentActivity() {
                         LoadState.Ready -> Unit
                     }
                 }
+                FoliateImmersiveEffect(chrome.menuVisible)
             }
         }
     }
@@ -140,44 +175,55 @@ class FoliateReaderActivity : ComponentActivity() {
         webView?.post { webView?.evaluateJavascript(script, null) }
     }
 
+    private fun goForward(forward: Boolean) =
+        runJs(if (forward) "window.foliateGlue.next()" else "window.foliateGlue.prev()")
+
     /** JS -> Kotlin callbacks. Invoked on a binder thread; hop to the WebView thread for JS calls. */
     private inner class Bridge(private val initialCfi: String?) {
         @JavascriptInterface
         fun onReady() {
-            val cfiArg = initialCfi?.let { "'${it.replace("'", "\\'")}'" } ?: "null"
+            val cfiArg = initialCfi?.let { "'${it.jsEscape()}'" } ?: "null"
+            // Seed styles before open so the first section renders with them.
+            runJs("window.foliateGlue.setStyles('${foliateStylesJson(viewModel.settings.value)}')")
             runJs("window.foliateGlue.open('https://appassets.androidplatform.net/epub/book.epub', $cfiArg)")
         }
 
         @JavascriptInterface
         fun onBookOpened(tocJson: String, dir: String, sectionTotal: Int) {
-            runOnUiThread { loadState = LoadState.Ready }
+            runOnUiThread {
+                toc = parseToc(tocJson)
+                rtl = dir == "rtl"
+                loadState = LoadState.Ready
+            }
         }
 
         @JavascriptInterface
         fun onRelocate(cfi: String, fraction: Double) {
+            runOnUiThread { this@FoliateReaderActivity.fraction = fraction.toFloat() }
             // Persistence + sync wired in P4.
         }
 
         @JavascriptInterface
         fun onWritingModeDetected(mode: String) {
-            // Used by chrome (tap-zone flip) in P2.
+            if (mode == "vertical") runOnUiThread { rtl = true }
         }
 
         @JavascriptInterface
         fun onTap(zone: String) {
-            // P1: basic LTR navigation so the book is readable; direction flip
-            // and center-tap menu come in P2.
             when (zone) {
-                "left" -> runJs("window.foliateGlue.prev()")
-                "right" -> runJs("window.foliateGlue.next()")
+                "center" -> runOnUiThread { viewModel.toggleMenu() }
+                // In LTR a right tap advances; RTL/vertical flips it.
+                "right" -> goForward(forward = !rtl)
+                "left" -> goForward(forward = rtl)
             }
         }
 
         @JavascriptInterface
         fun onSwipe(direction: String) {
+            // Swiping content left advances in LTR; RTL flips it.
             when (direction) {
-                "left" -> runJs("window.foliateGlue.next()")
-                "right" -> runJs("window.foliateGlue.prev()")
+                "left" -> goForward(forward = !rtl)
+                "right" -> goForward(forward = rtl)
             }
         }
 
