@@ -31,7 +31,7 @@
         <activity
             android:name=".feature.epubreader.EpubReaderActivity"
             android:exported="false"
-            android:theme="@style/Theme.Bookwall" />
+            android:theme="@style/Theme.Bookwall.Epub" />
     </application>
 
 </manifest>

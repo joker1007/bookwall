@@ -14,7 +14,11 @@ import androidx.fragment.app.commitNow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.epub.EpubReaderHolder
@@ -37,17 +41,20 @@ import javax.inject.Inject
 class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     @Inject
-    lateinit var holder: EpubReaderHolder
-
-    @Inject
     lateinit var progressRepository: EpubProgressRepository
 
     private val viewModel: EpubReaderViewModel by viewModels()
 
+    // Resolved via an entry point because we need it before super.onCreate(),
+    // where Hilt field injection has not run yet.
+    private lateinit var holder: EpubReaderHolder
     private lateinit var navigator: EpubNavigatorFragment
     private var sessionId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        holder = EntryPointAccessors
+            .fromApplication(applicationContext, EpubReaderEntryPoint::class.java)
+            .epubReaderHolder()
         sessionId = intent.getLongExtra(EXTRA_SESSION_ID, -1L)
         val session = holder.get(sessionId)
         if (session == null) {
@@ -141,6 +148,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     override fun onDestroy() {
         super.onDestroy()
         if (isFinishing) holder.remove(sessionId)
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface EpubReaderEntryPoint {
+        fun epubReaderHolder(): EpubReaderHolder
     }
 
     companion object {
