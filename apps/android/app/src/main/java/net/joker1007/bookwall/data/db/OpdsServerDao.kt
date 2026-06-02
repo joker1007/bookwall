@@ -20,6 +20,9 @@ interface OpdsServerDao {
     @Update
     suspend fun update(entity: OpdsServerEntity)
 
+    @Query("UPDATE opds_servers SET syncProgressTemplate = :template WHERE id = :id")
+    suspend fun updateSyncTemplate(id: Long, template: String?)
+
     @Query("DELETE FROM opds_servers WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

@@ -18,7 +18,8 @@ module Opds
           {title: "Series", href: helpers.opds_series_index_path, rel: "subsection"},
           {title: "Tags", href: helpers.opds_tags_index_path, rel: "subsection"},
           {title: "Collections", href: helpers.opds_collections_index_path, rel: "subsection"}
-        ]
+        ],
+        links: [Opds::FeedBuilder.progress_sync_link(helpers)]
       )
       render_navigation(xml)
     end

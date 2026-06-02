@@ -69,5 +69,6 @@ Rails.application.routes.draw do
       as: :book_file,
       constraints: {format: /epub|cbz|pdf/}
     get "/books/:book_id/pages/:n", to: "pages#show", as: :book_page
+    put "/books/:book_id/progress", to: "progress#update", as: :book_progress
   end
 end

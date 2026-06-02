@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.reader.OpdsPageSource
 import net.joker1007.bookwall.data.reader.PageSource
+import net.joker1007.bookwall.data.reader.ProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
@@ -21,6 +24,7 @@ import net.joker1007.bookwall.data.reader.ReadingDirection
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.reader.TapZoneConfig
+import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
 import javax.inject.Inject
@@ -45,6 +49,7 @@ class ReaderViewModel @Inject constructor(
     private val readerStateRepository: ReaderStateRepository,
     private val preferencesRepository: ReaderPreferencesRepository,
     private val imageLoaderProvider: ServerImageLoaderProvider,
+    private val progressSyncRepository: ProgressSyncRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -67,19 +72,23 @@ class ReaderViewModel @Inject constructor(
     var pageSource: PageSource? = null
         private set
 
+    private var server: OpdsServer? = null
+    private var syncJob: Job? = null
+
     init {
         load()
     }
 
     private fun load() {
         viewModelScope.launch {
-            val server = serverRepository.getServer(serverId)
-            if (server == null) {
+            val srv = serverRepository.getServer(serverId)
+            if (srv == null) {
                 _state.update { it.copy(loading = false, error = "サーバーが見つかりません") }
                 return@launch
             }
-            _imageLoader.value = imageLoaderProvider.forServer(server)
-            pageSource = OpdsPageSource(server.baseUrl, pseTemplate, pageCount)
+            server = srv
+            _imageLoader.value = imageLoaderProvider.forServer(srv)
+            pageSource = OpdsPageSource(srv.baseUrl, pseTemplate, pageCount)
 
             val saved = readerStateRepository.load(serverId, bookId)
             _state.update {
@@ -102,6 +111,7 @@ class ReaderViewModel @Inject constructor(
         if (target == _state.value.currentPage) return
         _state.update { it.copy(currentPage = target) }
         persist()
+        scheduleSync(target)
     }
 
     /** Reports the page the pager settled on (from a swipe). */
@@ -132,6 +142,21 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.setZoneAction(zone, action) }
     }
 
+    /**
+     * Debounced push of the current page to the server. Rapid page flips cancel
+     * the pending push; only Bookwall servers (supportsProgressSync) actually
+     * hit the network. Best-effort: a failed push is retried by the next flip.
+     */
+    private fun scheduleSync(page: Int) {
+        val srv = server ?: return
+        if (!srv.supportsProgressSync) return
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            delay(SYNC_DEBOUNCE_MS)
+            progressSyncRepository.pushPageProgress(srv, bookId, page, pageCount)
+        }
+    }
+
     private fun clampPage(page: Int): Int = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
 
     private fun persist() {
@@ -145,6 +170,8 @@ class ReaderViewModel @Inject constructor(
     }
 
     companion object {
+        private const val SYNC_DEBOUNCE_MS = 2_000L
+
         const val ARG_SERVER_ID = "serverId"
         const val ARG_BOOK_ID = "bookId"
         const val ARG_PAGE_COUNT = "pageCount"

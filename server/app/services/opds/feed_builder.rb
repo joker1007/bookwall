@@ -13,22 +13,29 @@ module Opds
     THUMB_REL = "http://opds-spec.org/image/thumbnail".freeze
     PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream".freeze
     FACET_REL = "http://opds-spec.org/facet".freeze
+    # Bookwall-specific capability advertised on the root feed so first-party
+    # clients can detect a Bookwall server and learn the progress-sync endpoint.
+    PROGRESS_SYNC_REL = "https://bookwall.joker1007.net/rel/progress-sync".freeze
 
     # Rails path helpers percent-encode `{`/`}`, so route through a URL-safe
     # sentinel and swap it back to keep the literal "{pageNumber}" PSE token.
     PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER".freeze
     PSE_TEMPLATE_TOKEN = "{pageNumber}".freeze
+    # Same sentinel trick for the progress-sync template's "{bookId}" token.
+    BOOK_ID_SENTINEL = "OPDSBOOKID".freeze
+    BOOK_ID_TOKEN = "{bookId}".freeze
 
     # PSE streams image pages, so reflowable EPUB is not a valid PSE source.
     PSE_STREAMABLE_FORMATS = %w[cbz pdf image_dir].freeze
 
-    def self.navigation(title:, id:, self_url:, entries:)
+    def self.navigation(title:, id:, self_url:, entries:, links: [])
       build_feed do |xml|
         xml.title title
         xml.id_ id
         xml.updated Time.current.iso8601
         xml.link(rel: "self", href: self_url, type: Opds::NAVIGATION_MIME)
         xml.link(rel: "start", href: entries.first&.dig(:href) || self_url, type: Opds::NAVIGATION_MIME)
+        links.each { |link| xml.link(link) }
         entries.each do |entry|
           xml.entry do
             xml.title entry[:title]
@@ -118,6 +125,11 @@ module Opds
       when "image_dir" then "cbz"
       else book.file_format.to_s
       end
+    end
+
+    def self.progress_sync_link(helpers)
+      href = helpers.opds_book_progress_path(book_id: BOOK_ID_SENTINEL).sub(BOOK_ID_SENTINEL, BOOK_ID_TOKEN)
+      {rel: PROGRESS_SYNC_REL, href: href, type: "application/json"}
     end
 
     def self.pse_stream_href(book, helpers)

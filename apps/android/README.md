@@ -49,4 +49,7 @@ Bookwall サーバーの OPDS フィードを参照し、CBZ / EPUB / PDF / 画�
 - Phase 5: EPUB リーダー(Readium 表示の足場: DL→オープン→ナビゲータ表示) ✅
 - Phase 5b: EPUB 設定(テーマ/フォントサイズ/縦書き/スクロール)+ TOC + 進捗保存(Locator)✅
 - Phase 6: 没入リーダー + 切り欠き/インセット対応・レスポンシブグリッド ✅
-- Phase 7: オフライン DL・進捗同期の足場・仕上げ ← 次
+- Phase 7a: 進捗同期 push(Bookwall サーバ検出 + ページ系進捗の push 専用同期) ✅
+  - OPDS ルートフィードの capability link で Bookwall サーバを検出し、対応サーバのみページ系の読書進捗をサーバへ push する
+  - EPUB 位置は web reader 管理(CFI)のため対象外。durable な再送(WorkManager)は Phase 7b で対応予定
+- Phase 7b: オフライン DL・進捗同期の durable 化・仕上げ ← 次

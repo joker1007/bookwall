@@ -142,7 +142,15 @@ class CatalogViewModel @Inject constructor(
             _imageLoader.value = imageLoaderFactory.forServer(srv)
 
             when (val result = opdsRepository.fetchFeed(srv, feedUrlArg ?: srv.baseUrl)) {
-                is FeedResult.Success -> _state.update { it.applyFeed(result.feed) }
+                is FeedResult.Success -> {
+                    // The progress-sync capability is advertised only on the root feed,
+                    // so re-evaluate it whenever we load a server's entry point.
+                    if (feedUrlArg == null) {
+                        serverRepository.setSyncProgressTemplate(serverId, result.feed.progressSyncTemplate)
+                        server = srv.copy(syncProgressTemplate = result.feed.progressSyncTemplate)
+                    }
+                    _state.update { it.applyFeed(result.feed) }
+                }
                 FeedResult.AuthFailed -> fail("認証に失敗しました (401)")
                 is FeedResult.HttpError -> fail("サーバーエラー (${result.code})")
                 FeedResult.InvalidUrl -> fail("URL が不正です")

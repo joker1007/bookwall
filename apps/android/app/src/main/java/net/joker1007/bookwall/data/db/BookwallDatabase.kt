@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [OpdsServerEntity::class, ReaderStateEntity::class, EpubProgressEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class BookwallDatabase : RoomDatabase() {
