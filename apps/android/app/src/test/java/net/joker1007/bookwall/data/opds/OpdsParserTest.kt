@@ -77,6 +77,7 @@ class OpdsParserTest {
         assertEquals("/opds/books/42/file.cbz", book.acquisitionHref)
         assertEquals("/rails/blob/cover.jpg", book.imageHref)
         assertEquals("/rails/rep/thumb.jpg", book.thumbnailHref)
+        assertEquals("2025-12-24T00:00:00Z", book.added)
 
         val pse = requireNotNull(book.pse)
         assertEquals(120, pse.pageCount)
@@ -136,6 +137,7 @@ class OpdsParserTest {
                 <title>Book One</title>
                 <id>urn:bookwall:book:42</id>
                 <updated>2026-01-01T00:00:00Z</updated>
+                <published>2025-12-24T00:00:00Z</published>
                 <author><name>Author A</name></author>
                 <dc:language>ja</dc:language>
                 <dc:format>application/vnd.comicbook+zip</dc:format>

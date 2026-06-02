@@ -43,6 +43,8 @@ sealed interface OpdsEntry {
         val imageHref: String? = null,
         val thumbnailHref: String? = null,
         val pse: PseInfo? = null,
+        /** Atom published (library added_at), ISO-8601; used to sort by added date. */
+        val added: String? = null,
     ) : OpdsEntry
 }
 

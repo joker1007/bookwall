@@ -62,6 +62,8 @@ module Opds
             xml.title book.title
             xml.id_ "urn:bookwall:book:#{book.id}"
             xml.updated book.updated_at.iso8601
+            # Atom published = library registration time, used by clients to sort by added date.
+            xml.published book.added_at.iso8601 if book.added_at
             book.authors.each { |a| xml.author { xml.name a.name } }
             xml["dc"].language(book_language(book)) if book_language(book)
             # Some OPDS clients inspect dc:format/atom:content for format, not just the link @type.

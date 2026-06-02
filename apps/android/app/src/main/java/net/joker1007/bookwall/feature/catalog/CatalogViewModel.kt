@@ -23,11 +23,14 @@ import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
+import java.time.OffsetDateTime
 import javax.inject.Inject
 
 enum class ViewMode { GRID, LIST }
 
-enum class BookSort { TITLE, AUTHOR }
+enum class BookSort { TITLE, AUTHOR, ADDED }
+
+enum class SortDirection { ASC, DESC }
 
 /** A downloaded EPUB ready to hand to the foliate-js reader activity. */
 data class FoliateLaunch(
@@ -45,6 +48,7 @@ data class CatalogUiState(
     val books: List<OpdsEntry.Book> = emptyList(),
     val viewMode: ViewMode = ViewMode.GRID,
     val sort: BookSort = BookSort.TITLE,
+    val sortDirection: SortDirection = SortDirection.ASC,
     val openingEpub: Boolean = false,
 )
 
@@ -92,8 +96,10 @@ class CatalogViewModel @Inject constructor(
 
     fun setViewMode(mode: ViewMode) = _state.update { it.copy(viewMode = mode) }
 
-    fun setSort(sort: BookSort) =
-        _state.update { it.copy(sort = sort, books = sortBooks(it.books, sort)) }
+    fun setSort(sort: BookSort, direction: SortDirection) =
+        _state.update {
+            it.copy(sort = sort, sortDirection = direction, books = sortBooks(it.books, sort, direction))
+        }
 
     fun selectBook(book: OpdsEntry.Book) {
         _selectedBook.value = book
@@ -180,14 +186,28 @@ class CatalogViewModel @Inject constructor(
         error = null,
         title = feed.title,
         navEntries = feed.entries.filterIsInstance<OpdsEntry.Navigation>(),
-        books = sortBooks(feed.entries.filterIsInstance<OpdsEntry.Book>(), sort),
+        books = sortBooks(feed.entries.filterIsInstance<OpdsEntry.Book>(), sort, sortDirection),
     )
 
-    private fun sortBooks(books: List<OpdsEntry.Book>, sort: BookSort): List<OpdsEntry.Book> =
-        when (sort) {
+    private fun sortBooks(
+        books: List<OpdsEntry.Book>,
+        sort: BookSort,
+        direction: SortDirection,
+    ): List<OpdsEntry.Book> {
+        val sorted = when (sort) {
+            // Sentinel "￿" pushes entries with no title/author to the end (ascending).
             BookSort.TITLE -> books.sortedBy { it.title.lowercase() }
             BookSort.AUTHOR -> books.sortedBy { it.authors.firstOrNull()?.lowercase() ?: "￿" }
+            BookSort.ADDED -> books.sortedBy { addedEpoch(it) }
         }
+        return if (direction == SortDirection.DESC) sorted.asReversed() else sorted
+    }
+
+    // Unknown/unparseable dates sort oldest (ascending) so they sit out of the way.
+    private fun addedEpoch(book: OpdsEntry.Book): Long =
+        book.added?.let {
+            runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull()
+        } ?: Long.MIN_VALUE
 
     companion object {
         const val ARG_SERVER_ID = "serverId"

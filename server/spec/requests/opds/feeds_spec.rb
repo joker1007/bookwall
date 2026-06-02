@@ -52,6 +52,15 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(response.body).to include("opds-pse/stream")
     end
 
+    it "emits atom:published (added_at) for sorting by registration date" do
+      create(:book, library: library, added_at: Time.utc(2026, 5, 20, 9, 0, 0))
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      published = Nokogiri::XML(response.body)
+        .at_xpath("//atom:entry/atom:published", "atom" => ATOM_NS)
+      expect(published&.text).to eq("2026-05-20T09:00:00Z")
+    end
+
     it "emits the OPDS-PSE href with a literal {pageNumber} template" do
       book = create(:book, library: library, page_count: 5)
       get "/opds/recent", headers: {"Authorization" => auth_header}

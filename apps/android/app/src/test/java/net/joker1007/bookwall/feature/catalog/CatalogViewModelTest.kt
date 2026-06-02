@@ -96,8 +96,22 @@ class CatalogViewModelTest {
 
         val vm = viewModelForServer()
         advanceUntilIdle()
-        vm.setSort(BookSort.AUTHOR)
+        vm.setSort(BookSort.AUTHOR, SortDirection.ASC)
 
+        assertEquals("Zzz Book", vm.state.value.books.first().title)
+    }
+
+    @Test
+    fun `sort by added date respects direction`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(ACQUISITION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        vm.setSort(BookSort.ADDED, SortDirection.DESC)
+        assertEquals("Aaa Book", vm.state.value.books.first().title)
+
+        vm.setSort(BookSort.ADDED, SortDirection.ASC)
         assertEquals("Zzz Book", vm.state.value.books.first().title)
     }
 
@@ -123,12 +137,14 @@ class CatalogViewModelTest {
                 <title>Zzz Book</title>
                 <id>urn:bookwall:book:1</id>
                 <author><name>Aaa Author</name></author>
+                <published>2026-01-01T00:00:00Z</published>
                 <link rel="http://opds-spec.org/acquisition" href="/opds/books/1/file.cbz" type="application/vnd.comicbook+zip"/>
               </entry>
               <entry>
                 <title>Aaa Book</title>
                 <id>urn:bookwall:book:2</id>
                 <author><name>Zzz Author</name></author>
+                <published>2026-02-01T00:00:00Z</published>
                 <link rel="http://opds-spec.org/acquisition" href="/opds/books/2/file.cbz" type="application/vnd.comicbook+zip"/>
               </entry>
             </feed>

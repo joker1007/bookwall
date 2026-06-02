@@ -73,6 +73,7 @@ class OpdsParser @Inject constructor() : FeedParser {
         var pse: PseInfo? = null
         var navHref: String? = null
         var navRel: String? = null
+        var added: String? = null
 
         var event = parser.next()
         while (!(event == XmlPullParser.END_TAG && parser.name == "entry")) {
@@ -80,6 +81,7 @@ class OpdsParser @Inject constructor() : FeedParser {
                 when (parser.name) {
                     "title" -> title = parser.nextText().trim()
                     "id" -> id = parser.nextText().trim()
+                    "published" -> added = parser.nextText().trim().ifEmpty { null }
                     "content" -> summary = parser.nextText().trim().ifEmpty { null }
                     "dc:language" -> language = parser.nextText().trim().ifEmpty { null }
                     "dc:format" -> format = parser.nextText().trim().ifEmpty { null }
@@ -122,6 +124,7 @@ class OpdsParser @Inject constructor() : FeedParser {
                 imageHref = imageHref,
                 thumbnailHref = thumbnailHref,
                 pse = pse,
+                added = added,
             )
             navHref != null -> OpdsEntry.Navigation(
                 title = title,

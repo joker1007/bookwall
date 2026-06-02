@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -94,7 +95,7 @@ fun CatalogScreen(
                 actions = {
                     if (state.books.isNotEmpty()) {
                         ViewModeAction(state.viewMode, viewModel::setViewMode)
-                        SortAction(viewModel::setSort)
+                        SortAction(state.sort, state.sortDirection, viewModel::setSort)
                     }
                 },
             )
@@ -269,15 +270,37 @@ private fun ViewModeAction(mode: ViewMode, onChange: (ViewMode) -> Unit) {
     }
 }
 
+private val SORT_OPTIONS = listOf(
+    Triple("タイトル順 (昇順)", BookSort.TITLE, SortDirection.ASC),
+    Triple("タイトル順 (降順)", BookSort.TITLE, SortDirection.DESC),
+    Triple("著者順 (昇順)", BookSort.AUTHOR, SortDirection.ASC),
+    Triple("著者順 (降順)", BookSort.AUTHOR, SortDirection.DESC),
+    Triple("登録日順 (新しい順)", BookSort.ADDED, SortDirection.DESC),
+    Triple("登録日順 (古い順)", BookSort.ADDED, SortDirection.ASC),
+)
+
 @Composable
-private fun SortAction(onSort: (BookSort) -> Unit) {
+private fun SortAction(
+    sort: BookSort,
+    direction: SortDirection,
+    onSort: (BookSort, SortDirection) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }, modifier = Modifier.testTag(CatalogTags.SORT_BUTTON)) {
         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "並び替え")
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        DropdownMenuItem(text = { Text("タイトル順") }, onClick = { onSort(BookSort.TITLE); expanded = false })
-        DropdownMenuItem(text = { Text("著者順") }, onClick = { onSort(BookSort.AUTHOR); expanded = false })
+        SORT_OPTIONS.forEach { (label, optSort, optDir) ->
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = { onSort(optSort, optDir); expanded = false },
+                trailingIcon = if (optSort == sort && optDir == direction) {
+                    { Icon(Icons.Default.Check, contentDescription = null) }
+                } else {
+                    null
+                },
+            )
+        }
     }
 }
 
