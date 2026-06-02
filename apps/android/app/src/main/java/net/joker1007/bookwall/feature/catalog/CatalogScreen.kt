@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,12 +41,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.feature.epubreader.EpubReaderActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +61,15 @@ fun CatalogScreen(
     val state by viewModel.state.collectAsState()
     val selectedBook by viewModel.selectedBook.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
+    val epubSessionId by viewModel.epubSessionId.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(epubSessionId) {
+        epubSessionId?.let { id ->
+            context.startActivity(EpubReaderActivity.intent(context, id))
+            viewModel.consumeEpubLaunch()
+        }
+    }
 
     Scaffold(
         modifier = Modifier.testTag(CatalogTags.ROOT),
@@ -105,9 +117,9 @@ fun CatalogScreen(
         ModalBottomSheet(onDismissRequest = viewModel::dismissBook) {
             BookDetail(
                 book = book,
-                onRead = {
+                onRead = { selected ->
                     viewModel.dismissBook()
-                    onOpenReader(it)
+                    if (selected.pse != null) onOpenReader(selected) else viewModel.openEpub(selected)
                 },
                 modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),
             )

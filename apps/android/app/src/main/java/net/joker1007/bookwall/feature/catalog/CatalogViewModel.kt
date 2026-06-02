@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.joker1007.bookwall.data.epub.EpubOpener
+import net.joker1007.bookwall.data.epub.EpubReaderHolder
 import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.OpdsFeed
@@ -32,6 +34,7 @@ data class CatalogUiState(
     val books: List<OpdsEntry.Book> = emptyList(),
     val viewMode: ViewMode = ViewMode.GRID,
     val sort: BookSort = BookSort.TITLE,
+    val openingEpub: Boolean = false,
 )
 
 @HiltViewModel
@@ -39,6 +42,8 @@ class CatalogViewModel @Inject constructor(
     private val serverRepository: ServerRepository,
     private val opdsRepository: OpdsRepository,
     private val imageLoaderFactory: ServerImageLoaderProvider,
+    private val epubOpener: EpubOpener,
+    private val epubHolder: EpubReaderHolder,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -50,6 +55,9 @@ class CatalogViewModel @Inject constructor(
 
     private val _selectedBook = MutableStateFlow<OpdsEntry.Book?>(null)
     val selectedBook: StateFlow<OpdsEntry.Book?> = _selectedBook.asStateFlow()
+
+    private val _epubSessionId = MutableStateFlow<Long?>(null)
+    val epubSessionId: StateFlow<Long?> = _epubSessionId.asStateFlow()
 
     private val _imageLoader = MutableStateFlow<ImageLoader?>(null)
     val imageLoader: StateFlow<ImageLoader?> = _imageLoader.asStateFlow()
@@ -73,6 +81,20 @@ class CatalogViewModel @Inject constructor(
 
     fun dismissBook() {
         _selectedBook.value = null
+    }
+
+    fun openEpub(book: OpdsEntry.Book) {
+        val srv = server ?: return
+        _state.update { it.copy(openingEpub = true) }
+        viewModelScope.launch {
+            epubOpener.open(srv, book)
+                .onSuccess { session -> _epubSessionId.value = epubHolder.put(session) }
+            _state.update { it.copy(openingEpub = false) }
+        }
+    }
+
+    fun consumeEpubLaunch() {
+        _epubSessionId.value = null
     }
 
     /** Resolves an OPDS href (relative or absolute) against the active server. */

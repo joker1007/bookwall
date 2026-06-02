@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.opds.isReadable
 
 /** Book metadata detail shown in a bottom sheet, including server-side reading progress. */
 @Composable
@@ -49,6 +50,9 @@ fun BookDetail(book: OpdsEntry.Book, onRead: (OpdsEntry.Book) -> Unit, modifier:
                 progress = { lastRead.toFloat() / pse.pageCount.toFloat() },
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+
+        if (book.isReadable) {
             Button(
                 onClick = { onRead(book) },
                 modifier = Modifier

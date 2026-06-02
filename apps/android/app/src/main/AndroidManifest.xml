@@ -27,6 +27,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".feature.epubreader.EpubReaderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Bookwall" />
     </application>
 
 </manifest>

@@ -62,3 +62,13 @@ data class OpdsFacet(
 /** Numeric Bookwall id parsed from an "urn:bookwall:book:<id>" entry id, or null. */
 val OpdsEntry.Book.numericId: Long?
     get() = id.substringAfterLast(':').toLongOrNull()
+
+const val EPUB_MIME = "application/epub+zip"
+
+/** True for reflowable EPUB books (rendered by Readium, not PSE streaming). */
+val OpdsEntry.Book.isEpub: Boolean
+    get() = format == EPUB_MIME || acquisitionType == EPUB_MIME
+
+/** True when the book can be opened in a reader (image streaming or EPUB). */
+val OpdsEntry.Book.isReadable: Boolean
+    get() = pse != null || isEpub
