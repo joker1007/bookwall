@@ -29,8 +29,13 @@ function applyStyles() {
   document.body.style.background = pageBackground(state.settings.theme);
 }
 
-function applyColumnCount(count) {
-  state.view?.renderer?.setAttribute?.("max-column-count", String(count));
+// Match the web reader: 2 columns only on wide (tablet) viewports, 1 below.
+// On phone width two columns shrink lines until single CJK characters break
+// across them — worst for vertical-writing books.
+const wideViewport = window.matchMedia("(min-width: 768px)");
+
+function applyColumnCount() {
+  state.view?.renderer?.setAttribute?.("max-column-count", wideViewport.matches ? "2" : "1");
 }
 
 async function openBook(epubUrl, initialCfi) {
@@ -97,6 +102,8 @@ async function openBook(epubUrl, initialCfi) {
     renderer?.setAttribute?.("max-block-size", "100%");
     renderer?.setAttribute?.("margin", "16px");
     renderer?.setAttribute?.("gap", "5%");
+    applyColumnCount();
+    wideViewport.addEventListener("change", applyColumnCount);
     // Seed styles before init(): foliate replays the last setStyles per section.
     applyStyles();
 
@@ -180,7 +187,6 @@ window.foliateGlue = {
   goTo: (href) => state.view?.goTo?.(href),
   goToCfi: (cfi) => state.view?.init?.({ lastLocation: cfi }),
   goToFraction: (f) => state.view?.goToFraction?.(f),
-  setColumnCount: (n) => applyColumnCount(n),
   setStyles: (json) => {
     try {
       state.settings = { ...state.settings, ...JSON.parse(json) };
