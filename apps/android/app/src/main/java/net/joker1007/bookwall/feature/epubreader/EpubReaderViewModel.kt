@@ -46,7 +46,7 @@ class EpubReaderViewModel @Inject constructor(
 
     fun setFontSizePercent(percent: Int) = viewModelScope.launch { settingsRepository.setFontSizePercent(percent) }
 
-    fun setVerticalText(enabled: Boolean) = viewModelScope.launch { settingsRepository.setVerticalText(enabled) }
+    fun setVerticalText(enabled: Boolean?) = viewModelScope.launch { settingsRepository.setVerticalText(enabled) }
 
     fun setScroll(enabled: Boolean) = viewModelScope.launch { settingsRepository.setScroll(enabled) }
 }

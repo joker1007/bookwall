@@ -125,7 +125,14 @@ private fun EpubSettingsSheet(
                 modifier = Modifier.testTag(EpubChromeTags.FONT_SLIDER),
             )
 
-            SwitchRow("縦書き", settings.verticalText, viewModel::setVerticalText, EpubChromeTags.VERTICAL_SWITCH)
+            // null (auto) shows as off; turning it off returns to auto-detection
+            // so vertical CJK books keep working without a forced setting.
+            SwitchRow(
+                label = "縦書き(強制)",
+                checked = settings.verticalText == true,
+                onChange = { on -> viewModel.setVerticalText(if (on) true else null) },
+                testTag = EpubChromeTags.VERTICAL_SWITCH,
+            )
             SwitchRow("スクロール表示", settings.scroll, viewModel::setScroll, EpubChromeTags.SCROLL_SWITCH)
         }
     }

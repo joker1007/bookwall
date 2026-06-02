@@ -23,7 +23,7 @@ class DataStoreEpubSettingsRepository @Inject constructor(
         EpubSettings(
             theme = prefs[themeKey]?.let { runCatching { EpubTheme.valueOf(it) }.getOrNull() } ?: EpubTheme.LIGHT,
             fontSizePercent = prefs[fontSizeKey] ?: 100,
-            verticalText = prefs[verticalKey] ?: false,
+            verticalText = prefs[verticalKey],
             scroll = prefs[scrollKey] ?: false,
         )
     }
@@ -36,8 +36,10 @@ class DataStoreEpubSettingsRepository @Inject constructor(
         dataStore.edit { it[fontSizeKey] = percent.coerceIn(50, 250) }
     }
 
-    override suspend fun setVerticalText(enabled: Boolean) {
-        dataStore.edit { it[verticalKey] = enabled }
+    override suspend fun setVerticalText(enabled: Boolean?) {
+        dataStore.edit {
+            if (enabled == null) it.remove(verticalKey) else it[verticalKey] = enabled
+        }
     }
 
     override suspend fun setScroll(enabled: Boolean) {

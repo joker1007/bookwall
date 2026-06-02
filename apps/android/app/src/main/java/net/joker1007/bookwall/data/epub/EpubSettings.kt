@@ -6,6 +6,7 @@ enum class EpubTheme { LIGHT, SEPIA, DARK }
 data class EpubSettings(
     val theme: EpubTheme = EpubTheme.LIGHT,
     val fontSizePercent: Int = 100,
-    val verticalText: Boolean = false,
+    /** null = let Readium auto-detect from the publication (e.g. vertical CJK). */
+    val verticalText: Boolean? = null,
     val scroll: Boolean = false,
 )

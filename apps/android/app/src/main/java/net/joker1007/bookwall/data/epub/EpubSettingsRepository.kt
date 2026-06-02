@@ -9,7 +9,7 @@ interface EpubSettingsRepository {
 
     suspend fun setFontSizePercent(percent: Int)
 
-    suspend fun setVerticalText(enabled: Boolean)
+    suspend fun setVerticalText(enabled: Boolean?)
 
     suspend fun setScroll(enabled: Boolean)
 }
