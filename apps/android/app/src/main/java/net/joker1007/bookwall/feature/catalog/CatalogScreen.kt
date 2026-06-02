@@ -93,9 +93,10 @@ fun CatalogScreen(
                     }
                 },
                 actions = {
-                    if (state.books.isNotEmpty()) {
+                    if (state.books.isNotEmpty() || state.navEntries.isNotEmpty()) {
                         ViewModeAction(state.viewMode, viewModel::setViewMode)
-                        SortAction(state.sort, state.sortDirection, viewModel::setSort)
+                        // Navigation feeds only have a title axis; books get all axes.
+                        SortAction(state.sort, state.sortDirection, state.books.isNotEmpty(), viewModel::setSort)
                     }
                 },
             )
@@ -342,9 +343,12 @@ private fun ViewModeAction(mode: ViewMode, onChange: (ViewMode) -> Unit) {
     }
 }
 
-private val SORT_OPTIONS = listOf(
+private val TITLE_SORT_OPTIONS = listOf(
     Triple("タイトル順 (昇順)", BookSort.TITLE, SortDirection.ASC),
     Triple("タイトル順 (降順)", BookSort.TITLE, SortDirection.DESC),
+)
+
+private val BOOK_SORT_OPTIONS = listOf(
     Triple("著者順 (昇順)", BookSort.AUTHOR, SortDirection.ASC),
     Triple("著者順 (降順)", BookSort.AUTHOR, SortDirection.DESC),
     Triple("登録日順 (新しい順)", BookSort.ADDED, SortDirection.DESC),
@@ -355,14 +359,17 @@ private val SORT_OPTIONS = listOf(
 private fun SortAction(
     sort: BookSort,
     direction: SortDirection,
+    showAllAxes: Boolean,
     onSort: (BookSort, SortDirection) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // Navigation feeds only sort by title; book feeds add author / added-date.
+    val options = if (showAllAxes) TITLE_SORT_OPTIONS + BOOK_SORT_OPTIONS else TITLE_SORT_OPTIONS
     IconButton(onClick = { expanded = true }, modifier = Modifier.testTag(CatalogTags.SORT_BUTTON)) {
         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "並び替え")
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        SORT_OPTIONS.forEach { (label, optSort, optDir) ->
+        options.forEach { (label, optSort, optDir) ->
             DropdownMenuItem(
                 text = { Text(label) },
                 onClick = { onSort(optSort, optDir); expanded = false },

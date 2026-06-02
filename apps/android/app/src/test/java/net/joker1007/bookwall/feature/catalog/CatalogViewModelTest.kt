@@ -116,6 +116,20 @@ class CatalogViewModelTest {
     }
 
     @Test
+    fun `sorts navigation entries by title and direction`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(NAVIGATION_FEED))
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        // Default ascending by title.
+        assertEquals("Alpha", vm.state.value.navEntries.first().title)
+
+        vm.setSort(BookSort.TITLE, SortDirection.DESC)
+        assertEquals("Zeta", vm.state.value.navEntries.first().title)
+    }
+
+    @Test
     fun `http error surfaces an error message`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
 
@@ -127,6 +141,25 @@ class CatalogViewModelTest {
     }
 
     private companion object {
+        val NAVIGATION_FEED = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <title>Series</title>
+              <id>urn:bookwall:series</id>
+              <link rel="self" href="/opds/series" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+              <entry>
+                <title>Zeta</title>
+                <id>urn:bookwall:series:1</id>
+                <link rel="subsection" href="/opds/series/1" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+              </entry>
+              <entry>
+                <title>Alpha</title>
+                <id>urn:bookwall:series:2</id>
+                <link rel="subsection" href="/opds/series/2" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+              </entry>
+            </feed>
+        """.trimIndent()
+
         val ACQUISITION_FEED = """
             <?xml version="1.0" encoding="UTF-8"?>
             <feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
