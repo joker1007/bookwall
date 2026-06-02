@@ -4,7 +4,7 @@ require "zip"
 
 module Parsers
   class CbzParser < BaseParser
-    COMIC_INFO_FILENAME = "ComicInfo.xml".freeze
+    COMIC_INFO_FILENAME = "ComicInfo.xml"
 
     def metadata
       @metadata ||= build_metadata

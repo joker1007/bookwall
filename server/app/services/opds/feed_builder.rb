@@ -2,28 +2,28 @@
 
 module Opds
   class FeedBuilder
-    ATOM_NS = "http://www.w3.org/2005/Atom".freeze
-    OPDS_NS = "http://opds-spec.org/2010/catalog".freeze
-    PSE_NS = "http://vaemendis.net/opds-pse/ns".freeze
+    ATOM_NS = "http://www.w3.org/2005/Atom"
+    OPDS_NS = "http://opds-spec.org/2010/catalog"
+    PSE_NS = "http://vaemendis.net/opds-pse/ns"
     # Atom Threading (RFC 4685): supplies thr:count, the per-facet result count.
-    THREAD_NS = "http://purl.org/syndication/thread/1.0".freeze
+    THREAD_NS = "http://purl.org/syndication/thread/1.0"
 
-    ACQUISITION_REL = "http://opds-spec.org/acquisition".freeze
-    IMAGE_REL = "http://opds-spec.org/image".freeze
-    THUMB_REL = "http://opds-spec.org/image/thumbnail".freeze
-    PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream".freeze
-    FACET_REL = "http://opds-spec.org/facet".freeze
+    ACQUISITION_REL = "http://opds-spec.org/acquisition"
+    IMAGE_REL = "http://opds-spec.org/image"
+    THUMB_REL = "http://opds-spec.org/image/thumbnail"
+    PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream"
+    FACET_REL = "http://opds-spec.org/facet"
     # Bookwall-specific capability advertised on the root feed so first-party
     # clients can detect a Bookwall server and learn the progress-sync endpoint.
-    PROGRESS_SYNC_REL = "https://bookwall.joker1007.net/rel/progress-sync".freeze
+    PROGRESS_SYNC_REL = "https://bookwall.joker1007.net/rel/progress-sync"
 
     # Rails path helpers percent-encode `{`/`}`, so route through a URL-safe
     # sentinel and swap it back to keep the literal "{pageNumber}" PSE token.
-    PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER".freeze
-    PSE_TEMPLATE_TOKEN = "{pageNumber}".freeze
+    PSE_TEMPLATE_SENTINEL = "OPDSPSEPAGENUMBER"
+    PSE_TEMPLATE_TOKEN = "{pageNumber}"
     # Same sentinel trick for the progress-sync template's "{bookId}" token.
-    BOOK_ID_SENTINEL = "OPDSBOOKID".freeze
-    BOOK_ID_TOKEN = "{bookId}".freeze
+    BOOK_ID_SENTINEL = "OPDSBOOKID"
+    BOOK_ID_TOKEN = "{bookId}"
 
     # PSE streams image pages, so reflowable EPUB is not a valid PSE source.
     PSE_STREAMABLE_FORMATS = %w[cbz pdf image_dir].freeze
