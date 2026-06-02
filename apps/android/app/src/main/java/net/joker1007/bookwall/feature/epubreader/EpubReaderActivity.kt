@@ -146,11 +146,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     launch {
                         viewModel.settings.collect { nav.submitPreferences(it.toEpubPreferences()) }
                     }
-                    launch {
-                        nav.currentLocator.collect {
-                            progressRepository.save(session.serverId, session.bookId, it)
-                        }
-                    }
+                    // Progress saving moved to the foliate reader (CFI-based);
+                    // this Readium path is dead code pending removal in P5.
                 }
             }
         }

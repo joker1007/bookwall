@@ -35,7 +35,6 @@ data class FoliateLaunch(
     val bookId: Long,
     val title: String,
     val filePath: String,
-    val initialCfi: String?,
 )
 
 data class CatalogUiState(
@@ -103,8 +102,7 @@ class CatalogViewModel @Inject constructor(
         val bookId = book.numericId ?: return
         viewModelScope.launch {
             if (book.isEpub) {
-                _selectedEpubProgress.value = epubProgressRepository.load(serverId, bookId)
-                    ?.locations?.totalProgression?.toFloat()
+                _selectedEpubProgress.value = epubProgressRepository.load(serverId, bookId)?.fraction
             } else {
                 _selectedLocalPage.value = readerStateRepository.load(serverId, bookId)?.currentPage
             }
@@ -129,7 +127,6 @@ class CatalogViewModel @Inject constructor(
                         bookId = bookId,
                         title = book.title,
                         filePath = file.absolutePath,
-                        initialCfi = null,
                     )
                 }
             _state.update { it.copy(openingEpub = false) }

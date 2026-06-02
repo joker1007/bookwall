@@ -32,13 +32,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebViewAssetLoader
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import net.joker1007.bookwall.data.epub.EpubProgressRepository
+import net.joker1007.bookwall.data.reader.ProgressSyncRepository
+import net.joker1007.bookwall.data.reader.reconcileEpubCfi
+import net.joker1007.bookwall.data.server.OpdsServer
+import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.feature.epubreader.EpubReaderViewModel
 import net.joker1007.bookwall.ui.theme.BookwallTheme
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
+import javax.inject.Inject
 
 /**
  * Hosts foliate-js in a WebView to render EPUBs (the same engine the web reader
@@ -56,8 +67,21 @@ class FoliateReaderActivity : ComponentActivity() {
 
     private val viewModel: EpubReaderViewModel by viewModels()
 
+    @Inject lateinit var epubProgressRepository: EpubProgressRepository
+
+    @Inject lateinit var progressSyncRepository: ProgressSyncRepository
+
+    @Inject lateinit var serverRepository: ServerRepository
+
     private lateinit var epubFile: File
     private lateinit var title: String
+    private var serverId: Long = 0L
+    private var bookId: Long = 0L
+    private var server: OpdsServer? = null
+    /** Completes with the CFI to restore on open (local vs server reconciled). */
+    private val initialCfi = CompletableDeferred<String?>()
+    private var saveJob: Job? = null
+
     private var loadState by mutableStateOf<LoadState>(LoadState.Loading)
     private var toc by mutableStateOf<List<TocEntry>>(emptyList())
     private var fraction by mutableStateOf(0f)
@@ -75,7 +99,21 @@ class FoliateReaderActivity : ComponentActivity() {
         }
         epubFile = File(path)
         title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
-        val initialCfi = intent.getStringExtra(EXTRA_INITIAL_CFI)
+        serverId = intent.getLongExtra(EXTRA_SERVER_ID, 0L)
+        bookId = intent.getLongExtra(EXTRA_BOOK_ID, 0L)
+
+        // Resolve the restore position in parallel with the WebView loading: the
+        // furthest of the local save and the server's progress (pulled if the
+        // server supports sync). onReady() awaits this before opening.
+        lifecycleScope.launch {
+            val srv = serverRepository.getServer(serverId)
+            server = srv
+            val local = epubProgressRepository.load(serverId, bookId)
+            val remote = srv?.let { progressSyncRepository.pullEpubProgress(it, bookId) }
+            initialCfi.complete(
+                reconcileEpubCfi(local?.cfi, local?.fraction, remote?.cfi, remote?.fraction),
+            )
+        }
 
         enableEdgeToEdge()
         setContent {
@@ -90,7 +128,7 @@ class FoliateReaderActivity : ComponentActivity() {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
-                        factory = { context -> createWebView(context, initialCfi) },
+                        factory = { context -> createWebView(context) },
                     )
                     FoliateReaderChrome(
                         title = title,
@@ -120,7 +158,7 @@ class FoliateReaderActivity : ComponentActivity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun createWebView(context: Context, initialCfi: String?): WebView {
+    private fun createWebView(context: Context): WebView {
         val assetLoader = WebViewAssetLoader.Builder()
             // Serve assets/foliate/<path> at /foliate/<path> (the default
             // AssetsPathHandler maps the suffix to the assets *root*, so it would
@@ -166,7 +204,7 @@ class FoliateReaderActivity : ComponentActivity() {
                     return true
                 }
             }
-            addJavascriptInterface(Bridge(initialCfi), "AndroidBridge")
+            addJavascriptInterface(Bridge(), "AndroidBridge")
             loadUrl("https://appassets.androidplatform.net/foliate/reader.html")
         }
     }
@@ -178,14 +216,27 @@ class FoliateReaderActivity : ComponentActivity() {
     private fun goForward(forward: Boolean) =
         runJs(if (forward) "window.foliateGlue.next()" else "window.foliateGlue.prev()")
 
+    /** Debounced: persist locally and best-effort push to the server. */
+    private fun persistProgress(cfi: String, fraction: Float) {
+        saveJob?.cancel()
+        saveJob = lifecycleScope.launch {
+            delay(SAVE_DEBOUNCE_MS)
+            epubProgressRepository.save(serverId, bookId, cfi, fraction)
+            server?.let { if (it.supportsProgressSync) progressSyncRepository.pushEpubProgress(it, bookId, cfi, fraction) }
+        }
+    }
+
     /** JS -> Kotlin callbacks. Invoked on a binder thread; hop to the WebView thread for JS calls. */
-    private inner class Bridge(private val initialCfi: String?) {
+    private inner class Bridge {
         @JavascriptInterface
         fun onReady() {
-            val cfiArg = initialCfi?.let { "'${it.jsEscape()}'" } ?: "null"
-            // Seed styles before open so the first section renders with them.
-            runJs("window.foliateGlue.setStyles('${foliateStylesJson(viewModel.settings.value)}')")
-            runJs("window.foliateGlue.open('https://appassets.androidplatform.net/epub/book.epub', $cfiArg)")
+            lifecycleScope.launch {
+                val cfi = initialCfi.await()
+                val cfiArg = cfi?.let { "'${it.jsEscape()}'" } ?: "null"
+                // Seed styles before open so the first section renders with them.
+                runJs("window.foliateGlue.setStyles('${foliateStylesJson(viewModel.settings.value)}')")
+                runJs("window.foliateGlue.open('https://appassets.androidplatform.net/epub/book.epub', $cfiArg)")
+            }
         }
 
         @JavascriptInterface
@@ -199,8 +250,9 @@ class FoliateReaderActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun onRelocate(cfi: String, fraction: Double) {
-            runOnUiThread { this@FoliateReaderActivity.fraction = fraction.toFloat() }
-            // Persistence + sync wired in P4.
+            val f = fraction.toFloat()
+            runOnUiThread { this@FoliateReaderActivity.fraction = f }
+            persistProgress(cfi, f)
         }
 
         @JavascriptInterface
@@ -295,11 +347,11 @@ class FoliateReaderActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "FoliateReader"
+        private const val SAVE_DEBOUNCE_MS = 1_000L
         private const val EXTRA_SERVER_ID = "server_id"
         private const val EXTRA_BOOK_ID = "book_id"
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_FILE_PATH = "file_path"
-        private const val EXTRA_INITIAL_CFI = "initial_cfi"
 
         fun intent(
             context: Context,
@@ -307,13 +359,11 @@ class FoliateReaderActivity : ComponentActivity() {
             bookId: Long,
             title: String,
             filePath: String,
-            initialCfi: String?,
         ): Intent = Intent(context, FoliateReaderActivity::class.java).apply {
             putExtra(EXTRA_SERVER_ID, serverId)
             putExtra(EXTRA_BOOK_ID, bookId)
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_FILE_PATH, filePath)
-            putExtra(EXTRA_INITIAL_CFI, initialCfi)
         }
     }
 }

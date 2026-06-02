@@ -75,7 +75,6 @@ fun CatalogScreen(
                     bookId = launch.bookId,
                     title = launch.title,
                     filePath = launch.filePath,
-                    initialCfi = launch.initialCfi,
                 ),
             )
             viewModel.consumeFoliateLaunch()

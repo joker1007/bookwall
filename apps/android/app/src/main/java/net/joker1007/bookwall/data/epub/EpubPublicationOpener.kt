@@ -51,7 +51,9 @@ class EpubPublicationOpener @Inject constructor(
                     serverId = server.id,
                     bookId = bookId,
                     title = book.title,
-                    initialLocator = progressRepository.load(server.id, bookId),
+                    // Progress is owned by the foliate reader now (CFI-based); this
+                    // Readium path is dead code pending removal in P5.
+                    initialLocator = null,
                 )
             }
         }

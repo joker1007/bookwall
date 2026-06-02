@@ -89,6 +89,7 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kxml2)
+    testImplementation(libs.json)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

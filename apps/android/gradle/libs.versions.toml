@@ -25,6 +25,7 @@ espressoCore = "3.6.1"
 turbine = "1.2.0"
 kxml2 = "2.3.0"
 desugar = "2.1.5"
+json = "20240303"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -79,6 +80,7 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 kxml2 = { group = "net.sf.kxml", name = "kxml2", version.ref = "kxml2" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
+json = { group = "org.json", name = "json", version.ref = "json" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
