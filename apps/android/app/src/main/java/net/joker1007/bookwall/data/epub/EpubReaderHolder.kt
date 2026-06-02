@@ -1,6 +1,7 @@
 package net.joker1007.bookwall.data.epub
 
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
+import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -14,6 +15,7 @@ class EpubSession(
     val serverId: Long,
     val bookId: Long,
     val title: String,
+    val initialLocator: Locator? = null,
 )
 
 /**

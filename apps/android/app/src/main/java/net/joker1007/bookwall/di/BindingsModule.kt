@@ -6,8 +6,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
+import net.joker1007.bookwall.data.epub.DataStoreEpubSettingsRepository
 import net.joker1007.bookwall.data.epub.EpubOpener
 import net.joker1007.bookwall.data.epub.EpubPublicationOpener
+import net.joker1007.bookwall.data.epub.EpubSettingsRepository
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
 import net.joker1007.bookwall.data.reader.DataStoreReaderPreferencesRepository
@@ -50,4 +52,8 @@ abstract class BindingsModule {
 
     @Binds
     abstract fun bindEpubOpener(impl: EpubPublicationOpener): EpubOpener
+
+    @Binds
+    @Singleton
+    abstract fun bindEpubSettingsRepository(impl: DataStoreEpubSettingsRepository): EpubSettingsRepository
 }

@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.joker1007.bookwall.data.db.BookwallDatabase
+import net.joker1007.bookwall.data.db.EpubProgressDao
 import net.joker1007.bookwall.data.db.OpdsServerDao
 import net.joker1007.bookwall.data.db.ReaderStateDao
 import javax.inject.Singleton
@@ -28,4 +29,7 @@ object DatabaseModule {
 
     @Provides
     fun provideReaderStateDao(database: BookwallDatabase): ReaderStateDao = database.readerStateDao()
+
+    @Provides
+    fun provideEpubProgressDao(database: BookwallDatabase): EpubProgressDao = database.epubProgressDao()
 }

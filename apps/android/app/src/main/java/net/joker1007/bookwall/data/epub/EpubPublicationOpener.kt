@@ -27,6 +27,7 @@ import javax.inject.Inject
 class EpubPublicationOpener @Inject constructor(
     @ApplicationContext private val context: Context,
     private val clientFactory: OkHttpClientFactory,
+    private val progressRepository: EpubProgressRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : EpubOpener {
     override suspend fun open(server: OpdsServer, book: OpdsEntry.Book): Result<EpubSession> =
@@ -43,12 +44,14 @@ class EpubPublicationOpener @Inject constructor(
                 val publication = opener.open(asset, allowUserInteraction = false)
                     .getOrElse { throw IOException("Failed to open EPUB: $it") }
 
+                val bookId = book.numericId ?: 0L
                 EpubSession(
                     publication = publication,
                     navigatorFactory = EpubNavigatorFactory(publication),
                     serverId = server.id,
-                    bookId = book.numericId ?: 0L,
+                    bookId = bookId,
                     title = book.title,
+                    initialLocator = progressRepository.load(server.id, bookId),
                 )
             }
         }
