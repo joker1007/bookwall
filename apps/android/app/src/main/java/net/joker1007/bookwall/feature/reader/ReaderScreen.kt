@@ -228,7 +228,14 @@ private fun SpreadSlot(
                 }
             },
     ) {
-        ordered.forEach { page ->
+        ordered.forEachIndexed { index, page ->
+            // In a two-page spread, hug the pages to the center so they join
+            // like an open book (no gap); a lone page stays centered.
+            val alignment = when {
+                ordered.size < 2 -> Alignment.Center
+                index == 0 -> Alignment.CenterEnd
+                else -> Alignment.CenterStart
+            }
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 imageLoader?.let { loader ->
                     AsyncImage(
@@ -236,6 +243,7 @@ private fun SpreadSlot(
                         contentDescription = null,
                         imageLoader = loader,
                         contentScale = ContentScale.Fit,
+                        alignment = alignment,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
