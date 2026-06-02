@@ -5,8 +5,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
@@ -32,8 +40,10 @@ import org.readium.r2.shared.util.AbsoluteUrl
 import javax.inject.Inject
 
 /**
- * Hosts Readium's [EpubNavigatorFragment] with a Compose chrome (top bar,
- * settings, TOC) overlaid. The publication is opened beforehand and stashed in
+ * Hosts Readium's [EpubNavigatorFragment] inside a single Compose tree: the
+ * navigator is an [AndroidView] and the chrome (top bar, settings, TOC) draws
+ * over it, so Compose owns the layering (a sibling ComposeView over the WebView
+ * occluded it). The publication is opened beforehand and stashed in
  * [EpubReaderHolder]; we read it back by session id because the navigator
  * factory must be installed before super.onCreate().
  */
@@ -48,8 +58,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     // Resolved via an entry point because we need it before super.onCreate(),
     // where Hilt field injection has not run yet.
     private lateinit var holder: EpubReaderHolder
-    private lateinit var navigator: EpubNavigatorFragment
+    private var navigator: EpubNavigatorFragment? = null
     private var sessionId: Long = -1L
+    private var observersStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         holder = EntryPointAccessors
@@ -71,70 +82,69 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
         super.onCreate(savedInstanceState)
 
-        val containerId = View.generateViewId()
-        val root = FrameLayout(this).apply {
-            addView(
-                FragmentContainerView(this@EpubReaderActivity).apply {
-                    id = containerId
-                    layoutParams = FrameLayout.LayoutParams(MATCH, MATCH)
-                },
-            )
-            addView(
-                ComposeView(this@EpubReaderActivity).apply {
-                    layoutParams = FrameLayout.LayoutParams(MATCH, MATCH)
-                    setContent {
-                        BookwallTheme {
-                            EpubReaderChrome(
-                                title = session.title,
-                                toc = session.publication.tableOfContents,
-                                viewModel = viewModel,
-                                onTocClick = { link ->
-                                    lifecycleScope.launch { navigator.go(link) }
-                                    viewModel.closeToc()
-                                },
-                                onBack = { finish() },
-                            )
-                        }
-                    }
-                },
-            )
-        }
-        setContentView(root)
-
-        if (savedInstanceState == null) {
-            supportFragmentManager.commitNow {
-                add(containerId, EpubNavigatorFragment::class.java, Bundle(), FRAGMENT_TAG)
+        setContent {
+            BookwallTheme {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val containerId = remember { View.generateViewId() }
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            FragmentContainerView(context).apply { id = containerId }
+                        },
+                        update = {
+                            if (navigator == null) {
+                                supportFragmentManager.commitNow {
+                                    add(containerId, EpubNavigatorFragment::class.java, Bundle(), FRAGMENT_TAG)
+                                }
+                                onNavigatorReady(session)
+                            }
+                        },
+                    )
+                    EpubReaderChrome(
+                        title = session.title,
+                        toc = session.publication.tableOfContents,
+                        viewModel = viewModel,
+                        onTocClick = { link ->
+                            lifecycleScope.launch { navigator?.go(link) }
+                            viewModel.closeToc()
+                        },
+                        onBack = { finish() },
+                    )
+                }
             }
         }
-        navigator = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as EpubNavigatorFragment
+    }
 
-        navigator.addInputListener(
+    private fun onNavigatorReady(session: EpubSession) {
+        val nav = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as EpubNavigatorFragment
+        navigator = nav
+
+        nav.addInputListener(
             object : InputListener {
                 override fun onTap(event: TapEvent): Boolean {
                     val width = resources.displayMetrics.widthPixels
                     val third = width / 3f
-                    return if (event.point.x > third && event.point.x < width - third) {
-                        viewModel.toggleMenu()
-                        true
-                    } else {
-                        false
+                    when {
+                        event.point.x < third -> lifecycleScope.launch { nav.goBackward(animated = true) }
+                        event.point.x > width - third -> lifecycleScope.launch { nav.goForward(animated = true) }
+                        else -> viewModel.toggleMenu()
                     }
+                    return true
                 }
             },
         )
 
-        observeSession(session)
-    }
-
-    private fun observeSession(session: EpubSession) {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    viewModel.settings.collect { navigator.submitPreferences(it.toEpubPreferences()) }
-                }
-                launch {
-                    navigator.currentLocator.collect {
-                        progressRepository.save(session.serverId, session.bookId, it)
+        if (!observersStarted) {
+            observersStarted = true
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    launch {
+                        viewModel.settings.collect { nav.submitPreferences(it.toEpubPreferences()) }
+                    }
+                    launch {
+                        nav.currentLocator.collect {
+                            progressRepository.save(session.serverId, session.bookId, it)
+                        }
                     }
                 }
             }
@@ -159,7 +169,6 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     companion object {
         private const val EXTRA_SESSION_ID = "session_id"
         private const val FRAGMENT_TAG = "epub_navigator"
-        private const val MATCH = FrameLayout.LayoutParams.MATCH_PARENT
 
         fun intent(context: Context, sessionId: Long): Intent =
             Intent(context, EpubReaderActivity::class.java).putExtra(EXTRA_SESSION_ID, sessionId)
