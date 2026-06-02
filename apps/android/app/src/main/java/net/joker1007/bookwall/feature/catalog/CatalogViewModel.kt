@@ -98,7 +98,12 @@ class CatalogViewModel @Inject constructor(
 
     fun setSort(sort: BookSort, direction: SortDirection) =
         _state.update {
-            it.copy(sort = sort, sortDirection = direction, books = sortBooks(it.books, sort, direction))
+            it.copy(
+                sort = sort,
+                sortDirection = direction,
+                books = sortBooks(it.books, sort, direction),
+                navEntries = sortNav(it.navEntries, direction),
+            )
         }
 
     fun selectBook(book: OpdsEntry.Book) {
@@ -185,9 +190,18 @@ class CatalogViewModel @Inject constructor(
         loading = false,
         error = null,
         title = feed.title,
-        navEntries = feed.entries.filterIsInstance<OpdsEntry.Navigation>(),
+        navEntries = sortNav(feed.entries.filterIsInstance<OpdsEntry.Navigation>(), sortDirection),
         books = sortBooks(feed.entries.filterIsInstance<OpdsEntry.Book>(), sort, sortDirection),
     )
+
+    // Navigation entries only have a title axis; honour the chosen direction.
+    private fun sortNav(
+        entries: List<OpdsEntry.Navigation>,
+        direction: SortDirection,
+    ): List<OpdsEntry.Navigation> {
+        val sorted = entries.sortedBy { it.title.lowercase() }
+        return if (direction == SortDirection.DESC) sorted.asReversed() else sorted
+    }
 
     private fun sortBooks(
         books: List<OpdsEntry.Book>,

@@ -1,5 +1,6 @@
 package net.joker1007.bookwall.feature.catalog
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +28,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -93,9 +93,10 @@ fun CatalogScreen(
                     }
                 },
                 actions = {
-                    if (state.books.isNotEmpty()) {
+                    if (state.books.isNotEmpty() || state.navEntries.isNotEmpty()) {
                         ViewModeAction(state.viewMode, viewModel::setViewMode)
-                        SortAction(state.sort, state.sortDirection, viewModel::setSort)
+                        // Navigation feeds only have a title axis; books get all axes.
+                        SortAction(state.sort, state.sortDirection, state.books.isNotEmpty(), viewModel::setSort)
                     }
                 },
             )
@@ -158,12 +159,12 @@ private fun CatalogContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(state.navEntries, span = { GridItemSpan(maxLineSpan) }) { entry ->
-            ListItem(
-                headlineContent = { Text(entry.title) },
-                supportingContent = entry.summary?.let { { Text(it) } },
-                modifier = Modifier.clickable { onOpenFeed(entry.href) },
-            )
+        items(state.navEntries, key = { it.id }) { entry ->
+            if (state.viewMode == ViewMode.GRID) {
+                NavGridCell(entry, imageLoader, resolve, onOpenFeed)
+            } else {
+                NavListRow(entry, imageLoader, resolve, onOpenFeed)
+            }
         }
         items(state.books, key = { it.id }) { book ->
             if (state.viewMode == ViewMode.GRID) {
@@ -242,6 +243,78 @@ private fun BookListRow(
 }
 
 @Composable
+private fun NavGridCell(
+    entry: OpdsEntry.Navigation,
+    imageLoader: coil3.ImageLoader?,
+    resolve: (String?) -> String?,
+    onClick: (String) -> Unit,
+) {
+    Column(modifier = Modifier.clickable { onClick(entry.href) }) {
+        NavCover(
+            url = resolve(entry.thumbnailHref ?: entry.imageHref),
+            imageLoader = imageLoader,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.7f),
+        )
+        Text(
+            text = entry.title,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun NavListRow(
+    entry: OpdsEntry.Navigation,
+    imageLoader: coil3.ImageLoader?,
+    resolve: (String?) -> String?,
+    onClick: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(entry.href) },
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        NavCover(
+            url = resolve(entry.thumbnailHref ?: entry.imageHref),
+            imageLoader = imageLoader,
+            modifier = Modifier.size(width = 60.dp, height = 86.dp),
+        )
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Text(entry.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            entry.summary?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Cover slot for navigation entries: the supplied image, or a folder icon when none. */
+@Composable
+private fun NavCover(url: String?, imageLoader: coil3.ImageLoader?, modifier: Modifier = Modifier) {
+    if (url != null && imageLoader != null) {
+        AsyncImage(model = url, contentDescription = null, imageLoader = imageLoader, modifier = modifier)
+    } else {
+        Box(
+            modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxSize(0.4f),
+            )
+        }
+    }
+}
+
+@Composable
 private fun Cover(url: String?, imageLoader: coil3.ImageLoader?, modifier: Modifier = Modifier) {
     if (url != null && imageLoader != null) {
         AsyncImage(
@@ -270,9 +343,12 @@ private fun ViewModeAction(mode: ViewMode, onChange: (ViewMode) -> Unit) {
     }
 }
 
-private val SORT_OPTIONS = listOf(
+private val TITLE_SORT_OPTIONS = listOf(
     Triple("タイトル順 (昇順)", BookSort.TITLE, SortDirection.ASC),
     Triple("タイトル順 (降順)", BookSort.TITLE, SortDirection.DESC),
+)
+
+private val BOOK_SORT_OPTIONS = listOf(
     Triple("著者順 (昇順)", BookSort.AUTHOR, SortDirection.ASC),
     Triple("著者順 (降順)", BookSort.AUTHOR, SortDirection.DESC),
     Triple("登録日順 (新しい順)", BookSort.ADDED, SortDirection.DESC),
@@ -283,14 +359,17 @@ private val SORT_OPTIONS = listOf(
 private fun SortAction(
     sort: BookSort,
     direction: SortDirection,
+    showAllAxes: Boolean,
     onSort: (BookSort, SortDirection) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // Navigation feeds only sort by title; book feeds add author / added-date.
+    val options = if (showAllAxes) TITLE_SORT_OPTIONS + BOOK_SORT_OPTIONS else TITLE_SORT_OPTIONS
     IconButton(onClick = { expanded = true }, modifier = Modifier.testTag(CatalogTags.SORT_BUTTON)) {
         Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "並び替え")
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        SORT_OPTIONS.forEach { (label, optSort, optDir) ->
+        options.forEach { (label, optSort, optDir) ->
             DropdownMenuItem(
                 text = { Text(label) },
                 onClick = { onSort(optSort, optDir); expanded = false },

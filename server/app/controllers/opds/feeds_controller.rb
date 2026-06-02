@@ -87,12 +87,14 @@ module Opds
 
     def series_index
       helpers = view_context_helpers
-      entries = Series.accessible_by(Current.user).order(:name).map do |s|
+      series = Series.accessible_by(Current.user).order(:name).to_a
+      first_books = Books::FirstBookPreloader.for_series(series, library_ids: accessible_library_ids)
+      entries = series.map do |s|
         {
           title: s.name,
           href: helpers.opds_series_path(series_id: s.id),
           id: "urn:bookwall:series:#{s.id}"
-        }
+        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[s.id], helpers))
       end
       xml = Opds::FeedBuilder.navigation(
         title: "Series",
@@ -138,12 +140,14 @@ module Opds
 
     def collections_index
       helpers = view_context_helpers
-      entries = Current.user.collections.order(:name).map do |c|
+      collections = Current.user.collections.order(:name).to_a
+      first_books = Books::FirstBookPreloader.for_collections(collections, library_ids: accessible_library_ids)
+      entries = collections.map do |c|
         {
           title: c.name,
           href: helpers.opds_collection_path(collection_id: c.id),
           id: "urn:bookwall:collection:#{c.id}"
-        }
+        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[c.id], helpers))
       end
       xml = Opds::FeedBuilder.navigation(
         title: "Collections",
