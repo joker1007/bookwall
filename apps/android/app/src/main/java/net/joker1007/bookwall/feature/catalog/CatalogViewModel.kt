@@ -11,11 +11,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.epub.EpubOpener
+import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.epub.EpubReaderHolder
 import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.OpdsFeed
 import net.joker1007.bookwall.data.opds.OpdsRepository
+import net.joker1007.bookwall.data.opds.isEpub
 import net.joker1007.bookwall.data.opds.numericId
 import net.joker1007.bookwall.data.opds.resolveOpdsHref
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
@@ -47,6 +49,7 @@ class CatalogViewModel @Inject constructor(
     private val epubOpener: EpubOpener,
     private val epubHolder: EpubReaderHolder,
     private val readerStateRepository: ReaderStateRepository,
+    private val epubProgressRepository: EpubProgressRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -59,9 +62,13 @@ class CatalogViewModel @Inject constructor(
     private val _selectedBook = MutableStateFlow<OpdsEntry.Book?>(null)
     val selectedBook: StateFlow<OpdsEntry.Book?> = _selectedBook.asStateFlow()
 
-    /** Local reading position (0-based) for the selected book, or null if none saved. */
+    /** Local reading position (0-based) for the selected image book, or null. */
     private val _selectedLocalPage = MutableStateFlow<Int?>(null)
     val selectedLocalPage: StateFlow<Int?> = _selectedLocalPage.asStateFlow()
+
+    /** Local reading progression (0..1) for the selected EPUB, or null. */
+    private val _selectedEpubProgress = MutableStateFlow<Float?>(null)
+    val selectedEpubProgress: StateFlow<Float?> = _selectedEpubProgress.asStateFlow()
 
     private val _epubSessionId = MutableStateFlow<Long?>(null)
     val epubSessionId: StateFlow<Long?> = _epubSessionId.asStateFlow()
@@ -85,9 +92,13 @@ class CatalogViewModel @Inject constructor(
     fun selectBook(book: OpdsEntry.Book) {
         _selectedBook.value = book
         _selectedLocalPage.value = null
-        val bookId = book.numericId
-        if (bookId != null) {
-            viewModelScope.launch {
+        _selectedEpubProgress.value = null
+        val bookId = book.numericId ?: return
+        viewModelScope.launch {
+            if (book.isEpub) {
+                _selectedEpubProgress.value = epubProgressRepository.load(serverId, bookId)
+                    ?.locations?.totalProgression?.toFloat()
+            } else {
                 _selectedLocalPage.value = readerStateRepository.load(serverId, bookId)?.currentPage
             }
         }
@@ -96,6 +107,7 @@ class CatalogViewModel @Inject constructor(
     fun dismissBook() {
         _selectedBook.value = null
         _selectedLocalPage.value = null
+        _selectedEpubProgress.value = null
     }
 
     fun openEpub(book: OpdsEntry.Book) {

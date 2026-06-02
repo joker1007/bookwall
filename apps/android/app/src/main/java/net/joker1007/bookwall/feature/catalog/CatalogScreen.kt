@@ -61,6 +61,7 @@ fun CatalogScreen(
     val state by viewModel.state.collectAsState()
     val selectedBook by viewModel.selectedBook.collectAsState()
     val selectedLocalPage by viewModel.selectedLocalPage.collectAsState()
+    val selectedEpubProgress by viewModel.selectedEpubProgress.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
     val epubSessionId by viewModel.epubSessionId.collectAsState()
     val context = LocalContext.current
@@ -119,6 +120,7 @@ fun CatalogScreen(
             BookDetail(
                 book = book,
                 localCurrentPage = selectedLocalPage,
+                epubProgress = selectedEpubProgress,
                 onRead = { selected ->
                     viewModel.dismissBook()
                     if (selected.pse != null) onOpenReader(selected) else viewModel.openEpub(selected)
