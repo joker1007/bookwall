@@ -43,9 +43,24 @@ module Opds
             xml.updated Time.current.iso8601
             xml.link(rel: entry[:rel] || "subsection", href: entry[:href], type: entry[:type] || Opds::ACQUISITION_MIME)
             xml.content_(type: "text") { xml.text(entry[:summary]) } if entry[:summary]
+            # Non-standard but uses the standard image rels: a representative cover
+            # (e.g. a series' first volume) so clients can show a navigation thumbnail.
+            xml.link(rel: IMAGE_REL, href: entry[:image_href], type: "image/jpeg") if entry[:image_href]
+            xml.link(rel: THUMB_REL, href: entry[:thumb_href], type: "image/jpeg") if entry[:thumb_href]
           end
         end
       end
+    end
+
+    # Image/thumbnail hrefs for a representative [book] (nil -> placeholder), for
+    # decorating navigation entries. Mirrors the acquisition feed's cover links.
+    def self.cover_hrefs(book, helpers)
+      return {image_href: CoverPlaceholder::COVER_PATH, thumb_href: CoverPlaceholder::THUMB_PATH} unless book&.cover&.attached?
+
+      image = helpers.rails_blob_path(book.cover, only_path: true)
+      variant = thumb_variant(book)
+      thumb = variant ? helpers.rails_representation_path(variant, only_path: true) : image
+      {image_href: image, thumb_href: thumb}
     end
 
     def self.acquisition(title:, id:, self_url:, books:, helpers:, facets: [], reading_progress_by_book_id: {})

@@ -27,6 +27,9 @@ sealed interface OpdsEntry {
         val href: String,
         val rel: String? = null,
         val summary: String? = null,
+        /** Representative cover (e.g. a series' first volume), if the feed supplied one. */
+        val imageHref: String? = null,
+        val thumbnailHref: String? = null,
     ) : OpdsEntry
 
     /** A publication entry with acquisition / cover / page-streaming links. */

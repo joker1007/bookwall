@@ -293,12 +293,35 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(response.media_type).to start_with("application/atom+xml")
       doc = Nokogiri::XML(response.body)
       ns = {"atom" => "http://www.w3.org/2005/Atom"}
-      links = doc.xpath("//atom:entry/atom:link", ns).map { |l| l["href"] }
+      links = doc.xpath("//atom:entry/atom:link[@rel='subsection']", ns).map { |l| l["href"] }
       # Sorted alphabetically.
       expect(links).to eq([
         "/opds/series/#{akira.id}",
         "/opds/series/#{zelda.id}"
       ])
+    end
+
+    it "includes the first volume's cover as a thumbnail link" do
+      series = create(:series, library: library, name: "Akira")
+      book = create(:book, library: library, series: series, volume: 1)
+      book.cover.attach(io: StringIO.new("fake-jpg"), filename: "c.jpg", content_type: "image/jpeg")
+
+      get "/opds/series", headers: {"Authorization" => auth_header}
+
+      thumb = Nokogiri::XML(response.body)
+        .at_xpath("//atom:entry/atom:link[@rel='http://opds-spec.org/image/thumbnail']", "atom" => ATOM_NS)
+      expect(thumb).to be_present
+      expect(thumb["href"]).not_to eq(CoverPlaceholder::THUMB_PATH)
+    end
+
+    it "falls back to the placeholder thumbnail for a series without a cover" do
+      create(:series, library: library, name: "Empty")
+
+      get "/opds/series", headers: {"Authorization" => auth_header}
+
+      thumb = Nokogiri::XML(response.body)
+        .at_xpath("//atom:entry/atom:link[@rel='http://opds-spec.org/image/thumbnail']", "atom" => ATOM_NS)
+      expect(thumb["href"]).to eq(CoverPlaceholder::THUMB_PATH)
     end
   end
 

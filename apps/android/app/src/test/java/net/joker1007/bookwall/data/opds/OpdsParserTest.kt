@@ -36,6 +36,12 @@ class OpdsParserTest {
         first as OpdsEntry.Navigation
         assertEquals("Recent", first.title)
         assertEquals("/opds/recent", first.href)
+        assertNull(first.thumbnailHref)
+
+        // A series-style nav entry carries a representative cover thumbnail.
+        val series = feed.entries[1] as OpdsEntry.Navigation
+        assertEquals("/rails/rep/series-thumb.jpg", series.thumbnailHref)
+        assertEquals("/rails/blob/series-cover.jpg", series.imageHref)
     }
 
     @Test
@@ -117,6 +123,8 @@ class OpdsParserTest {
                 <id>urn:bookwall:nav:Series</id>
                 <updated>2026-01-01T00:00:00Z</updated>
                 <link rel="subsection" href="/opds/series" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+                <link rel="http://opds-spec.org/image" href="/rails/blob/series-cover.jpg" type="image/jpeg"/>
+                <link rel="http://opds-spec.org/image/thumbnail" href="/rails/rep/series-thumb.jpg" type="image/jpeg"/>
               </entry>
             </feed>
         """.trimIndent()

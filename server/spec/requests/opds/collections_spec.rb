@@ -25,6 +25,19 @@ RSpec.describe "Opds::Collections", type: :request do
       expect(titles).to contain_exactly("Manga", "Novels")
       expect(response.body).not_to include("TheirSecret")
     end
+
+    it "includes the first book's cover as a thumbnail link" do
+      collection = create(:collection, user: user, name: "Manga")
+      book = create(:book, library: library, file_path: "x.cbz")
+      collection.books << book
+      book.cover.attach(io: StringIO.new("fake-jpg"), filename: "c.jpg", content_type: "image/jpeg")
+
+      get "/opds/collections", headers: {"Authorization" => auth_header}
+
+      thumb = Nokogiri::XML(response.body)
+        .at_xpath("//atom:entry/atom:link[@rel='http://opds-spec.org/image/thumbnail']", "atom" => ATOM)
+      expect(thumb).to be_present
+    end
   end
 
   describe "GET /opds/collections/:id" do

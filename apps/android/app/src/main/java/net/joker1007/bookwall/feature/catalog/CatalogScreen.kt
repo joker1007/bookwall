@@ -1,5 +1,6 @@
 package net.joker1007.bookwall.feature.catalog
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +28,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -158,12 +158,12 @@ private fun CatalogContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(state.navEntries, span = { GridItemSpan(maxLineSpan) }) { entry ->
-            ListItem(
-                headlineContent = { Text(entry.title) },
-                supportingContent = entry.summary?.let { { Text(it) } },
-                modifier = Modifier.clickable { onOpenFeed(entry.href) },
-            )
+        items(state.navEntries, key = { it.id }) { entry ->
+            if (state.viewMode == ViewMode.GRID) {
+                NavGridCell(entry, imageLoader, resolve, onOpenFeed)
+            } else {
+                NavListRow(entry, imageLoader, resolve, onOpenFeed)
+            }
         }
         items(state.books, key = { it.id }) { book ->
             if (state.viewMode == ViewMode.GRID) {
@@ -237,6 +237,78 @@ private fun BookListRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NavGridCell(
+    entry: OpdsEntry.Navigation,
+    imageLoader: coil3.ImageLoader?,
+    resolve: (String?) -> String?,
+    onClick: (String) -> Unit,
+) {
+    Column(modifier = Modifier.clickable { onClick(entry.href) }) {
+        NavCover(
+            url = resolve(entry.thumbnailHref ?: entry.imageHref),
+            imageLoader = imageLoader,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.7f),
+        )
+        Text(
+            text = entry.title,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun NavListRow(
+    entry: OpdsEntry.Navigation,
+    imageLoader: coil3.ImageLoader?,
+    resolve: (String?) -> String?,
+    onClick: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(entry.href) },
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        NavCover(
+            url = resolve(entry.thumbnailHref ?: entry.imageHref),
+            imageLoader = imageLoader,
+            modifier = Modifier.size(width = 60.dp, height = 86.dp),
+        )
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Text(entry.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            entry.summary?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Cover slot for navigation entries: the supplied image, or a folder icon when none. */
+@Composable
+private fun NavCover(url: String?, imageLoader: coil3.ImageLoader?, modifier: Modifier = Modifier) {
+    if (url != null && imageLoader != null) {
+        AsyncImage(model = url, contentDescription = null, imageLoader = imageLoader, modifier = modifier)
+    } else {
+        Box(
+            modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxSize(0.4f),
+            )
         }
     }
 }

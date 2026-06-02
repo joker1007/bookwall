@@ -132,6 +132,8 @@ class OpdsParser @Inject constructor() : FeedParser {
                 href = navHref,
                 rel = navRel,
                 summary = summary,
+                imageHref = imageHref,
+                thumbnailHref = thumbnailHref,
             )
             else -> null
         }
