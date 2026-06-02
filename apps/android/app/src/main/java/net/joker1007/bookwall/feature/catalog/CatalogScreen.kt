@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +45,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +72,7 @@ fun CatalogScreen(
     val imageLoader by viewModel.imageLoader.collectAsState()
     val foliateLaunch by viewModel.foliateLaunch.collectAsState()
     val context = LocalContext.current
+    var filterActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(foliateLaunch) {
         foliateLaunch?.let { launch ->
@@ -86,14 +93,36 @@ fun CatalogScreen(
         modifier = Modifier.testTag(CatalogTags.ROOT),
         topBar = {
             TopAppBar(
-                title = { Text(state.title.ifEmpty { "カタログ" }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = {
+                    if (filterActive) {
+                        FilterField(
+                            query = state.filterQuery,
+                            onQueryChange = viewModel::setFilter,
+                        )
+                    } else {
+                        Text(state.title.ifEmpty { "カタログ" }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                    IconButton(
+                        onClick = {
+                            if (filterActive) {
+                                filterActive = false
+                                viewModel.setFilter("")
+                            } else {
+                                onBack()
+                            }
+                        },
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (filterActive) "絞り込みを閉じる" else "戻る")
                     }
                 },
                 actions = {
-                    if (state.books.isNotEmpty() || state.navEntries.isNotEmpty()) {
+                    val hasEntries = state.books.isNotEmpty() || state.navEntries.isNotEmpty()
+                    if ((hasEntries || state.filterQuery.isNotEmpty()) && !filterActive) {
+                        FilterAction { filterActive = true }
+                    }
+                    if (hasEntries && !filterActive) {
                         ViewModeAction(state.viewMode, viewModel::setViewMode)
                         // Navigation feeds only have a title axis; books get all axes.
                         SortAction(state.sort, state.sortDirection, state.books.isNotEmpty(), viewModel::setSort)
@@ -114,6 +143,14 @@ fun CatalogScreen(
                         .testTag(CatalogTags.LOADING),
                 )
                 state.error != null -> ErrorState(state.error!!, viewModel::retry)
+                state.navEntries.isEmpty() && state.books.isEmpty() && state.filterQuery.isNotBlank() ->
+                    Text(
+                        "該当するエントリがありません",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .testTag(CatalogTags.FILTER_EMPTY),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 else -> CatalogContent(
                     state = state,
                     imageLoader = imageLoader,
@@ -328,6 +365,35 @@ private fun Cover(url: String?, imageLoader: coil3.ImageLoader?, modifier: Modif
     }
 }
 
+@Composable
+private fun FilterAction(onActivate: () -> Unit) {
+    IconButton(onClick = onActivate, modifier = Modifier.testTag(CatalogTags.FILTER_TOGGLE)) {
+        Icon(Icons.Default.Search, contentDescription = "絞り込み")
+    }
+}
+
+@Composable
+private fun FilterField(query: String, onQueryChange: (String) -> Unit) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        placeholder = { Text("絞り込み") },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .testTag(CatalogTags.FILTER_FIELD),
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ViewModeAction(mode: ViewMode, onChange: (ViewMode) -> Unit) {
@@ -403,4 +469,7 @@ object CatalogTags {
     const val VIEW_MODE_TOGGLE = "catalog_view_mode_toggle"
     const val SORT_BUTTON = "catalog_sort_button"
     const val DETAIL_SHEET = "catalog_detail_sheet"
+    const val FILTER_TOGGLE = "catalog_filter_toggle"
+    const val FILTER_FIELD = "catalog_filter_field"
+    const val FILTER_EMPTY = "catalog_filter_empty"
 }

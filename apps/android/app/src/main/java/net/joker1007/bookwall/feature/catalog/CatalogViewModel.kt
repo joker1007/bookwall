@@ -49,6 +49,7 @@ data class CatalogUiState(
     val viewMode: ViewMode = ViewMode.GRID,
     val sort: BookSort = BookSort.TITLE,
     val sortDirection: SortDirection = SortDirection.ASC,
+    val filterQuery: String = "",
     val openingEpub: Boolean = false,
 )
 
@@ -88,6 +89,11 @@ class CatalogViewModel @Inject constructor(
 
     private var server: OpdsServer? = null
 
+    // Full, unfiltered entries from the current feed; the displayed lists in
+    // CatalogUiState are derived from these by applying sort + filter.
+    private var sourceNav: List<OpdsEntry.Navigation> = emptyList()
+    private var sourceBooks: List<OpdsEntry.Book> = emptyList()
+
     init {
         load()
     }
@@ -97,14 +103,10 @@ class CatalogViewModel @Inject constructor(
     fun setViewMode(mode: ViewMode) = _state.update { it.copy(viewMode = mode) }
 
     fun setSort(sort: BookSort, direction: SortDirection) =
-        _state.update {
-            it.copy(
-                sort = sort,
-                sortDirection = direction,
-                books = sortBooks(it.books, sort, direction),
-                navEntries = sortNav(it.navEntries, direction),
-            )
-        }
+        _state.update { it.copy(sort = sort, sortDirection = direction).recompute() }
+
+    fun setFilter(query: String) =
+        _state.update { it.copy(filterQuery = query).recompute() }
 
     fun selectBook(book: OpdsEntry.Book) {
         _selectedBook.value = book
@@ -186,13 +188,33 @@ class CatalogViewModel @Inject constructor(
 
     private fun fail(message: String) = _state.update { it.copy(loading = false, error = message) }
 
-    private fun CatalogUiState.applyFeed(feed: OpdsFeed): CatalogUiState = copy(
-        loading = false,
-        error = null,
-        title = feed.title,
-        navEntries = sortNav(feed.entries.filterIsInstance<OpdsEntry.Navigation>(), sortDirection),
-        books = sortBooks(feed.entries.filterIsInstance<OpdsEntry.Book>(), sort, sortDirection),
-    )
+    private fun CatalogUiState.applyFeed(feed: OpdsFeed): CatalogUiState {
+        sourceNav = feed.entries.filterIsInstance<OpdsEntry.Navigation>()
+        sourceBooks = feed.entries.filterIsInstance<OpdsEntry.Book>()
+        return copy(loading = false, error = null, title = feed.title).recompute()
+    }
+
+    // Derive the displayed lists from the full source entries using the current
+    // sort and filter. Sort first, then filter, so order is stable as the query changes.
+    private fun CatalogUiState.recompute(): CatalogUiState {
+        val nav = sortNav(sourceNav, sortDirection).filter { it.matchesFilter(filterQuery) }
+        val books = sortBooks(sourceBooks, sort, sortDirection).filter { it.matchesFilter(filterQuery) }
+        return copy(navEntries = nav, books = books)
+    }
+
+    private fun OpdsEntry.Navigation.matchesFilter(query: String): Boolean {
+        val q = query.trim()
+        if (q.isEmpty()) return true
+        return title.contains(q, ignoreCase = true) || summary?.contains(q, ignoreCase = true) == true
+    }
+
+    private fun OpdsEntry.Book.matchesFilter(query: String): Boolean {
+        val q = query.trim()
+        if (q.isEmpty()) return true
+        return title.contains(q, ignoreCase = true) ||
+            authors.any { it.contains(q, ignoreCase = true) } ||
+            tags.any { it.contains(q, ignoreCase = true) }
+    }
 
     // Navigation entries only have a title axis; honour the chosen direction.
     private fun sortNav(
