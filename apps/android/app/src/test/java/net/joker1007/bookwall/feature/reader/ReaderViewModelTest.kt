@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.joker1007.bookwall.MainDispatcherRule
 import net.joker1007.bookwall.data.FakeOpdsServerDao
+import net.joker1007.bookwall.data.FakeProgressSyncRepository
 import net.joker1007.bookwall.data.FakeReaderPreferencesRepository
 import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.FakeSecretCipher
@@ -29,14 +30,18 @@ class ReaderViewModelTest {
 
     private val readerRepo = FakeReaderStateRepository()
     private val prefsRepo = FakeReaderPreferencesRepository()
+    private val syncRepo = FakeProgressSyncRepository()
 
     private suspend fun viewModel(
         pageCount: Int = 10,
         initialPage: Int = 3,
+        syncTemplate: String? = null,
     ): ReaderViewModel {
         val dao = FakeOpdsServerDao()
         val serverRepo = ServerRepositoryImpl(dao, FakeSecretCipher(), clock = { 0L })
-        val id = serverRepo.upsert(OpdsServer(name = "s", baseUrl = "https://h"))
+        val id = serverRepo.upsert(
+            OpdsServer(name = "s", baseUrl = "https://h", syncProgressTemplate = syncTemplate),
+        )
         val handle = SavedStateHandle(
             mapOf(
                 ReaderViewModel.ARG_SERVER_ID to id,
@@ -47,7 +52,7 @@ class ReaderViewModelTest {
                 ReaderViewModel.ARG_PSE_TEMPLATE to "/opds/books/7/pages/{pageNumber}",
             ),
         )
-        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, handle)
+        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, syncRepo, handle)
     }
 
     @Test
@@ -130,6 +135,30 @@ class ReaderViewModelTest {
         assertEquals(1, vm.state.value.pageOffset)
         vm.nudgeOffset()
         assertEquals(0, vm.state.value.pageOffset)
+    }
+
+    @Test
+    fun `pushes progress to a sync-capable server on navigation`() = runTest {
+        val vm = viewModel(initialPage = 0, syncTemplate = "/opds/books/{bookId}/progress")
+        advanceUntilIdle()
+
+        vm.next()
+        advanceUntilIdle()
+
+        assertEquals(1, syncRepo.pushes.size)
+        assertEquals(1, syncRepo.pushes.last().page)
+        assertEquals(7L, syncRepo.pushes.last().bookId)
+    }
+
+    @Test
+    fun `does not push when the server lacks sync support`() = runTest {
+        val vm = viewModel(initialPage = 0, syncTemplate = null)
+        advanceUntilIdle()
+
+        vm.next()
+        advanceUntilIdle()
+
+        assertTrue(syncRepo.pushes.isEmpty())
     }
 
     @Test

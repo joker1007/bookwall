@@ -39,6 +39,19 @@ class OpdsParserTest {
     }
 
     @Test
+    fun `parses the Bookwall progress-sync capability link`() {
+        val feed = parse(NAVIGATION_FEED)
+        assertEquals("/opds/books/{bookId}/progress", feed.progressSyncTemplate)
+        assertTrue(feed.progressSyncTemplate!!.contains(OpdsParser.BOOK_ID_TOKEN))
+    }
+
+    @Test
+    fun `feed without the capability link has a null progress-sync template`() {
+        val feed = parse(ACQUISITION_FEED)
+        assertNull(feed.progressSyncTemplate)
+    }
+
+    @Test
     fun `parses an acquisition feed with facets`() {
         val feed = parse(ACQUISITION_FEED)
 
@@ -91,6 +104,7 @@ class OpdsParserTest {
               <updated>2026-01-01T00:00:00Z</updated>
               <link rel="self" href="/opds" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
               <link rel="start" href="/opds/recent" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+              <link rel="https://bookwall.joker1007.net/rel/progress-sync" href="/opds/books/{bookId}/progress" type="application/json"/>
               <entry>
                 <title>Recent</title>
                 <id>urn:bookwall:nav:Recent</id>

@@ -7,6 +7,11 @@ data class OpdsFeed(
     val selfHref: String? = null,
     val entries: List<OpdsEntry> = emptyList(),
     val facets: List<OpdsFacet> = emptyList(),
+    /**
+     * Bookwall progress-sync endpoint template (with a "{bookId}" token),
+     * advertised on the root feed. Null for non-Bookwall feeds.
+     */
+    val progressSyncTemplate: String? = null,
 ) {
     val isAcquisition: Boolean get() = entries.any { it is OpdsEntry.Book }
 }

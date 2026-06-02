@@ -26,6 +26,10 @@ class FakeOpdsServerDao : OpdsServerDao {
         rows.value = rows.value.map { if (it.id == entity.id) entity else it }
     }
 
+    override suspend fun updateSyncTemplate(id: Long, template: String?) {
+        rows.value = rows.value.map { if (it.id == id) it.copy(syncProgressTemplate = template) else it }
+    }
+
     override suspend fun deleteById(id: Long) {
         rows.value = rows.value.filterNot { it.id == id }
     }

@@ -24,6 +24,7 @@ class OpdsParser @Inject constructor() : FeedParser {
         var title = ""
         var id = ""
         var selfHref: String? = null
+        var progressSyncTemplate: String? = null
         val entries = mutableListOf<OpdsEntry>()
         val facets = mutableListOf<OpdsFacet>()
 
@@ -40,13 +41,21 @@ class OpdsParser @Inject constructor() : FeedParser {
                         when {
                             rel == "self" -> selfHref = href
                             rel == FACET_REL && href != null -> facets += parser.toFacet(href)
+                            rel == PROGRESS_SYNC_REL && href != null -> progressSyncTemplate = href
                         }
                     }
                 }
             }
             event = parser.next()
         }
-        return OpdsFeed(title = title, id = id, selfHref = selfHref, entries = entries, facets = facets)
+        return OpdsFeed(
+            title = title,
+            id = id,
+            selfHref = selfHref,
+            entries = entries,
+            facets = facets,
+            progressSyncTemplate = progressSyncTemplate,
+        )
     }
 
     private fun parseEntry(parser: XmlPullParser): OpdsEntry? {
@@ -163,6 +172,8 @@ class OpdsParser @Inject constructor() : FeedParser {
         const val THUMB_REL = "http://opds-spec.org/image/thumbnail"
         const val PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream"
         const val FACET_REL = "http://opds-spec.org/facet"
+        const val PROGRESS_SYNC_REL = "https://bookwall.joker1007.net/rel/progress-sync"
         const val PSE_PAGE_TOKEN = "{pageNumber}"
+        const val BOOK_ID_TOKEN = "{bookId}"
     }
 }

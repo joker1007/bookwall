@@ -12,4 +12,11 @@ data class OpdsServer(
     val username: String? = null,
     val password: String? = null,
     val allowSelfSignedCert: Boolean = false,
-)
+    /**
+     * Bookwall progress-sync endpoint template (with a "{bookId}" token), or null
+     * if this server is not a Bookwall server / does not support progress sync.
+     */
+    val syncProgressTemplate: String? = null,
+) {
+    val supportsProgressSync: Boolean get() = !syncProgressTemplate.isNullOrEmpty()
+}

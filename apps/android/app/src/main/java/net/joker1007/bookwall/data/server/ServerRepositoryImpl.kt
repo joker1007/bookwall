@@ -29,6 +29,9 @@ class ServerRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun setSyncProgressTemplate(id: Long, template: String?) =
+        dao.updateSyncTemplate(id, template?.ifEmpty { null })
+
     override suspend fun delete(id: Long) = dao.deleteById(id)
 
     private fun OpdsServer.toEntity(createdAt: Long, updatedAt: Long) = OpdsServerEntity(
@@ -43,6 +46,7 @@ class ServerRepositoryImpl @Inject constructor(
         allowSelfSignedCert = allowSelfSignedCert,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        syncProgressTemplate = syncProgressTemplate,
     )
 
     private fun OpdsServerEntity.toDomain() = OpdsServer(
@@ -53,5 +57,6 @@ class ServerRepositoryImpl @Inject constructor(
         username = username,
         password = encryptedPassword?.let { cipher.decrypt(it) },
         allowSelfSignedCert = allowSelfSignedCert,
+        syncProgressTemplate = syncProgressTemplate,
     )
 }

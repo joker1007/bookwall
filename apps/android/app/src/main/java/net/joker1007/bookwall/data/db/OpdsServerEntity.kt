@@ -15,4 +15,10 @@ data class OpdsServerEntity(
     val allowSelfSignedCert: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * Bookwall progress-sync endpoint template (with a "{bookId}" token),
+     * discovered from the OPDS root feed. Null when the server is not Bookwall
+     * or does not advertise the capability.
+     */
+    val syncProgressTemplate: String? = null,
 )

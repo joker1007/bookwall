@@ -13,6 +13,8 @@ import net.joker1007.bookwall.data.epub.EpubSettingsRepository
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
 import net.joker1007.bookwall.data.reader.DataStoreReaderPreferencesRepository
+import net.joker1007.bookwall.data.reader.OpdsProgressSyncRepository
+import net.joker1007.bookwall.data.reader.ProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepositoryImpl
@@ -43,6 +45,9 @@ abstract class BindingsModule {
 
     @Binds
     abstract fun bindReaderStateRepository(impl: ReaderStateRepositoryImpl): ReaderStateRepository
+
+    @Binds
+    abstract fun bindProgressSyncRepository(impl: OpdsProgressSyncRepository): ProgressSyncRepository
 
     @Binds
     @Singleton
