@@ -33,7 +33,6 @@ android {
         }
     }
     compileOptions {
-        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -76,13 +75,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.webkit)
-
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
-
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.readium.shared)
-    implementation(libs.readium.streamer)
-    implementation(libs.readium.navigator)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

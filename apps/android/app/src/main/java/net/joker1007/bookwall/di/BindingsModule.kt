@@ -8,8 +8,6 @@ import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
 import net.joker1007.bookwall.data.epub.DataStoreEpubSettingsRepository
 import net.joker1007.bookwall.data.epub.EpubDownloader
-import net.joker1007.bookwall.data.epub.EpubOpener
-import net.joker1007.bookwall.data.epub.EpubPublicationOpener
 import net.joker1007.bookwall.data.epub.EpubSettingsRepository
 import net.joker1007.bookwall.data.epub.OpdsEpubDownloader
 import net.joker1007.bookwall.data.opds.FeedParser
@@ -56,9 +54,6 @@ abstract class BindingsModule {
     abstract fun bindReaderPreferencesRepository(
         impl: DataStoreReaderPreferencesRepository,
     ): ReaderPreferencesRepository
-
-    @Binds
-    abstract fun bindEpubOpener(impl: EpubPublicationOpener): EpubOpener
 
     @Binds
     abstract fun bindEpubDownloader(impl: OpdsEpubDownloader): EpubDownloader
