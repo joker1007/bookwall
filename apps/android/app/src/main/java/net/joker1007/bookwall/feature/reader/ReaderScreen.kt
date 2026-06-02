@@ -439,32 +439,39 @@ private fun ImmersiveReaderEffect(menuVisible: Boolean) {
     val view = LocalView.current
     if (view.isInEditMode) return
     val window = (view.context as Activity).window
+    val controller = remember(window, view) { WindowCompat.getInsetsController(window, view) }
 
     DisposableEffect(Unit) {
         val originalCutoutMode = window.attributes.layoutInDisplayCutoutMode
+        val originalLightStatus = controller.isAppearanceLightStatusBars
+        val originalLightNav = controller.isAppearanceLightNavigationBars
         window.attributes = window.attributes.apply {
             layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        val controller = WindowCompat.getInsetsController(window, view)
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        // The reader background is black, so use light (white) system bar icons.
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
         onDispose {
             window.attributes = window.attributes.apply {
                 layoutInDisplayCutoutMode = originalCutoutMode
             }
+            controller.isAppearanceLightStatusBars = originalLightStatus
+            controller.isAppearanceLightNavigationBars = originalLightNav
             controller.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
-    DisposableEffect(menuVisible) {
-        val controller = WindowCompat.getInsetsController(window, view)
+    // Run after composition commits; toggling the controller during composition
+    // can be overridden by the window's own inset pass and never take effect.
+    LaunchedEffect(menuVisible) {
         if (menuVisible) {
             controller.show(WindowInsetsCompat.Type.systemBars())
         } else {
             controller.hide(WindowInsetsCompat.Type.systemBars())
         }
-        onDispose {}
     }
 }
 
