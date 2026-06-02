@@ -23,26 +23,32 @@ enum class TapAction {
 enum class TapZone { LEFT, CENTER, RIGHT }
 
 /**
- * Maps physical tap zones to reading actions. Zones are physical (left/center/
- * right of the screen); actions are reading-order, so RTL is handled by the
- * pager's reverse layout, not by remapping zones.
+ * Maps the left/right tap zones to reading actions. The center zone is fixed to
+ * toggling the menu and is not customizable. Callers flip left/right via
+ * [flippedForRtl] when reading right-to-left.
  */
 data class TapZoneConfig(
     val left: TapAction = TapAction.PREVIOUS,
-    val center: TapAction = TapAction.TOGGLE_MENU,
     val right: TapAction = TapAction.NEXT,
 ) {
     fun actionFor(zone: TapZone): TapAction = when (zone) {
         TapZone.LEFT -> left
-        TapZone.CENTER -> center
         TapZone.RIGHT -> right
+        TapZone.CENTER -> TapAction.TOGGLE_MENU
     }
 
     fun with(zone: TapZone, action: TapAction): TapZoneConfig = when (zone) {
         TapZone.LEFT -> copy(left = action)
-        TapZone.CENTER -> copy(center = action)
         TapZone.RIGHT -> copy(right = action)
+        TapZone.CENTER -> this
     }
+}
+
+/** Swaps left/right so a right-to-left reader advances on the physical left. */
+fun TapZone.flippedForRtl(): TapZone = when (this) {
+    TapZone.LEFT -> TapZone.RIGHT
+    TapZone.RIGHT -> TapZone.LEFT
+    TapZone.CENTER -> TapZone.CENTER
 }
 
 /**

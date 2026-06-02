@@ -57,6 +57,7 @@ import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.reader.TapZoneConfig
 import net.joker1007.bookwall.data.reader.buildSpreads
+import net.joker1007.bookwall.data.reader.flippedForRtl
 import net.joker1007.bookwall.data.reader.slotIndexForPage
 import net.joker1007.bookwall.data.reader.tapTargetPage
 
@@ -118,7 +119,9 @@ fun ReaderScreen(
                     }
 
                     val dispatchTap: (TapZone) -> Unit = { zone ->
-                        when (val action = tapConfig.actionFor(zone)) {
+                        val effectiveZone =
+                            if (state.direction == ReadingDirection.RTL) zone.flippedForRtl() else zone
+                        when (val action = tapConfig.actionFor(effectiveZone)) {
                             TapAction.TOGGLE_MENU -> viewModel.toggleMenu()
                             else -> tapTargetPage(action, slots, state.currentPage)?.let(viewModel::goToPage)
                         }
@@ -274,8 +277,12 @@ private fun ReaderSettingsSheet(
             }
 
             Text("タップ操作", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            Text(
+                "中央タップはメニュー表示で固定。右から左に読む設定では左右が反転します。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             TapZoneRow("左", tapConfig.left, { onZoneAction(TapZone.LEFT, it) }, ReaderTags.TAP_LEFT)
-            TapZoneRow("中央", tapConfig.center, { onZoneAction(TapZone.CENTER, it) }, ReaderTags.TAP_CENTER)
             TapZoneRow("右", tapConfig.right, { onZoneAction(TapZone.RIGHT, it) }, ReaderTags.TAP_RIGHT)
         }
     }
@@ -419,6 +426,5 @@ object ReaderTags {
     const val SCRUBBER = "reader_scrubber"
     const val SCRUB_THUMBNAIL = "reader_scrub_thumbnail"
     const val TAP_LEFT = "reader_tap_left"
-    const val TAP_CENTER = "reader_tap_center"
     const val TAP_RIGHT = "reader_tap_right"
 }

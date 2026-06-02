@@ -18,10 +18,23 @@ class TapActionTest {
     }
 
     @Test
-    fun `with replaces a single zone`() {
+    fun `with replaces a single zone and center stays menu`() {
         val config = TapZoneConfig().with(TapZone.LEFT, TapAction.NEXT_CONTINUOUS)
         assertEquals(TapAction.NEXT_CONTINUOUS, config.left)
-        assertEquals(TapAction.TOGGLE_MENU, config.center)
+        assertEquals(TapAction.TOGGLE_MENU, config.actionFor(TapZone.CENTER))
+    }
+
+    @Test
+    fun `center is not customizable`() {
+        val config = TapZoneConfig().with(TapZone.CENTER, TapAction.NEXT)
+        assertEquals(TapAction.TOGGLE_MENU, config.actionFor(TapZone.CENTER))
+    }
+
+    @Test
+    fun `rtl flip swaps left and right but keeps center`() {
+        assertEquals(TapZone.RIGHT, TapZone.LEFT.flippedForRtl())
+        assertEquals(TapZone.LEFT, TapZone.RIGHT.flippedForRtl())
+        assertEquals(TapZone.CENTER, TapZone.CENTER.flippedForRtl())
     }
 
     @Test

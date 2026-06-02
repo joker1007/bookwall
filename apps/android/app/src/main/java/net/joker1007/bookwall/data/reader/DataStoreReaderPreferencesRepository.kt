@@ -15,7 +15,6 @@ class DataStoreReaderPreferencesRepository @Inject constructor(
     override val tapZoneConfig: Flow<TapZoneConfig> = dataStore.data.map { prefs ->
         TapZoneConfig(
             left = prefs[keyFor(TapZone.LEFT)].toActionOr(TapAction.PREVIOUS),
-            center = prefs[keyFor(TapZone.CENTER)].toActionOr(TapAction.TOGGLE_MENU),
             right = prefs[keyFor(TapZone.RIGHT)].toActionOr(TapAction.NEXT),
         )
     }

@@ -137,9 +137,9 @@ class ReaderViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
 
-        vm.setZoneAction(TapZone.CENTER, TapAction.NEXT_CONTINUOUS)
+        vm.setZoneAction(TapZone.LEFT, TapAction.NEXT_CONTINUOUS)
         advanceUntilIdle()
 
-        assertEquals(TapAction.NEXT_CONTINUOUS, prefsRepo.current().center)
+        assertEquals(TapAction.NEXT_CONTINUOUS, prefsRepo.current().left)
     }
 }
