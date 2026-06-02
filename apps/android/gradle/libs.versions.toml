@@ -16,6 +16,7 @@ coroutines = "1.10.1"
 room = "2.7.1"
 datastore = "1.1.7"
 securityCrypto = "1.1.0-alpha06"
+webkit = "1.12.1"
 readium = "3.1.2"
 
 junit = "4.13.2"
@@ -65,6 +66,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 readium-shared = { group = "org.readium.kotlin-toolkit", name = "readium-shared", version.ref = "readium" }
 readium-streamer = { group = "org.readium.kotlin-toolkit", name = "readium-streamer", version.ref = "readium" }

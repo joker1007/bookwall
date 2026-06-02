@@ -15,6 +15,14 @@
         position: absolute;
         inset: 0;
       }
+      /* foliate-view (view.js) sets no :host display, so the custom element is
+         inline by default and width/height:100% are ignored, collapsing it to
+         zero height. Force block so the paginator gets the viewport size. */
+      foliate-view {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
       /* Transparent layer that captures taps/swipes above the foliate view. */
       #taplayer {
         position: absolute;

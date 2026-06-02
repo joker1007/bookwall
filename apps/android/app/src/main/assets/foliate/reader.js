@@ -40,6 +40,7 @@ async function openBook(epubUrl, initialCfi) {
     if (!root) throw new Error("no #root");
 
     const view = document.createElement("foliate-view");
+    view.style.display = "block";
     view.style.width = "100%";
     view.style.height = "100%";
     root.append(view);
@@ -106,11 +107,12 @@ async function openBook(epubUrl, initialCfi) {
       } else {
         await view.goTo(0);
       }
-    } catch (_) {
+    } catch (navErr) {
+      console.error("[glue] init/goTo failed", navErr?.message || navErr);
       try {
         await view.goTo(0);
-      } catch (_) {
-        // surfaced via onError below if the book itself failed
+      } catch (fallbackErr) {
+        console.error("[glue] goTo(0) fallback failed", fallbackErr?.message || fallbackErr);
       }
     }
 
