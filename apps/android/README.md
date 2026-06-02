@@ -9,7 +9,7 @@ Bookwall サーバーの OPDS フィードを参照し、CBZ / EPUB / PDF / 画�
 - 通信: OkHttp(認証・自己署名証明書) + 自前 OPDS(Atom)パーサ
 - 画像: Coil 3(表紙・サムネ・PSE ページ画像、ディスクキャッシュ)
 - 永続化: Room(サーバー・書籍別設定) / DataStore(全体設定) / Jetpack Security(認証情報)
-- EPUB 描画: Readium Kotlin Toolkit(縦書き・ルビ・TOC・フォント設定)
+- EPUB 描画: foliate-js を WebView に同梱(web reader と同一エンジン → CFI 相互運用。縦書き・ルビ・TOC・フォント設定)
 - PDF/CBZ: PSE サーバー配信を主軸、ダウンロード済みはローカル描画(PdfRenderer / Zip)
 
 ## ビルド要件
@@ -51,5 +51,7 @@ Bookwall サーバーの OPDS フィードを参照し、CBZ / EPUB / PDF / 画�
 - Phase 6: 没入リーダー + 切り欠き/インセット対応・レスポンシブグリッド ✅
 - Phase 7a: 進捗同期 push(Bookwall サーバ検出 + ページ系進捗の push 専用同期) ✅
   - OPDS ルートフィードの capability link で Bookwall サーバを検出し、対応サーバのみページ系の読書進捗をサーバへ push する
-  - EPUB 位置は web reader 管理(CFI)のため対象外。durable な再送(WorkManager)は Phase 7b で対応予定
+- EPUB リーダーを foliate-js(WebView 同梱)へ刷新し Readium を撤去 ✅
+  - web reader と同一の foliate-js で描画するため EPUB CFI が相互運用可能
+  - EPUB 進捗も双方向同期(epub_cfi + fraction を push / 開く時に pull して CFI 復元、最遠進捗で調停)
 - Phase 7b: オフライン DL・進捗同期の durable 化・仕上げ ← 次

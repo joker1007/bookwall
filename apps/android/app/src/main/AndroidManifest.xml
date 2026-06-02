@@ -29,9 +29,10 @@
         </activity>
 
         <activity
-            android:name=".feature.epubreader.EpubReaderActivity"
+            android:name=".feature.foliatereader.FoliateReaderActivity"
             android:exported="false"
-            android:theme="@style/Theme.Bookwall.Epub" />
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Bookwall" />
     </application>
 
 </manifest>

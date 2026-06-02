@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #ffffff;
+      }
+      /* Keep the body background bleeding edge-to-edge, but inset the foliate
+         content by the display-cutout safe area so text never sits under a
+         notch (viewport-fit=cover above populates env(safe-area-inset-*)). */
+      #root {
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                 env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      /* foliate-view (view.js) sets no :host display, so the custom element is
+         inline by default and width/height:100% are ignored, collapsing it to
+         zero height. Force block so the paginator gets the viewport size. */
+      foliate-view {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* Transparent layer that captures taps/swipes above the foliate view. */
+      #taplayer {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        touch-action: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="taplayer"></div>
+    <script type="module" src="./reader.js"></script>
+  </body>
+</html>

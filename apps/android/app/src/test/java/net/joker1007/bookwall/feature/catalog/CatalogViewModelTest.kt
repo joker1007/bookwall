@@ -7,12 +7,11 @@ import kotlinx.coroutines.test.runTest
 import net.joker1007.bookwall.MainDispatcherRule
 import net.joker1007.bookwall.data.FakeOpdsServerDao
 import net.joker1007.bookwall.data.FakeSecretCipher
-import net.joker1007.bookwall.data.epub.EpubOpener
+import net.joker1007.bookwall.data.epub.EpubDownloader
 import net.joker1007.bookwall.data.FakeEpubProgressDao
 import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
-import net.joker1007.bookwall.data.epub.EpubReaderHolder
-import net.joker1007.bookwall.data.epub.EpubSession
+import java.io.File
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsFeed
 import net.joker1007.bookwall.data.opds.OpdsParser
@@ -69,10 +68,10 @@ class CatalogViewModelTest {
         val id = serverRepo.upsert(OpdsServer(name = "s", baseUrl = server.url("/opds").toString()))
         val opdsRepo = OpdsRepository(OkHttpClientFactory(OkHttpClient()), feedParser, mainDispatcherRule.dispatcher)
         val handle = SavedStateHandle(mapOf(CatalogViewModel.ARG_SERVER_ID to id, CatalogViewModel.ARG_FEED_URL to ""))
-        val epubOpener = EpubOpener { _, _ -> Result.failure<EpubSession>(IllegalStateException("not used")) }
+        val epubDownloader = EpubDownloader { _, _ -> File("unused.epub") }
         val epubProgressRepo = EpubProgressRepository(FakeEpubProgressDao(), clock = { 0L })
         return CatalogViewModel(
-            serverRepo, opdsRepo, { null }, epubOpener, EpubReaderHolder(),
+            serverRepo, opdsRepo, { null }, epubDownloader,
             FakeReaderStateRepository(), epubProgressRepo, handle,
         )
     }

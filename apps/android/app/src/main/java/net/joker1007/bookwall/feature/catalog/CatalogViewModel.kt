@@ -10,9 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.joker1007.bookwall.data.epub.EpubOpener
+import net.joker1007.bookwall.data.epub.EpubDownloader
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
-import net.joker1007.bookwall.data.epub.EpubReaderHolder
 import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.OpdsFeed
@@ -30,6 +29,14 @@ enum class ViewMode { GRID, LIST }
 
 enum class BookSort { TITLE, AUTHOR }
 
+/** A downloaded EPUB ready to hand to the foliate-js reader activity. */
+data class FoliateLaunch(
+    val serverId: Long,
+    val bookId: Long,
+    val title: String,
+    val filePath: String,
+)
+
 data class CatalogUiState(
     val title: String = "",
     val loading: Boolean = true,
@@ -46,8 +53,7 @@ class CatalogViewModel @Inject constructor(
     private val serverRepository: ServerRepository,
     private val opdsRepository: OpdsRepository,
     private val imageLoaderFactory: ServerImageLoaderProvider,
-    private val epubOpener: EpubOpener,
-    private val epubHolder: EpubReaderHolder,
+    private val epubDownloader: EpubDownloader,
     private val readerStateRepository: ReaderStateRepository,
     private val epubProgressRepository: EpubProgressRepository,
     savedStateHandle: SavedStateHandle,
@@ -70,8 +76,8 @@ class CatalogViewModel @Inject constructor(
     private val _selectedEpubProgress = MutableStateFlow<Float?>(null)
     val selectedEpubProgress: StateFlow<Float?> = _selectedEpubProgress.asStateFlow()
 
-    private val _epubSessionId = MutableStateFlow<Long?>(null)
-    val epubSessionId: StateFlow<Long?> = _epubSessionId.asStateFlow()
+    private val _foliateLaunch = MutableStateFlow<FoliateLaunch?>(null)
+    val foliateLaunch: StateFlow<FoliateLaunch?> = _foliateLaunch.asStateFlow()
 
     private val _imageLoader = MutableStateFlow<ImageLoader?>(null)
     val imageLoader: StateFlow<ImageLoader?> = _imageLoader.asStateFlow()
@@ -96,8 +102,7 @@ class CatalogViewModel @Inject constructor(
         val bookId = book.numericId ?: return
         viewModelScope.launch {
             if (book.isEpub) {
-                _selectedEpubProgress.value = epubProgressRepository.load(serverId, bookId)
-                    ?.locations?.totalProgression?.toFloat()
+                _selectedEpubProgress.value = epubProgressRepository.load(serverId, bookId)?.fraction
             } else {
                 _selectedLocalPage.value = readerStateRepository.load(serverId, bookId)?.currentPage
             }
@@ -112,16 +117,24 @@ class CatalogViewModel @Inject constructor(
 
     fun openEpub(book: OpdsEntry.Book) {
         val srv = server ?: return
+        val bookId = book.numericId ?: return
         _state.update { it.copy(openingEpub = true) }
         viewModelScope.launch {
-            epubOpener.open(srv, book)
-                .onSuccess { session -> _epubSessionId.value = epubHolder.put(session) }
+            runCatching { epubDownloader.download(srv, book) }
+                .onSuccess { file ->
+                    _foliateLaunch.value = FoliateLaunch(
+                        serverId = srv.id,
+                        bookId = bookId,
+                        title = book.title,
+                        filePath = file.absolutePath,
+                    )
+                }
             _state.update { it.copy(openingEpub = false) }
         }
     }
 
-    fun consumeEpubLaunch() {
-        _epubSessionId.value = null
+    fun consumeFoliateLaunch() {
+        _foliateLaunch.value = null
     }
 
     /** Resolves an OPDS href (relative or absolute) against the active server. */

@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import net.joker1007.bookwall.data.opds.OpdsEntry
-import net.joker1007.bookwall.feature.epubreader.EpubReaderActivity
+import net.joker1007.bookwall.feature.foliatereader.FoliateReaderActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,13 +63,21 @@ fun CatalogScreen(
     val selectedLocalPage by viewModel.selectedLocalPage.collectAsState()
     val selectedEpubProgress by viewModel.selectedEpubProgress.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
-    val epubSessionId by viewModel.epubSessionId.collectAsState()
+    val foliateLaunch by viewModel.foliateLaunch.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(epubSessionId) {
-        epubSessionId?.let { id ->
-            context.startActivity(EpubReaderActivity.intent(context, id))
-            viewModel.consumeEpubLaunch()
+    LaunchedEffect(foliateLaunch) {
+        foliateLaunch?.let { launch ->
+            context.startActivity(
+                FoliateReaderActivity.intent(
+                    context,
+                    serverId = launch.serverId,
+                    bookId = launch.bookId,
+                    title = launch.title,
+                    filePath = launch.filePath,
+                ),
+            )
+            viewModel.consumeFoliateLaunch()
         }
     }
 
