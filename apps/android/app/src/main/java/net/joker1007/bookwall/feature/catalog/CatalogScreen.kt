@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -19,9 +21,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -31,8 +36,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -55,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.opds.OpdsFacet
 import net.joker1007.bookwall.feature.foliatereader.FoliateReaderActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +81,7 @@ fun CatalogScreen(
     val foliateLaunch by viewModel.foliateLaunch.collectAsState()
     val context = LocalContext.current
     var filterActive by remember { mutableStateOf(false) }
+    var facetSheetOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(foliateLaunch) {
         foliateLaunch?.let { launch ->
@@ -121,6 +130,9 @@ fun CatalogScreen(
                     val hasEntries = state.books.isNotEmpty() || state.navEntries.isNotEmpty()
                     if ((hasEntries || state.filterQuery.isNotEmpty()) && !filterActive) {
                         FilterAction { filterActive = true }
+                    }
+                    if (state.facets.isNotEmpty() && !filterActive) {
+                        FacetAction(active = state.hasActiveFacet) { facetSheetOpen = true }
                     }
                     if (hasEntries && !filterActive) {
                         ViewModeAction(state.viewMode, viewModel::setViewMode)
@@ -173,6 +185,23 @@ fun CatalogScreen(
                     if (selected.pse != null) onOpenReader(selected) else viewModel.openEpub(selected)
                 },
                 modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),
+            )
+        }
+    }
+
+    if (facetSheetOpen) {
+        ModalBottomSheet(onDismissRequest = { facetSheetOpen = false }) {
+            FacetSheet(
+                facets = state.facets,
+                hasActiveFacet = state.hasActiveFacet,
+                onSelect = { facet ->
+                    viewModel.selectFacet(facet)
+                    facetSheetOpen = false
+                },
+                onClear = {
+                    viewModel.clearFacets()
+                    facetSheetOpen = false
+                },
             )
         }
     }
@@ -373,6 +402,88 @@ private fun FilterAction(onActivate: () -> Unit) {
 }
 
 @Composable
+private fun FacetAction(active: Boolean, onActivate: () -> Unit) {
+    IconButton(onClick = onActivate, modifier = Modifier.testTag(CatalogTags.FACET_TOGGLE)) {
+        BadgedBox(badge = { if (active) Badge() }) {
+            Icon(Icons.Default.FilterList, contentDescription = "Facet で絞り込み")
+        }
+    }
+}
+
+@Composable
+private fun FacetSheet(
+    facets: List<OpdsFacet>,
+    hasActiveFacet: Boolean,
+    onSelect: (OpdsFacet) -> Unit,
+    onClear: () -> Unit,
+) {
+    val groups = remember(facets) { facets.groupBy { it.group } }
+    Column(modifier = Modifier.testTag(CatalogTags.FACET_SHEET)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("絞り込み", style = MaterialTheme.typography.titleMedium)
+            TextButton(
+                onClick = onClear,
+                enabled = hasActiveFacet,
+                modifier = Modifier.testTag(CatalogTags.FACET_CLEAR),
+            ) {
+                Text("クリア")
+            }
+        }
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            groups.forEach { (group, items) ->
+                if (group != null) {
+                    item(key = "header_$group") {
+                        Text(
+                            text = group,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                        )
+                    }
+                }
+                items(items, key = { "${it.group}:${it.title}" }) { facet ->
+                    FacetRow(facet, onSelect)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FacetRow(facet: OpdsFacet, onSelect: (OpdsFacet) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(facet) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = facet.active, onClick = { onSelect(facet) })
+        Text(
+            text = facet.title ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        facet.count?.let {
+            Text(
+                text = it.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
 private fun FilterField(query: String, onQueryChange: (String) -> Unit) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -472,4 +583,7 @@ object CatalogTags {
     const val FILTER_TOGGLE = "catalog_filter_toggle"
     const val FILTER_FIELD = "catalog_filter_field"
     const val FILTER_EMPTY = "catalog_filter_empty"
+    const val FACET_TOGGLE = "catalog_facet_toggle"
+    const val FACET_SHEET = "catalog_facet_sheet"
+    const val FACET_CLEAR = "catalog_facet_clear"
 }
