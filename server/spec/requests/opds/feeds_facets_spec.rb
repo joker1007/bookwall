@@ -20,7 +20,7 @@ RSpec.describe "Opds::Feeds facets", type: :request do
   def count_of(link) = link.attribute_with_ns("count", thr_ns)&.value
   def active?(link) = link.attribute_with_ns("activeFacet", opds_ns)&.value == "true"
 
-  it "advertises series and tag facets in a library feed" do
+  it "advertises tag facets in a library feed and excludes series" do
     a = create(:book, library: library, series: akira, file_path: "a.cbz", title: "A")
     a.tags << manga
     create(:book, library: library, series: zelda, file_path: "z.cbz", title: "Z")
@@ -28,33 +28,15 @@ RSpec.describe "Opds::Feeds facets", type: :request do
     get "/opds/libraries/#{library.id}", headers: {"Authorization" => auth_header}
 
     links = facet_links(response.body)
-    series = links.select { |l| group_of(l) == "Series" }
     tags = links.select { |l| group_of(l) == "Tags" }
 
-    expect(series.map { |l| l["title"] }).to eq(%w[Akira Zelda])
-    expect(series.map { |l| l["href"] }).to eq([
-      "/opds/libraries/#{library.id}?series_id=#{akira.id}",
-      "/opds/libraries/#{library.id}?series_id=#{zelda.id}"
-    ])
-    expect(series.find { |l| l["title"] == "Akira" }.then { |l| count_of(l) }).to eq("1")
+    expect(links.map { |l| group_of(l) }.uniq).to eq(%w[Tags])
     expect(tags.map { |l| l["title"] }).to eq(%w[manga])
+    expect(tags.map { |l| l["href"] }).to eq(["/opds/libraries/#{library.id}?tag_id=#{manga.id}"])
+    expect(count_of(tags.first)).to eq("1")
   end
 
-  it "filters the library feed by series_id and marks the active facet" do
-    create(:book, library: library, series: akira, file_path: "a.cbz", title: "InAkira")
-    create(:book, library: library, series: zelda, file_path: "z.cbz", title: "InZelda")
-
-    get "/opds/libraries/#{library.id}", params: {series_id: akira.id}, headers: {"Authorization" => auth_header}
-
-    doc = Nokogiri::XML(response.body)
-    titles = doc.xpath("//atom:entry/atom:title", "atom" => atom_ns).map(&:text)
-    expect(titles).to contain_exactly("InAkira")
-
-    active = facet_links(response.body).select { |l| active?(l) }
-    expect(active.map { |l| l["title"] }).to eq(["Akira"])
-  end
-
-  it "filters the library feed by tag_id" do
+  it "filters the library feed by tag_id and marks the active facet" do
     tagged = create(:book, library: library, file_path: "t.cbz", title: "Tagged")
     tagged.tags << manga
     create(:book, library: library, file_path: "u.cbz", title: "Untagged")
@@ -64,19 +46,12 @@ RSpec.describe "Opds::Feeds facets", type: :request do
     doc = Nokogiri::XML(response.body)
     titles = doc.xpath("//atom:entry/atom:title", "atom" => atom_ns).map(&:text)
     expect(titles).to contain_exactly("Tagged")
+
+    active = facet_links(response.body).select { |l| active?(l) }
+    expect(active.map { |l| l["title"] }).to eq(["manga"])
   end
 
-  it "carries the active tag into the series facet hrefs" do
-    book = create(:book, library: library, series: akira, file_path: "a.cbz")
-    book.tags << manga
-
-    get "/opds/libraries/#{library.id}", params: {tag_id: manga.id}, headers: {"Authorization" => auth_header}
-
-    series = facet_links(response.body).find { |l| group_of(l) == "Series" }
-    expect(series["href"]).to eq("/opds/libraries/#{library.id}?series_id=#{akira.id}&tag_id=#{manga.id}")
-  end
-
-  it "scopes favorites facets to the user's favorites" do
+  it "scopes favorites tag facets to the user's favorites" do
     mine = create(:book, library: library, series: akira, file_path: "m.cbz", title: "Mine")
     mine.tags << manga
     other = create(:book, library: library, series: zelda, file_path: "o.cbz", title: "Other")
@@ -86,21 +61,22 @@ RSpec.describe "Opds::Feeds facets", type: :request do
     get "/opds/favorites", headers: {"Authorization" => auth_header}
 
     links = facet_links(response.body)
-    expect(links.select { |l| group_of(l) == "Series" }.map { |l| l["title"] }).to eq(%w[Akira])
+    expect(links.map { |l| group_of(l) }.uniq).to eq(%w[Tags])
     tag = links.find { |l| group_of(l) == "Tags" && l["title"] == "manga" }
     expect(count_of(tag)).to eq("1")
     expect(links.map { |l| l["href"] }).to all(start_with("/opds/favorites?"))
   end
 
-  it "filters favorites by facet" do
-    a = create(:book, library: library, series: akira, file_path: "a.cbz", title: "FavA")
-    z = create(:book, library: library, series: zelda, file_path: "z.cbz", title: "FavZ")
+  it "filters favorites by tag facet" do
+    a = create(:book, library: library, file_path: "a.cbz", title: "FavTagged")
+    a.tags << manga
     create(:favorite, user: user, book: a)
+    z = create(:book, library: library, file_path: "z.cbz", title: "FavUntagged")
     create(:favorite, user: user, book: z)
 
-    get "/opds/favorites", params: {series_id: zelda.id}, headers: {"Authorization" => auth_header}
+    get "/opds/favorites", params: {tag_id: manga.id}, headers: {"Authorization" => auth_header}
 
     titles = Nokogiri::XML(response.body).xpath("//atom:entry/atom:title", "atom" => atom_ns).map(&:text)
-    expect(titles).to contain_exactly("FavZ")
+    expect(titles).to contain_exactly("FavTagged")
   end
 end
