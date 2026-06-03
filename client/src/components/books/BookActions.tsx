@@ -1,10 +1,9 @@
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Heart, Trash2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFavoriteBook } from "@/hooks/useBooks";
-import { useDeleteBook } from "@/hooks/useBookMutation";
 import type { Book } from "@/types/api";
 
 interface BookActionsProps {
@@ -15,19 +14,11 @@ interface BookActionsProps {
 export function BookActions({ book, layout = "inline" }: BookActionsProps) {
   const { t } = useTranslation();
   const favorite = useFavoriteBook();
-  const remove = useDeleteBook();
 
   const handleFavorite = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     favorite.mutate({ id: book.id, favorited: book.favorited });
-  };
-
-  const handleDelete = (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!window.confirm(t("books.detail.deleteConfirm", { title: book.title }))) return;
-    remove.mutate(book.id);
   };
 
   const isOverlay = layout === "overlay";
@@ -62,21 +53,6 @@ export function BookActions({ book, layout = "inline" }: BookActionsProps) {
         disabled={favorite.isPending}
       >
         <Heart className={cn("size-4", book.favorited && "fill-current")} aria-hidden />
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon"
-        className={cn(
-          "size-9 cursor-pointer border border-border shadow-sm",
-          "bg-background/95 backdrop-blur",
-          "text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive",
-        )}
-        aria-label={t("books.detail.deleteMeta")}
-        onClick={handleDelete}
-        disabled={remove.isPending}
-      >
-        <Trash2 className="size-4" aria-hidden />
       </Button>
     </div>
   );

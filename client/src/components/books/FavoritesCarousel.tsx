@@ -26,20 +26,30 @@ export function FavoritesCarousel() {
               </div>
             ))
           : query.data?.books.map((book) => (
-              <Link
+              <article
                 key={book.id}
-                to={`/books/${book.id}`}
-                className="group flex w-32 shrink-0 flex-col gap-2 sm:w-36"
+                className="group relative flex w-32 shrink-0 flex-col gap-2 sm:w-36"
               >
-                <BookCover book={book} size="thumb" className="shadow-sm transition-transform group-hover:scale-[1.02]" />
+                <BookCover
+                  book={book}
+                  size="thumb"
+                  readTo={`/books/${book.id}/read`}
+                  className="shadow-sm transition-shadow group-hover:shadow-md"
+                />
                 <div className="flex flex-col">
                   <span className="line-clamp-2 text-sm font-medium leading-snug">
-                    {book.title}
-                    {book.volume ? (
-                      <span className="text-muted-foreground">
-                        {t("books.volumeSuffix", { volume: book.volume })}
-                      </span>
-                    ) : null}
+                    {/* Stretched link: ::after covers the article; the cover's read button stays atop via z-10. */}
+                    <Link
+                      to={`/books/${book.id}`}
+                      className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                    >
+                      {book.title}
+                      {book.volume ? (
+                        <span className="text-muted-foreground">
+                          {t("books.volumeSuffix", { volume: book.volume })}
+                        </span>
+                      ) : null}
+                    </Link>
                   </span>
                   {book.series_name ? (
                     <span className="line-clamp-1 text-xs text-muted-foreground">
@@ -47,7 +57,7 @@ export function FavoritesCarousel() {
                     </span>
                   ) : null}
                 </div>
-              </Link>
+              </article>
             ))}
       </div>
     </section>

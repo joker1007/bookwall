@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ImageOff } from "lucide-react";
+import { BookOpen, ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Book } from "@/types/api";
 
@@ -8,6 +9,8 @@ interface BookCoverProps {
   size?: "thumb" | "full";
   className?: string;
   hideProgress?: boolean;
+  /** When set, a centered "read" button appears over the cover on hover. */
+  readTo?: string;
 }
 
 export function BookCover({
@@ -15,6 +18,7 @@ export function BookCover({
   size = "thumb",
   className,
   hideProgress = false,
+  readTo,
 }: BookCoverProps) {
   const { t } = useTranslation();
   const url = book.cover?.[size === "full" ? "url" : "thumb_url"];
@@ -37,6 +41,19 @@ export function BookCover({
           <ImageOff className="size-6" aria-hidden />
         </div>
       )}
+      {readTo ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+          <span className="absolute inset-0 rounded-md bg-black/35" aria-hidden />
+          <Link
+            to={readTo}
+            aria-label={t("reader.open")}
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto relative flex aspect-square w-2/5 min-w-9 max-w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-primary-foreground/40 transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline-none focus-visible:ring-4"
+          >
+            <BookOpen className="h-1/2 w-1/2" aria-hidden />
+          </Link>
+        </div>
+      ) : null}
       {progress ? (
         <div
           className="absolute inset-x-0 bottom-0 h-1.5 overflow-hidden rounded-b-md bg-black/40"

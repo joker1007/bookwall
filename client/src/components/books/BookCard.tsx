@@ -24,7 +24,7 @@ export function BookCard({ book, selectable, selected, onToggleSelect }: BookCar
       )}
     >
       <div className="relative">
-        <BookCover book={book} />
+        <BookCover book={book} readTo={selectable ? undefined : `/books/${book.id}/read`} />
         {selectable ? (
           <span
             className={cn(

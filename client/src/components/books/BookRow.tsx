@@ -37,7 +37,7 @@ export function BookRow({ book, selectable, selected, onToggleSelect }: BookRowP
         </span>
       ) : null}
       <div className="w-16 shrink-0 sm:w-20">
-        <BookCover book={book} />
+        <BookCover book={book} readTo={selectable ? undefined : `/books/${book.id}/read`} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <h3 className="line-clamp-2 text-sm font-medium leading-tight">
