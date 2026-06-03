@@ -2,7 +2,9 @@ package net.joker1007.bookwall.robot
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -40,6 +42,18 @@ class CatalogRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
 
     fun assertEntryAbsent(title: String) = apply {
         composeRule.onAllNodes(hasText(title) and hasClickAction()).assertCountEquals(0)
+    }
+
+    fun openFacetSheet() = apply {
+        composeRule.onNodeWithTag(CatalogTags.FACET_TOGGLE).performClick()
+    }
+
+    fun selectFacet(title: String) = apply {
+        composeRule.onNode(hasText(title) and hasAnyAncestor(hasTestTag(CatalogTags.FACET_SHEET))).performClick()
+    }
+
+    fun clearFacets() = apply {
+        composeRule.onNodeWithTag(CatalogTags.FACET_CLEAR).performClick()
     }
 }
 

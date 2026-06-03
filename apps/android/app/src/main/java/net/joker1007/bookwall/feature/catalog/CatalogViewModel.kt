@@ -14,6 +14,7 @@ import net.joker1007.bookwall.data.epub.EpubDownloader
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.opds.OpdsFacet
 import net.joker1007.bookwall.data.opds.OpdsFeed
 import net.joker1007.bookwall.data.opds.OpdsRepository
 import net.joker1007.bookwall.data.opds.isEpub
@@ -23,6 +24,7 @@ import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.OffsetDateTime
 import javax.inject.Inject
 
@@ -50,8 +52,11 @@ data class CatalogUiState(
     val sort: BookSort = BookSort.TITLE,
     val sortDirection: SortDirection = SortDirection.ASC,
     val filterQuery: String = "",
+    val facets: List<OpdsFacet> = emptyList(),
     val openingEpub: Boolean = false,
-)
+) {
+    val hasActiveFacet: Boolean get() = facets.any { it.active }
+}
 
 @HiltViewModel
 class CatalogViewModel @Inject constructor(
@@ -93,6 +98,9 @@ class CatalogViewModel @Inject constructor(
     // CatalogUiState are derived from these by applying sort + filter.
     private var sourceNav: List<OpdsEntry.Navigation> = emptyList()
     private var sourceBooks: List<OpdsEntry.Book> = emptyList()
+
+    // The feed URL currently shown; facet selection reloads a variant of it in place.
+    private var currentFeedUrl: String? = null
 
     init {
         load()
@@ -156,6 +164,26 @@ class CatalogViewModel @Inject constructor(
         return href?.let { resolveOpdsHref(base, it) }
     }
 
+    /** Navigate to a tag facet (server-side filter), reloading the current feed in place. */
+    fun selectFacet(facet: OpdsFacet) {
+        val srv = server ?: return
+        // Re-tapping the active facet clears its group; otherwise follow the facet link.
+        val target = if (facet.active) {
+            removeQueryParam(currentFeedUrl ?: srv.baseUrl, FACET_GROUP_PARAMS[facet.group])
+        } else {
+            resolveOpdsHref(srv.baseUrl, facet.href) ?: return
+        }
+        reload(target)
+    }
+
+    fun clearFacets() {
+        val srv = server ?: return
+        val cleared = FACET_GROUP_PARAMS.values.fold(currentFeedUrl ?: srv.baseUrl) { url, key ->
+            removeQueryParam(url, key)
+        }
+        reload(cleared)
+    }
+
     private fun load() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
@@ -166,24 +194,39 @@ class CatalogViewModel @Inject constructor(
             }
             server = srv
             _imageLoader.value = imageLoaderFactory.forServer(srv)
-
-            when (val result = opdsRepository.fetchFeed(srv, feedUrlArg ?: srv.baseUrl)) {
-                is FeedResult.Success -> {
-                    // The progress-sync capability is advertised only on the root feed,
-                    // so re-evaluate it whenever we load a server's entry point.
-                    if (feedUrlArg == null) {
-                        serverRepository.setSyncProgressTemplate(serverId, result.feed.progressSyncTemplate)
-                        server = srv.copy(syncProgressTemplate = result.feed.progressSyncTemplate)
-                    }
-                    _state.update { it.applyFeed(result.feed) }
-                }
-                FeedResult.AuthFailed -> fail("認証に失敗しました (401)")
-                is FeedResult.HttpError -> fail("サーバーエラー (${result.code})")
-                FeedResult.InvalidUrl -> fail("URL が不正です")
-                FeedResult.ParseError -> fail("フィードを解析できませんでした")
-                is FeedResult.NetworkError -> fail("接続できません: ${result.message ?: "ネットワークエラー"}")
-            }
+            fetchAndApply(srv, feedUrlArg ?: srv.baseUrl, isRoot = feedUrlArg == null)
         }
+    }
+
+    private fun reload(url: String) {
+        val srv = server ?: return
+        _state.update { it.copy(loading = true, error = null) }
+        viewModelScope.launch { fetchAndApply(srv, url, isRoot = false) }
+    }
+
+    private suspend fun fetchAndApply(srv: OpdsServer, url: String, isRoot: Boolean) {
+        currentFeedUrl = url
+        when (val result = opdsRepository.fetchFeed(srv, url)) {
+            is FeedResult.Success -> {
+                // The progress-sync capability is advertised only on the root feed,
+                // so re-evaluate it whenever we load a server's entry point.
+                if (isRoot) {
+                    serverRepository.setSyncProgressTemplate(serverId, result.feed.progressSyncTemplate)
+                    server = srv.copy(syncProgressTemplate = result.feed.progressSyncTemplate)
+                }
+                _state.update { it.applyFeed(result.feed) }
+            }
+            FeedResult.AuthFailed -> fail("認証に失敗しました (401)")
+            is FeedResult.HttpError -> fail("サーバーエラー (${result.code})")
+            FeedResult.InvalidUrl -> fail("URL が不正です")
+            FeedResult.ParseError -> fail("フィードを解析できませんでした")
+            is FeedResult.NetworkError -> fail("接続できません: ${result.message ?: "ネットワークエラー"}")
+        }
+    }
+
+    private fun removeQueryParam(url: String, key: String?): String {
+        if (key == null) return url
+        return url.toHttpUrlOrNull()?.newBuilder()?.removeAllQueryParameters(key)?.build()?.toString() ?: url
     }
 
     private fun fail(message: String) = _state.update { it.copy(loading = false, error = message) }
@@ -191,7 +234,14 @@ class CatalogViewModel @Inject constructor(
     private fun CatalogUiState.applyFeed(feed: OpdsFeed): CatalogUiState {
         sourceNav = feed.entries.filterIsInstance<OpdsEntry.Navigation>()
         sourceBooks = feed.entries.filterIsInstance<OpdsEntry.Book>()
-        return copy(loading = false, error = null, title = feed.title).recompute()
+        // A facet reload replaces the entry set, so drop any in-progress local filter.
+        return copy(
+            loading = false,
+            error = null,
+            title = feed.title,
+            facets = feed.facets,
+            filterQuery = "",
+        ).recompute()
     }
 
     // Derive the displayed lists from the full source entries using the current
@@ -248,5 +298,9 @@ class CatalogViewModel @Inject constructor(
     companion object {
         const val ARG_SERVER_ID = "serverId"
         const val ARG_FEED_URL = "feedUrl"
+
+        // OPDS facet group name -> the query parameter the Bookwall server filters on.
+        // The server currently emits only the "Tags" group (see Opds::Facets).
+        private val FACET_GROUP_PARAMS = mapOf("Tags" to "tag_id")
     }
 }

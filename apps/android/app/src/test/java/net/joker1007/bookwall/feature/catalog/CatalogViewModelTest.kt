@@ -20,12 +20,15 @@ import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
 import net.joker1007.bookwall.network.OkHttpClientFactory
 import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -189,6 +192,75 @@ class CatalogViewModelTest {
         assertEquals("Alpha", vm.state.value.navEntries.first().title)
     }
 
+    private fun serveFacetFeeds() {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val body = if (request.requestUrl?.queryParameter("tag_id") == "5") FILTERED_FEED else FACET_FEED
+                return MockResponse().setResponseCode(200).setBody(body)
+            }
+        }
+    }
+
+    @Test
+    fun `populates facets from the feed`() = runTest {
+        serveFacetFeeds()
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+
+        val facets = vm.state.value.facets
+        assertEquals(listOf("manga"), facets.map { it.title })
+        assertEquals(listOf("Tags"), facets.map { it.group })
+        assertFalse(vm.state.value.hasActiveFacet)
+    }
+
+    @Test
+    fun `selectFacet reloads the server-filtered feed`() = runTest {
+        serveFacetFeeds()
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+        assertEquals(2, vm.state.value.books.size)
+
+        vm.selectFacet(vm.state.value.facets.first())
+        advanceUntilIdle()
+
+        assertEquals(listOf("Manga Book"), vm.state.value.books.map { it.title })
+        assertTrue(vm.state.value.hasActiveFacet)
+    }
+
+    @Test
+    fun `clearFacets reloads the unfiltered feed`() = runTest {
+        serveFacetFeeds()
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+        vm.selectFacet(vm.state.value.facets.first())
+        advanceUntilIdle()
+        assertEquals(1, vm.state.value.books.size)
+
+        vm.clearFacets()
+        advanceUntilIdle()
+
+        assertEquals(2, vm.state.value.books.size)
+        assertFalse(vm.state.value.hasActiveFacet)
+    }
+
+    @Test
+    fun `facet reload clears the local filter query`() = runTest {
+        serveFacetFeeds()
+
+        val vm = viewModelForServer()
+        advanceUntilIdle()
+        vm.setFilter("manga")
+        assertEquals("manga", vm.state.value.filterQuery)
+
+        vm.selectFacet(vm.state.value.facets.first())
+        advanceUntilIdle()
+
+        assertEquals("", vm.state.value.filterQuery)
+    }
+
     @Test
     fun `http error surfaces an error message`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
@@ -216,6 +288,43 @@ class CatalogViewModelTest {
                 <title>Alpha</title>
                 <id>urn:bookwall:series:2</id>
                 <link rel="subsection" href="/opds/series/2" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+              </entry>
+            </feed>
+        """.trimIndent()
+
+        val FACET_FEED = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:thr="http://purl.org/syndication/thread/1.0">
+              <title>Library</title>
+              <id>urn:bookwall:library:1</id>
+              <link rel="self" href="/opds/libraries/1" type="application/atom+xml"/>
+              <link rel="http://opds-spec.org/facet" href="/opds?tag_id=5" title="manga" opds:facetGroup="Tags" thr:count="1"/>
+              <entry>
+                <title>Manga Book</title>
+                <id>urn:bookwall:book:1</id>
+                <category term="manga"/>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/1/file.cbz" type="application/vnd.comicbook+zip"/>
+              </entry>
+              <entry>
+                <title>Other Book</title>
+                <id>urn:bookwall:book:2</id>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/2/file.cbz" type="application/vnd.comicbook+zip"/>
+              </entry>
+            </feed>
+        """.trimIndent()
+
+        val FILTERED_FEED = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:thr="http://purl.org/syndication/thread/1.0">
+              <title>Library</title>
+              <id>urn:bookwall:library:1</id>
+              <link rel="self" href="/opds/libraries/1?tag_id=5" type="application/atom+xml"/>
+              <link rel="http://opds-spec.org/facet" href="/opds?tag_id=5" title="manga" opds:facetGroup="Tags" thr:count="1" opds:activeFacet="true"/>
+              <entry>
+                <title>Manga Book</title>
+                <id>urn:bookwall:book:1</id>
+                <category term="manga"/>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/1/file.cbz" type="application/vnd.comicbook+zip"/>
               </entry>
             </feed>
         """.trimIndent()

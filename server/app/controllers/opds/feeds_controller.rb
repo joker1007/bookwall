@@ -175,16 +175,13 @@ module Opds
     def build_facets(scope, &path_for)
       Opds::Facets.new(
         scope: scope,
-        series_id: params[:series_id],
         tag_id: params[:tag_id],
-        url_builder: ->(series_id:, tag_id:) {
-          path_for.call({series_id: series_id, tag_id: tag_id}.compact)
-        }
+        url_builder: ->(tag_id:) { path_for.call({tag_id: tag_id}.compact) }
       )
     end
 
     def active_facet_params
-      {series_id: params[:series_id].presence, tag_id: params[:tag_id].presence}.compact
+      {tag_id: params[:tag_id].presence}.compact
     end
 
     def render_acquisition_feed(title, id, self_url, books, facets: [])
