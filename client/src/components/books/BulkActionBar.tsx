@@ -67,7 +67,7 @@ export function BulkActionBar({
 
   return (
     <>
-      <div className="sticky bottom-0 z-20 -mx-3 mt-2 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 px-3 py-2 backdrop-blur">
+      <div className="sticky top-14 z-20 -mx-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
         <span className="text-sm font-medium">
           {t("books.bulk.selected", { count })}
         </span>

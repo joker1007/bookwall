@@ -204,6 +204,16 @@ export function BookListView({
         </ToggleGroup>
       </div>
 
+      {selectionMode ? (
+        <BulkActionBar
+          selectedIds={[...selectedIds]}
+          allSelected={allSelected}
+          onSelectAll={selectAll}
+          onClear={clearSelection}
+          collectionId={collectionId}
+        />
+      ) : null}
+
       {query.isPending ? (
         <BookListSkeleton mode={displayMode} itemSize={itemSize} />
       ) : query.isError ? (
@@ -251,16 +261,6 @@ export function BookListView({
             pages={data!.pagination.pages}
             onPageChange={(p) => updateParam("page", p === 1 ? null : String(p))}
           />
-
-          {selectionMode ? (
-            <BulkActionBar
-              selectedIds={[...selectedIds]}
-              allSelected={allSelected}
-              onSelectAll={selectAll}
-              onClear={clearSelection}
-              collectionId={collectionId}
-            />
-          ) : null}
         </>
       )}
     </section>
