@@ -40,7 +40,7 @@ module Scanners
       total = diff[:add].size + diff[:update].size
       upserted_ids = parse_and_apply(diff[:add] + diff[:update], scan_log_id: log.id, total: total)
 
-      Scanners::ThumbnailPreprocessor.new(pool_size: @pool_size).call(upserted_ids)
+      Scanners::ThumbnailPreprocessor.new.call(upserted_ids)
 
       library.update!(last_scanned_at: Time.current)
       log.update!(status: :succeeded, finished_at: Time.current)
