@@ -27,6 +27,10 @@ ARG RUBY_VERSION=4.0.3
 FROM node:26-slim AS client_build
 WORKDIR /client
 COPY client/package*.json ./
+# patches/ must be present before `npm ci`, since the postinstall hook runs
+# patch-package and would otherwise find no patches to apply (leaving
+# foliate-js unpatched in the production bundle).
+COPY client/patches ./patches
 RUN npm ci
 COPY client/ ./
 RUN npm run build
