@@ -97,7 +97,9 @@ function ReaderPageInner() {
   const goNext = useCallback(() => {
     if (page >= lastPage) {
       const next = nextBook.data;
-      if (next) navigate(`/books/${next.id}/read`);
+      // Replace history so Back returns to wherever the reader was opened from,
+      // not to each series book paged through.
+      if (next) navigate(`/books/${next.id}/read`, { replace: true });
       return;
     }
     setPage((p) => Math.min(p + step, lastPage));
