@@ -1,0 +1,13 @@
+diff --git a/node_modules/foliate-js/epub.js b/node_modules/foliate-js/epub.js
+index d2b2eb3..e072931 100644
+--- a/node_modules/foliate-js/epub.js
++++ b/node_modules/foliate-js/epub.js
+@@ -295,7 +295,7 @@ const getMetadata = opf => {
+         dc.creator?.map(makeContributor)?.map(remapContributor('author')) ?? [],
+         dc.contributor?.map(makeContributor)?.map(remapContributor('contributor')) ?? []))
+         for (const key of keys)
+-            if (metadata[key]) metadata[key].push(val)
++            if (Array.isArray(metadata[key])) metadata[key].push(val)
+             else metadata[key] = [val]
+     tidy(metadata)
+     if (metadata.altIdentifier === metadata.identifier)
