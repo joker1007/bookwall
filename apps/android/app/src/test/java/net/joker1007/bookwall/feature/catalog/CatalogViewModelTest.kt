@@ -10,6 +10,7 @@ import net.joker1007.bookwall.data.FakeSecretCipher
 import net.joker1007.bookwall.data.epub.EpubDownloader
 import net.joker1007.bookwall.data.FakeEpubProgressDao
 import net.joker1007.bookwall.data.FakeReaderStateRepository
+import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import java.io.File
 import net.joker1007.bookwall.data.opds.FeedParser
@@ -75,7 +76,7 @@ class CatalogViewModelTest {
         val epubProgressRepo = EpubProgressRepository(FakeEpubProgressDao(), clock = { 0L })
         return CatalogViewModel(
             serverRepo, opdsRepo, { null }, epubDownloader,
-            FakeReaderStateRepository(), epubProgressRepo, handle,
+            FakeReaderStateRepository(), epubProgressRepo, ReadingQueueHolder(), handle,
         )
     }
 

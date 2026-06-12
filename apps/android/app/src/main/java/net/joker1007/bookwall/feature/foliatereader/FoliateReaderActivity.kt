@@ -40,11 +40,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
+import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
+import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.reconcileEpubCfi
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.feature.epubreader.EpubReaderViewModel
+import net.joker1007.bookwall.ui.NextBookDialog
 import net.joker1007.bookwall.ui.theme.BookwallTheme
 import java.io.File
 import java.io.FileInputStream
@@ -73,11 +77,17 @@ class FoliateReaderActivity : ComponentActivity() {
 
     @Inject lateinit var serverRepository: ServerRepository
 
+    @Inject lateinit var readingQueueHolder: ReadingQueueHolder
+
+    @Inject lateinit var bookOpenCoordinator: BookOpenCoordinator
+
     private lateinit var epubFile: File
     private lateinit var title: String
     private var serverId: Long = 0L
     private var bookId: Long = 0L
     private var server: OpdsServer? = null
+    private var nextBook: OpdsEntry.Book? = null
+    private var confirmNextBook by mutableStateOf<OpdsEntry.Book?>(null)
     /** Completes with the CFI to restore on open (local vs server reconciled). */
     private val initialCfi = CompletableDeferred<String?>()
     private var saveJob: Job? = null
@@ -101,6 +111,7 @@ class FoliateReaderActivity : ComponentActivity() {
         title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         serverId = intent.getLongExtra(EXTRA_SERVER_ID, 0L)
         bookId = intent.getLongExtra(EXTRA_BOOK_ID, 0L)
+        nextBook = readingQueueHolder.nextAfter(serverId, bookId)
 
         // Resolve the restore position in parallel with the WebView loading: the
         // furthest of the local save and the server's progress (pulled if the
@@ -151,6 +162,17 @@ class FoliateReaderActivity : ComponentActivity() {
                         )
                         LoadState.Ready -> Unit
                     }
+                }
+                confirmNextBook?.let { next ->
+                    NextBookDialog(
+                        title = next.title,
+                        onConfirm = {
+                            confirmNextBook = null
+                            bookOpenCoordinator.request(serverId, next)
+                            finish()
+                        },
+                        onDismiss = { confirmNextBook = null },
+                    )
                 }
                 FoliateImmersiveEffect(chrome.menuVisible)
             }
@@ -277,6 +299,12 @@ class FoliateReaderActivity : ComponentActivity() {
                 "left" -> goForward(forward = !rtl)
                 "right" -> goForward(forward = rtl)
             }
+        }
+
+        @JavascriptInterface
+        fun onReachedEnd() {
+            val next = nextBook ?: return
+            runOnUiThread { confirmNextBook = next }
         }
 
         @JavascriptInterface
