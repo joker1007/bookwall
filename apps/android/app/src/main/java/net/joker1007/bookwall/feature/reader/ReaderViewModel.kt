@@ -14,12 +14,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.OpdsPageSource
 import net.joker1007.bookwall.data.reader.PageSource
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
+import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.ReadingDirection
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
@@ -41,6 +44,10 @@ data class ReaderUiState(
     val pageOffset: Int = 0,
     val menuVisible: Boolean = false,
     val settingsVisible: Boolean = false,
+    /** Next book in the catalog queue, or null when there is none. */
+    val nextBook: OpdsEntry.Book? = null,
+    /** Whether the "open the next book?" confirmation dialog is shown. */
+    val confirmNextVisible: Boolean = false,
 )
 
 @HiltViewModel
@@ -50,6 +57,8 @@ class ReaderViewModel @Inject constructor(
     private val preferencesRepository: ReaderPreferencesRepository,
     private val imageLoaderProvider: ServerImageLoaderProvider,
     private val progressSyncRepository: ProgressSyncRepository,
+    private val readingQueueHolder: ReadingQueueHolder,
+    private val bookOpenCoordinator: BookOpenCoordinator,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -97,9 +106,24 @@ class ReaderViewModel @Inject constructor(
                     currentPage = clampPage(saved?.currentPage ?: initialPage),
                     direction = saved?.direction ?: it.direction,
                     spreadEnabled = saved?.spreadEnabled ?: it.spreadEnabled,
+                    nextBook = readingQueueHolder.nextAfter(serverId, bookId),
                 )
             }
         }
+    }
+
+    /** Tapping forward past the last page: ask whether to roll over to the next book. */
+    fun requestNextBookConfirm() {
+        if (_state.value.nextBook == null) return
+        _state.update { it.copy(confirmNextVisible = true) }
+    }
+
+    fun dismissNextBookConfirm() = _state.update { it.copy(confirmNextVisible = false) }
+
+    fun confirmNextBook() {
+        val next = _state.value.nextBook ?: return
+        _state.update { it.copy(confirmNextVisible = false) }
+        bookOpenCoordinator.request(serverId, next)
     }
 
     fun next() = goToPage(_state.value.currentPage + 1)

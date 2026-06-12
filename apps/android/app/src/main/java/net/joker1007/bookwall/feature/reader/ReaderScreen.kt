@@ -68,8 +68,10 @@ import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.reader.TapZoneConfig
 import net.joker1007.bookwall.data.reader.buildSpreads
 import net.joker1007.bookwall.data.reader.flippedForRtl
+import net.joker1007.bookwall.data.reader.isForward
 import net.joker1007.bookwall.data.reader.slotIndexForPage
 import net.joker1007.bookwall.data.reader.tapTargetPage
+import net.joker1007.bookwall.ui.NextBookDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,11 +132,16 @@ fun ReaderScreen(
                         }
                     }
 
+                    val lastPage = (state.pageCount - 1).coerceAtLeast(0)
                     val dispatchTap: (TapZone) -> Unit = { zone ->
                         val effectiveZone =
                             if (state.direction == ReadingDirection.RTL) zone.flippedForRtl() else zone
-                        when (val action = tapConfig.actionFor(effectiveZone)) {
-                            TapAction.TOGGLE_MENU -> viewModel.toggleMenu()
+                        val action = tapConfig.actionFor(effectiveZone)
+                        when {
+                            action == TapAction.TOGGLE_MENU -> viewModel.toggleMenu()
+                            // Tapping forward on the last page offers the next queued book.
+                            action.isForward() && state.currentPage >= lastPage && state.nextBook != null ->
+                                viewModel.requestNextBookConfirm()
                             else -> tapTargetPage(action, slots, state.currentPage)?.let(viewModel::goToPage)
                         }
                     }
@@ -201,6 +208,16 @@ fun ReaderScreen(
             onZoneAction = viewModel::setZoneAction,
             onDismiss = viewModel::closeSettings,
         )
+    }
+
+    state.nextBook?.let { next ->
+        if (state.confirmNextVisible) {
+            NextBookDialog(
+                title = next.title,
+                onConfirm = viewModel::confirmNextBook,
+                onDismiss = viewModel::dismissNextBookConfirm,
+            )
+        }
     }
 }
 

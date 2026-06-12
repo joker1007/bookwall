@@ -13,6 +13,8 @@ const state = {
   settings: { fontSize: 100, theme: "light", writingMode: "auto" },
   verticalDetected: false,
   ready: false,
+  // Last relocated CFI; used to detect that next() did not advance (end of book).
+  lastCfi: null,
 };
 
 function reportError(message) {
@@ -58,6 +60,7 @@ async function openBook(epubUrl, initialCfi) {
           ? Math.max(0, Math.min(1, detail.fraction))
           : 0;
       if (detail.cfi) {
+        state.lastCfi = detail.cfi;
         try {
           bridge()?.onRelocate(detail.cfi, fraction);
         } catch (_) {
@@ -182,7 +185,18 @@ function installTapLayer() {
 
 window.foliateGlue = {
   open: (epubUrl, initialCfi) => openBook(epubUrl, initialCfi),
-  next: () => state.view?.next?.(),
+  next: async () => {
+    const view = state.view;
+    if (!view?.next) return;
+    const prev = state.lastCfi;
+    await view.next();
+    // A successful page turn fires relocate (updating lastCfi) shortly after; if
+    // the position is unchanged we're at the end of the book, so let the host ask
+    // whether to roll over to the next book.
+    setTimeout(() => {
+      if (state.lastCfi === prev) bridge()?.onReachedEnd?.();
+    }, 120);
+  },
   prev: () => state.view?.prev?.(),
   goTo: (href) => state.view?.goTo?.(href),
   goToCfi: (cfi) => state.view?.init?.({ lastLocation: cfi }),

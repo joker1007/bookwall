@@ -2,6 +2,8 @@ package net.joker1007.bookwall.feature.reader
 
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.joker1007.bookwall.MainDispatcherRule
@@ -10,8 +12,13 @@ import net.joker1007.bookwall.data.FakeProgressSyncRepository
 import net.joker1007.bookwall.data.FakeReaderPreferencesRepository
 import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.FakeSecretCipher
+import net.joker1007.bookwall.data.opds.OpdsEntry
+import net.joker1007.bookwall.data.opds.PseInfo
+import net.joker1007.bookwall.data.opds.numericId
+import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.server.OpdsServer
@@ -31,17 +38,30 @@ class ReaderViewModelTest {
     private val readerRepo = FakeReaderStateRepository()
     private val prefsRepo = FakeReaderPreferencesRepository()
     private val syncRepo = FakeProgressSyncRepository()
+    private val queueHolder = ReadingQueueHolder()
+    private val coordinator = BookOpenCoordinator()
+
+    private fun book(id: Long, title: String) = OpdsEntry.Book(
+        title = title,
+        id = "urn:bookwall:book:$id",
+        pse = PseInfo(streamHrefTemplate = "/opds/books/$id/pages/{pageNumber}", pageCount = 10),
+    )
 
     private suspend fun viewModel(
         pageCount: Int = 10,
         initialPage: Int = 3,
         syncTemplate: String? = null,
+        queueNext: Boolean = false,
     ): ReaderViewModel {
         val dao = FakeOpdsServerDao()
         val serverRepo = ServerRepositoryImpl(dao, FakeSecretCipher(), clock = { 0L })
         val id = serverRepo.upsert(
             OpdsServer(name = "s", baseUrl = "https://h", syncProgressTemplate = syncTemplate),
         )
+        // The current book is 7; queue 8 after it so the VM resolves a next book.
+        // Clear otherwise: the shared holder + reused fake server ids would leak
+        // a previous test's queue into a VM that should have none.
+        queueHolder.set(id, if (queueNext) listOf(book(7, "Vol 7"), book(8, "Vol 8")) else emptyList())
         val handle = SavedStateHandle(
             mapOf(
                 ReaderViewModel.ARG_SERVER_ID to id,
@@ -52,7 +72,7 @@ class ReaderViewModelTest {
                 ReaderViewModel.ARG_PSE_TEMPLATE to "/opds/books/7/pages/{pageNumber}",
             ),
         )
-        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, syncRepo, handle)
+        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, syncRepo, queueHolder, coordinator, handle)
     }
 
     @Test
@@ -159,6 +179,58 @@ class ReaderViewModelTest {
         advanceUntilIdle()
 
         assertTrue(syncRepo.pushes.isEmpty())
+    }
+
+    @Test
+    fun `resolves the next book from the queue`() = runTest {
+        val vm = viewModel(queueNext = true)
+        advanceUntilIdle()
+
+        assertEquals("Vol 8", vm.state.value.nextBook?.title)
+    }
+
+    @Test
+    fun `next book is null without a queue`() = runTest {
+        val vm = viewModel(queueNext = false)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.nextBook == null)
+    }
+
+    @Test
+    fun `requestNextBookConfirm shows the dialog only when a next book exists`() = runTest {
+        val withNext = viewModel(queueNext = true)
+        advanceUntilIdle()
+        withNext.requestNextBookConfirm()
+        assertTrue(withNext.state.value.confirmNextVisible)
+
+        val withoutNext = viewModel(queueNext = false)
+        advanceUntilIdle()
+        withoutNext.requestNextBookConfirm()
+        assertTrue(!withoutNext.state.value.confirmNextVisible)
+    }
+
+    @Test
+    fun `confirmNextBook emits an open request and dismisses`() = runTest {
+        val vm = viewModel(queueNext = true)
+        advanceUntilIdle()
+        vm.requestNextBookConfirm()
+
+        val request = async { coordinator.requests.first() }
+        vm.confirmNextBook()
+
+        assertEquals(8L, request.await().book.numericId)
+        assertTrue(!vm.state.value.confirmNextVisible)
+    }
+
+    @Test
+    fun `dismissNextBookConfirm hides the dialog`() = runTest {
+        val vm = viewModel(queueNext = true)
+        advanceUntilIdle()
+        vm.requestNextBookConfirm()
+        vm.dismissNextBookConfirm()
+
+        assertTrue(!vm.state.value.confirmNextVisible)
     }
 
     @Test

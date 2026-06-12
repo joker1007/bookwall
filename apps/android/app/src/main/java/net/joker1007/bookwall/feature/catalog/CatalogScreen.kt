@@ -182,6 +182,7 @@ fun CatalogScreen(
                 epubProgress = selectedEpubProgress,
                 onRead = { selected ->
                     viewModel.dismissBook()
+                    viewModel.rememberQueue()
                     if (selected.pse != null) onOpenReader(selected) else viewModel.openEpub(selected)
                 },
                 modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),

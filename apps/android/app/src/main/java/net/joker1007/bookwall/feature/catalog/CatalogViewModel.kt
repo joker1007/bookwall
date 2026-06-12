@@ -21,6 +21,7 @@ import net.joker1007.bookwall.data.opds.isEpub
 import net.joker1007.bookwall.data.opds.numericId
 import net.joker1007.bookwall.data.opds.resolveOpdsHref
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
+import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
@@ -66,6 +67,7 @@ class CatalogViewModel @Inject constructor(
     private val epubDownloader: EpubDownloader,
     private val readerStateRepository: ReaderStateRepository,
     private val epubProgressRepository: EpubProgressRepository,
+    private val readingQueueHolder: ReadingQueueHolder,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -128,6 +130,14 @@ class CatalogViewModel @Inject constructor(
                 _selectedLocalPage.value = readerStateRepository.load(serverId, bookId)?.currentPage
             }
         }
+    }
+
+    /**
+     * Records the currently displayed book list as the reading queue so the reader
+     * can roll over to the next book. Call right before opening any book.
+     */
+    fun rememberQueue() {
+        readingQueueHolder.set(serverId, _state.value.books)
     }
 
     fun dismissBook() {

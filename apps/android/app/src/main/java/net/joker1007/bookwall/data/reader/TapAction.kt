@@ -19,6 +19,12 @@ enum class TapAction {
     NEXT_CONTINUOUS,
 }
 
+/** True for actions that advance the page (used to detect a tap past the last page). */
+fun TapAction.isForward(): Boolean = when (this) {
+    TapAction.NEXT, TapAction.NEXT_SINGLE, TapAction.NEXT_CONTINUOUS -> true
+    else -> false
+}
+
 /** Horizontal screen regions that receive taps. */
 enum class TapZone { LEFT, CENTER, RIGHT }
 
