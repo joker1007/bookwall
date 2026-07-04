@@ -11,8 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import net.joker1007.bookwall.feature.catalog.BookDetailTags
-import net.joker1007.bookwall.feature.catalog.CatalogTags
-import net.joker1007.bookwall.feature.downloads.DownloadsTags
 import net.joker1007.bookwall.feature.reader.ReaderTags
 import net.joker1007.bookwall.feature.servers.ServersScreenTags
 import net.joker1007.bookwall.robot.onCatalogScreen
@@ -89,8 +87,9 @@ class CacheE2ETest {
         composeRule.onNodeWithTag(BookDetailTags.DELETE_CACHE_BUTTON).performClick()
         composeRule.onNodeWithTag(BookDetailTags.DELETE_CACHE_CONFIRM).performClick()
 
+        // testTag が clickable セルにマージされるため contentDescription で判定する。
         composeRule.waitUntil(TIMEOUT) {
-            composeRule.onAllNodesWithTag(CatalogTags.CACHE_BADGE).fetchSemanticsNodes().isEmpty()
+            composeRule.onAllNodesWithContentDescription("ダウンロード済み").fetchSemanticsNodes().isEmpty()
         }
     }
 
@@ -143,7 +142,7 @@ class CacheE2ETest {
 
         Espresso.pressBack() // reader -> catalog
         composeRule.waitUntil(DOWNLOAD_TIMEOUT) {
-            composeRule.onAllNodesWithTag(CatalogTags.CACHE_BADGE).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithContentDescription("ダウンロード済み").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
