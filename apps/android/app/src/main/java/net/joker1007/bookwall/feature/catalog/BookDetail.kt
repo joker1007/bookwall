@@ -4,14 +4,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import net.joker1007.bookwall.data.db.CachedBookEntity
+import net.joker1007.bookwall.data.db.CachedBookStatus
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.isEpub
 import net.joker1007.bookwall.data.opds.isReadable
@@ -25,6 +34,9 @@ fun BookDetail(
     modifier: Modifier = Modifier,
     localCurrentPage: Int? = null,
     epubProgress: Float? = null,
+    cacheStatus: CachedBookEntity? = null,
+    onDownload: ((OpdsEntry.Book) -> Unit)? = null,
+    onRemoveCache: ((OpdsEntry.Book) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -85,11 +97,95 @@ fun BookDetail(
                 Text("読む")
             }
         }
+
+        if (book.acquisitionHref != null && onDownload != null && onRemoveCache != null) {
+            CacheActions(book, cacheStatus, onDownload, onRemoveCache)
+        }
+    }
+}
+
+@Composable
+private fun CacheActions(
+    book: OpdsEntry.Book,
+    cache: CachedBookEntity?,
+    onDownload: (OpdsEntry.Book) -> Unit,
+    onRemoveCache: (OpdsEntry.Book) -> Unit,
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    when (cache?.status) {
+        null, CachedBookStatus.FAILED -> OutlinedButton(
+            onClick = { onDownload(book) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(BookDetailTags.DOWNLOAD_BUTTON),
+        ) {
+            Text(if (cache?.status == CachedBookStatus.FAILED) "再ダウンロード" else "ダウンロード")
+        }
+        CachedBookStatus.PENDING, CachedBookStatus.DOWNLOADING -> {
+            if (cache.status == CachedBookStatus.DOWNLOADING && cache.totalBytes > 0) {
+                LinearProgressIndicator(
+                    progress = { cache.downloadedBytes.toFloat() / cache.totalBytes.toFloat() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(BookDetailTags.DOWNLOAD_PROGRESS),
+                )
+            } else {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(BookDetailTags.DOWNLOAD_PROGRESS),
+                )
+            }
+            OutlinedButton(
+                onClick = { onRemoveCache(book) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(BookDetailTags.CANCEL_DOWNLOAD_BUTTON),
+            ) {
+                Text("ダウンロードをキャンセル")
+            }
+        }
+        CachedBookStatus.COMPLETED -> OutlinedButton(
+            onClick = { confirmDelete = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(BookDetailTags.DELETE_CACHE_BUTTON),
+        ) {
+            Text("キャッシュを削除")
+        }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("キャッシュを削除") },
+            text = { Text("「${book.title}」のダウンロード済みファイルを削除しますか?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onRemoveCache(book)
+                    },
+                    modifier = Modifier.testTag(BookDetailTags.DELETE_CACHE_CONFIRM),
+                ) {
+                    Text("削除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("キャンセル") }
+            },
+        )
     }
 }
 
 object BookDetailTags {
     const val READ_BUTTON = "book_detail_read"
+    const val DOWNLOAD_BUTTON = "book_detail_download"
+    const val DOWNLOAD_PROGRESS = "book_detail_download_progress"
+    const val CANCEL_DOWNLOAD_BUTTON = "book_detail_cancel_download"
+    const val DELETE_CACHE_BUTTON = "book_detail_delete_cache"
+    const val DELETE_CACHE_CONFIRM = "book_detail_delete_cache_confirm"
 }
 
 @Composable

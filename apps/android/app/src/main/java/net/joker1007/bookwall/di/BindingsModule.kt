@@ -4,6 +4,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import net.joker1007.bookwall.data.cache.BookCacheRepository
+import net.joker1007.bookwall.data.cache.BookCacheRepositoryImpl
+import net.joker1007.bookwall.data.cache.CacheDownloadScheduler
+import net.joker1007.bookwall.data.cache.CacheSettingsRepository
+import net.joker1007.bookwall.data.cache.DataStoreCacheSettingsRepository
+import net.joker1007.bookwall.data.cache.WorkManagerCacheDownloadScheduler
 import net.joker1007.bookwall.data.crypto.KeystoreSecretCipher
 import net.joker1007.bookwall.data.crypto.SecretCipher
 import net.joker1007.bookwall.data.epub.DataStoreEpubSettingsRepository
@@ -13,8 +19,12 @@ import net.joker1007.bookwall.data.epub.OpdsEpubDownloader
 import net.joker1007.bookwall.data.opds.FeedParser
 import net.joker1007.bookwall.data.opds.OpdsParser
 import net.joker1007.bookwall.data.reader.DataStoreReaderPreferencesRepository
+import net.joker1007.bookwall.data.reader.local.LocalImageLoaderFactory
+import net.joker1007.bookwall.data.reader.local.LocalImageLoaderProvider
 import net.joker1007.bookwall.data.reader.OpdsProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
+import net.joker1007.bookwall.data.reader.ProgressSyncScheduler
+import net.joker1007.bookwall.data.reader.WorkManagerProgressSyncScheduler
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.reader.ReaderStateRepositoryImpl
@@ -61,4 +71,24 @@ abstract class BindingsModule {
     @Binds
     @Singleton
     abstract fun bindEpubSettingsRepository(impl: DataStoreEpubSettingsRepository): EpubSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBookCacheRepository(impl: BookCacheRepositoryImpl): BookCacheRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCacheSettingsRepository(impl: DataStoreCacheSettingsRepository): CacheSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCacheDownloadScheduler(impl: WorkManagerCacheDownloadScheduler): CacheDownloadScheduler
+
+    @Binds
+    @Singleton
+    abstract fun bindLocalImageLoaderProvider(impl: LocalImageLoaderFactory): LocalImageLoaderProvider
+
+    @Binds
+    @Singleton
+    abstract fun bindProgressSyncScheduler(impl: WorkManagerProgressSyncScheduler): ProgressSyncScheduler
 }

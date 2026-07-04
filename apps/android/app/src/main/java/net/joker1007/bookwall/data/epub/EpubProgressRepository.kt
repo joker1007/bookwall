@@ -22,7 +22,13 @@ class EpubProgressRepository @Inject constructor(
                 epubCfi = cfi,
                 progressFraction = fraction,
                 updatedAt = clock(),
+                dirty = true,
             ),
         )
+    }
+
+    /** Clears the dirty mark after a successful push, unless a newer save landed. */
+    suspend fun markSynced(serverId: Long, bookId: Long) {
+        dao.find(serverId, bookId)?.let { dao.clearDirty(serverId, bookId, it.updatedAt) }
     }
 }

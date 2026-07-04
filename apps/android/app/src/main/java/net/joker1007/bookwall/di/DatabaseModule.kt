@@ -7,7 +7,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.joker1007.bookwall.data.db.ALL_MIGRATIONS
 import net.joker1007.bookwall.data.db.BookwallDatabase
+import net.joker1007.bookwall.data.db.CachedBookDao
 import net.joker1007.bookwall.data.db.EpubProgressDao
 import net.joker1007.bookwall.data.db.OpdsServerDao
 import net.joker1007.bookwall.data.db.ReaderStateDao
@@ -21,6 +23,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BookwallDatabase =
         Room.databaseBuilder(context, BookwallDatabase::class.java, BookwallDatabase.NAME)
+            .addMigrations(*ALL_MIGRATIONS)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
@@ -32,4 +35,7 @@ object DatabaseModule {
 
     @Provides
     fun provideEpubProgressDao(database: BookwallDatabase): EpubProgressDao = database.epubProgressDao()
+
+    @Provides
+    fun provideCachedBookDao(database: BookwallDatabase): CachedBookDao = database.cachedBookDao()
 }

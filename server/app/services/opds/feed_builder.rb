@@ -87,11 +87,14 @@ module Opds
             content_text = entry_content(book)
             xml.content_(type: "text") { xml.text(content_text) } if content_text.present?
 
-            xml.link(
+            acquisition_attrs = {
               rel: ACQUISITION_REL,
               href: helpers.opds_book_file_path(book_id: book.id, format: acquisition_format(book)),
               type: download_mime(book)
-            )
+            }
+            # image_dir is repackaged as CBZ on the fly, so length is only an estimate there.
+            acquisition_attrs[:length] = book.file_size if book.file_size.to_i.positive?
+            xml.link(acquisition_attrs)
 
             if book.cover.attached?
               xml.link(rel: IMAGE_REL, href: helpers.rails_blob_path(book.cover, only_path: true), type: book.cover.content_type)

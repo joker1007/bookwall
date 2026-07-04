@@ -43,6 +43,7 @@ import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
+import net.joker1007.bookwall.data.reader.ProgressSyncScheduler
 import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.reconcileEpubCfi
 import net.joker1007.bookwall.data.server.OpdsServer
@@ -74,6 +75,8 @@ class FoliateReaderActivity : ComponentActivity() {
     @Inject lateinit var epubProgressRepository: EpubProgressRepository
 
     @Inject lateinit var progressSyncRepository: ProgressSyncRepository
+
+    @Inject lateinit var progressSyncScheduler: ProgressSyncScheduler
 
     @Inject lateinit var serverRepository: ServerRepository
 
@@ -238,13 +241,20 @@ class FoliateReaderActivity : ComponentActivity() {
     private fun goForward(forward: Boolean) =
         runJs(if (forward) "window.foliateGlue.next()" else "window.foliateGlue.prev()")
 
-    /** Debounced: persist locally and best-effort push to the server. */
+    /** Debounced: persist locally, push to the server, defer to the worker offline. */
     private fun persistProgress(cfi: String, fraction: Float) {
         saveJob?.cancel()
         saveJob = lifecycleScope.launch {
             delay(SAVE_DEBOUNCE_MS)
             epubProgressRepository.save(serverId, bookId, cfi, fraction)
-            server?.let { if (it.supportsProgressSync) progressSyncRepository.pushEpubProgress(it, bookId, cfi, fraction) }
+            server?.let { srv ->
+                if (!srv.supportsProgressSync) return@let
+                if (progressSyncRepository.pushEpubProgress(srv, bookId, cfi, fraction)) {
+                    epubProgressRepository.markSynced(serverId, bookId)
+                } else {
+                    progressSyncScheduler.schedule()
+                }
+            }
         }
     }
 

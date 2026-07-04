@@ -16,4 +16,10 @@ class FakeReaderStateRepository : ReaderStateRepository {
     override suspend fun save(serverId: Long, bookId: Long, state: ReaderState) {
         saved[serverId to bookId] = state
     }
+
+    override suspend fun markSynced(serverId: Long, bookId: Long) {
+        synced += serverId to bookId
+    }
+
+    val synced = mutableListOf<Pair<Long, Long>>()
 }

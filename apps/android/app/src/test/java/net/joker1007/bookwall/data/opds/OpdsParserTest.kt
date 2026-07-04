@@ -81,6 +81,7 @@ class OpdsParserTest {
         assertEquals(listOf("SciFi", "Action"), book.tags)
         assertEquals("ja", book.language)
         assertEquals("/opds/books/42/file.cbz", book.acquisitionHref)
+        assertEquals(45_000_000L, book.fileSize)
         assertEquals("/rails/blob/cover.jpg", book.imageHref)
         assertEquals("/rails/rep/thumb.jpg", book.thumbnailHref)
         assertEquals("2025-12-24T00:00:00Z", book.added)
@@ -100,6 +101,7 @@ class OpdsParserTest {
         assertEquals("/opds/books/43/file.epub", epub.acquisitionHref)
         assertNull(epub.pse)
         assertNull(epub.thumbnailHref)
+        assertNull(epub.fileSize)
     }
 
     private companion object {
@@ -152,7 +154,7 @@ class OpdsParserTest {
                 <category term="SciFi"/>
                 <category term="Action"/>
                 <content type="text">CBZ · 120 pages</content>
-                <link rel="http://opds-spec.org/acquisition" href="/opds/books/42/file.cbz" type="application/vnd.comicbook+zip"/>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/42/file.cbz" type="application/vnd.comicbook+zip" length="45000000"/>
                 <link rel="http://opds-spec.org/image" href="/rails/blob/cover.jpg" type="image/jpeg"/>
                 <link rel="http://opds-spec.org/image/thumbnail" href="/rails/rep/thumb.jpg" type="image/jpeg"/>
                 <pse:link rel="http://vaemendis.net/opds-pse/stream" href="/opds/books/42/pages/{pageNumber}" type="image/jpeg" pse:count="120" pse:lastRead="10" pse:lastReadDate="2026-01-01T00:00:00Z"/>

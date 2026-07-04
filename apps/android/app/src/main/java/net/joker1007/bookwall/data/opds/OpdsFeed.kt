@@ -43,6 +43,8 @@ sealed interface OpdsEntry {
         val format: String? = null,
         val acquisitionHref: String? = null,
         val acquisitionType: String? = null,
+        /** Acquisition link length attribute; an estimate for on-the-fly CBZ (image_dir). */
+        val fileSize: Long? = null,
         val imageHref: String? = null,
         val thumbnailHref: String? = null,
         val pse: PseInfo? = null,

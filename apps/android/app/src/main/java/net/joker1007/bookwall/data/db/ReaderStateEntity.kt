@@ -10,4 +10,6 @@ data class ReaderStateEntity(
     val direction: String,
     val spreadEnabled: Boolean,
     val updatedAt: Long,
+    /** True while the latest progress has not been pushed to the server. */
+    val dirty: Boolean = false,
 )

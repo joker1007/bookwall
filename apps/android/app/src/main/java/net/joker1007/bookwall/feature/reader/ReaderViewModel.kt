@@ -18,7 +18,12 @@ import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.OpdsPageSource
 import net.joker1007.bookwall.data.reader.PageSource
+import net.joker1007.bookwall.data.reader.local.ClosablePageSource
+import net.joker1007.bookwall.data.reader.local.LocalBook
+import net.joker1007.bookwall.data.reader.local.LocalBookSourceFactory
+import net.joker1007.bookwall.data.reader.local.LocalImageLoaderProvider
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
+import net.joker1007.bookwall.data.reader.ProgressSyncScheduler
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
@@ -30,6 +35,7 @@ import net.joker1007.bookwall.data.reader.TapZoneConfig
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
 import net.joker1007.bookwall.network.ServerImageLoaderProvider
+import java.io.File
 import javax.inject.Inject
 
 data class ReaderUiState(
@@ -59,15 +65,19 @@ class ReaderViewModel @Inject constructor(
     private val progressSyncRepository: ProgressSyncRepository,
     private val readingQueueHolder: ReadingQueueHolder,
     private val bookOpenCoordinator: BookOpenCoordinator,
+    private val localBookSourceFactory: LocalBookSourceFactory,
+    private val localImageLoaderProvider: LocalImageLoaderProvider,
+    private val progressSyncScheduler: ProgressSyncScheduler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val serverId: Long = savedStateHandle.get<Long>(ARG_SERVER_ID) ?: 0L
     private val bookId: Long = savedStateHandle.get<Long>(ARG_BOOK_ID) ?: 0L
-    private val pageCount: Int = savedStateHandle.get<Int>(ARG_PAGE_COUNT) ?: 0
+    private var pageCount: Int = savedStateHandle.get<Int>(ARG_PAGE_COUNT) ?: 0
     private val initialPage: Int = savedStateHandle.get<Int>(ARG_INITIAL_PAGE) ?: 0
     private val title: String = savedStateHandle.get<String>(ARG_TITLE).orEmpty()
     private val pseTemplate: String = savedStateHandle.get<String>(ARG_PSE_TEMPLATE).orEmpty()
+    private val localPath: String = savedStateHandle.get<String>(ARG_LOCAL_PATH).orEmpty()
 
     private val _state = MutableStateFlow(ReaderUiState(title = title, pageCount = pageCount))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
@@ -90,19 +100,26 @@ class ReaderViewModel @Inject constructor(
 
     private fun load() {
         viewModelScope.launch {
+            // The server is optional for local files; it is only used for streaming
+            // pages and pushing progress (both skipped when it is unavailable).
             val srv = serverRepository.getServer(serverId)
-            if (srv == null) {
-                _state.update { it.copy(loading = false, error = "サーバーが見つかりません") }
-                return@launch
-            }
             server = srv
-            _imageLoader.value = imageLoaderProvider.forServer(srv)
-            pageSource = OpdsPageSource(srv.baseUrl, pseTemplate, pageCount)
+            if (localPath.isNotEmpty()) {
+                if (!openLocalBook()) return@launch
+            } else {
+                if (srv == null) {
+                    _state.update { it.copy(loading = false, error = "サーバーが見つかりません") }
+                    return@launch
+                }
+                _imageLoader.value = imageLoaderProvider.forServer(srv)
+                pageSource = OpdsPageSource(srv.baseUrl, pseTemplate, pageCount)
+            }
 
             val saved = readerStateRepository.load(serverId, bookId)
             _state.update {
                 it.copy(
                     loading = false,
+                    pageCount = pageCount,
                     currentPage = clampPage(saved?.currentPage ?: initialPage),
                     direction = saved?.direction ?: it.direction,
                     spreadEnabled = saved?.spreadEnabled ?: it.spreadEnabled,
@@ -110,6 +127,24 @@ class ReaderViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private suspend fun openLocalBook(): Boolean {
+        val opened = runCatching { localBookSourceFactory.open(File(localPath)) }.getOrNull()
+        val images = opened as? LocalBook.Images
+        if (images == null) {
+            _state.update { it.copy(loading = false, error = "ファイルを開けませんでした") }
+            return false
+        }
+        pageSource = images.pageSource
+        // The archive itself is authoritative (nav args may carry a stale count).
+        pageCount = images.pageSource.pageCount
+        _imageLoader.value = localImageLoaderProvider.localImageLoader()
+        return true
+    }
+
+    override fun onCleared() {
+        (pageSource as? ClosablePageSource)?.close()
     }
 
     /** Tapping forward past the last page: ask whether to roll over to the next book. */
@@ -169,7 +204,8 @@ class ReaderViewModel @Inject constructor(
     /**
      * Debounced push of the current page to the server. Rapid page flips cancel
      * the pending push; only Bookwall servers (supportsProgressSync) actually
-     * hit the network. Best-effort: a failed push is retried by the next flip.
+     * hit the network. A failed push (e.g. reading a cached book offline) leaves
+     * the row dirty and hands retry to the background sync worker.
      */
     private fun scheduleSync(page: Int) {
         val srv = server ?: return
@@ -177,7 +213,11 @@ class ReaderViewModel @Inject constructor(
         syncJob?.cancel()
         syncJob = viewModelScope.launch {
             delay(SYNC_DEBOUNCE_MS)
-            progressSyncRepository.pushPageProgress(srv, bookId, page, pageCount)
+            if (progressSyncRepository.pushPageProgress(srv, bookId, page, pageCount)) {
+                readerStateRepository.markSynced(serverId, bookId)
+            } else {
+                progressSyncScheduler.schedule()
+            }
         }
     }
 
@@ -202,5 +242,6 @@ class ReaderViewModel @Inject constructor(
         const val ARG_INITIAL_PAGE = "initialPage"
         const val ARG_TITLE = "title"
         const val ARG_PSE_TEMPLATE = "pseTemplate"
+        const val ARG_LOCAL_PATH = "localPath"
     }
 }

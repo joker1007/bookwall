@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.joker1007.bookwall.data.epub.EpubDownloader
+import net.joker1007.bookwall.data.cache.BookCacheRepository
+import net.joker1007.bookwall.data.db.CachedBookEntity
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.opds.FeedResult
 import net.joker1007.bookwall.data.opds.OpdsEntry
@@ -54,7 +57,6 @@ data class CatalogUiState(
     val sortDirection: SortDirection = SortDirection.ASC,
     val filterQuery: String = "",
     val facets: List<OpdsFacet> = emptyList(),
-    val openingEpub: Boolean = false,
 ) {
     val hasActiveFacet: Boolean get() = facets.any { it.active }
 }
@@ -64,10 +66,10 @@ class CatalogViewModel @Inject constructor(
     private val serverRepository: ServerRepository,
     private val opdsRepository: OpdsRepository,
     private val imageLoaderFactory: ServerImageLoaderProvider,
-    private val epubDownloader: EpubDownloader,
     private val readerStateRepository: ReaderStateRepository,
     private val epubProgressRepository: EpubProgressRepository,
     private val readingQueueHolder: ReadingQueueHolder,
+    private val bookCacheRepository: BookCacheRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -88,11 +90,13 @@ class CatalogViewModel @Inject constructor(
     private val _selectedEpubProgress = MutableStateFlow<Float?>(null)
     val selectedEpubProgress: StateFlow<Float?> = _selectedEpubProgress.asStateFlow()
 
-    private val _foliateLaunch = MutableStateFlow<FoliateLaunch?>(null)
-    val foliateLaunch: StateFlow<FoliateLaunch?> = _foliateLaunch.asStateFlow()
-
     private val _imageLoader = MutableStateFlow<ImageLoader?>(null)
     val imageLoader: StateFlow<ImageLoader?> = _imageLoader.asStateFlow()
+
+    /** Cache rows for this server keyed by bookId; drives badges and detail actions. */
+    val cacheStates: StateFlow<Map<Long, CachedBookEntity>> =
+        bookCacheRepository.observe(serverId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     private var server: OpdsServer? = null
 
@@ -146,26 +150,16 @@ class CatalogViewModel @Inject constructor(
         _selectedEpubProgress.value = null
     }
 
-    fun openEpub(book: OpdsEntry.Book) {
+    /** Queues a background download of the book file for offline reading. */
+    fun downloadBook(book: OpdsEntry.Book) {
         val srv = server ?: return
-        val bookId = book.numericId ?: return
-        _state.update { it.copy(openingEpub = true) }
-        viewModelScope.launch {
-            runCatching { epubDownloader.download(srv, book) }
-                .onSuccess { file ->
-                    _foliateLaunch.value = FoliateLaunch(
-                        serverId = srv.id,
-                        bookId = bookId,
-                        title = book.title,
-                        filePath = file.absolutePath,
-                    )
-                }
-            _state.update { it.copy(openingEpub = false) }
-        }
+        viewModelScope.launch { bookCacheRepository.enqueue(srv, book) }
     }
 
-    fun consumeFoliateLaunch() {
-        _foliateLaunch.value = null
+    /** Cancels an in-flight download or removes the cached file. */
+    fun removeCache(book: OpdsEntry.Book) {
+        val bookId = book.numericId ?: return
+        viewModelScope.launch { bookCacheRepository.delete(serverId, bookId) }
     }
 
     /** Resolves an OPDS href (relative or absolute) against the active server. */

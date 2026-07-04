@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
@@ -55,48 +57,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import coil3.compose.AsyncImage
+import net.joker1007.bookwall.data.db.CachedBookEntity
+import net.joker1007.bookwall.data.db.CachedBookStatus
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.opds.OpdsFacet
-import net.joker1007.bookwall.feature.foliatereader.FoliateReaderActivity
+import net.joker1007.bookwall.data.opds.numericId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(
     onOpenFeed: (feedUrl: String) -> Unit,
-    onOpenReader: (OpdsEntry.Book) -> Unit,
+    onOpenBook: (OpdsEntry.Book) -> Unit,
     onBack: () -> Unit,
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val cacheStates by viewModel.cacheStates.collectAsState()
     val selectedBook by viewModel.selectedBook.collectAsState()
     val selectedLocalPage by viewModel.selectedLocalPage.collectAsState()
     val selectedEpubProgress by viewModel.selectedEpubProgress.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
-    val foliateLaunch by viewModel.foliateLaunch.collectAsState()
-    val context = LocalContext.current
     var filterActive by remember { mutableStateOf(false) }
     var facetSheetOpen by remember { mutableStateOf(false) }
-
-    LaunchedEffect(foliateLaunch) {
-        foliateLaunch?.let { launch ->
-            context.startActivity(
-                FoliateReaderActivity.intent(
-                    context,
-                    serverId = launch.serverId,
-                    bookId = launch.bookId,
-                    title = launch.title,
-                    filePath = launch.filePath,
-                ),
-            )
-            viewModel.consumeFoliateLaunch()
-        }
-    }
 
     Scaffold(
         modifier = Modifier.testTag(CatalogTags.ROOT),
@@ -165,6 +154,7 @@ fun CatalogScreen(
                     )
                 else -> CatalogContent(
                     state = state,
+                    cacheStates = cacheStates,
                     imageLoader = imageLoader,
                     resolve = viewModel::resolve,
                     onOpenFeed = { href -> viewModel.resolve(href)?.let(onOpenFeed) },
@@ -180,11 +170,14 @@ fun CatalogScreen(
                 book = book,
                 localCurrentPage = selectedLocalPage,
                 epubProgress = selectedEpubProgress,
+                cacheStatus = book.numericId?.let { cacheStates[it] },
                 onRead = { selected ->
                     viewModel.dismissBook()
                     viewModel.rememberQueue()
-                    if (selected.pse != null) onOpenReader(selected) else viewModel.openEpub(selected)
+                    onOpenBook(selected)
                 },
+                onDownload = viewModel::downloadBook,
+                onRemoveCache = viewModel::removeCache,
                 modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),
             )
         }
@@ -211,6 +204,7 @@ fun CatalogScreen(
 @Composable
 private fun CatalogContent(
     state: CatalogUiState,
+    cacheStates: Map<Long, CachedBookEntity>,
     imageLoader: coil3.ImageLoader?,
     resolve: (String?) -> String?,
     onOpenFeed: (String) -> Unit,
@@ -234,10 +228,11 @@ private fun CatalogContent(
             }
         }
         items(state.books, key = { it.id }) { book ->
+            val cache = book.numericId?.let { cacheStates[it] }
             if (state.viewMode == ViewMode.GRID) {
-                BookGridCell(book, imageLoader, resolve, onBookClick)
+                BookGridCell(book, cache, imageLoader, resolve, onBookClick)
             } else {
-                BookListRow(book, imageLoader, resolve, onBookClick)
+                BookListRow(book, cache, imageLoader, resolve, onBookClick)
             }
         }
     }
@@ -246,18 +241,24 @@ private fun CatalogContent(
 @Composable
 private fun BookGridCell(
     book: OpdsEntry.Book,
+    cache: CachedBookEntity?,
     imageLoader: coil3.ImageLoader?,
     resolve: (String?) -> String?,
     onClick: (OpdsEntry.Book) -> Unit,
 ) {
     Column(modifier = Modifier.clickable { onClick(book) }) {
-        Cover(
-            url = resolve(book.thumbnailHref ?: book.imageHref),
-            imageLoader = imageLoader,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.7f),
-        )
+        ) {
+            Cover(
+                url = resolve(book.thumbnailHref ?: book.imageHref),
+                imageLoader = imageLoader,
+                modifier = Modifier.fillMaxSize(),
+            )
+            CacheBadge(cache, modifier = Modifier.align(Alignment.TopEnd))
+        }
         Text(
             text = book.title,
             style = MaterialTheme.typography.bodySmall,
@@ -271,6 +272,7 @@ private fun BookGridCell(
 @Composable
 private fun BookListRow(
     book: OpdsEntry.Book,
+    cache: CachedBookEntity?,
     imageLoader: coil3.ImageLoader?,
     resolve: (String?) -> String?,
     onClick: (OpdsEntry.Book) -> Unit,
@@ -281,12 +283,14 @@ private fun BookListRow(
             .clickable { onClick(book) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Cover(
-            url = resolve(book.thumbnailHref ?: book.imageHref),
-            imageLoader = imageLoader,
-            modifier = Modifier
-                .size(width = 60.dp, height = 86.dp),
-        )
+        Box(modifier = Modifier.size(width = 60.dp, height = 86.dp)) {
+            Cover(
+                url = resolve(book.thumbnailHref ?: book.imageHref),
+                imageLoader = imageLoader,
+                modifier = Modifier.fillMaxSize(),
+            )
+            CacheBadge(cache, modifier = Modifier.align(Alignment.TopEnd))
+        }
         Column(modifier = Modifier.padding(vertical = 4.dp)) {
             Text(book.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (book.authors.isNotEmpty()) {
@@ -376,6 +380,52 @@ private fun NavCover(url: String?, imageLoader: coil3.ImageLoader?, modifier: Mo
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxSize(0.4f),
+            )
+        }
+    }
+}
+
+/** Cache state overlay on a cover: done check, download progress, or failure. */
+@Composable
+private fun CacheBadge(cache: CachedBookEntity?, modifier: Modifier = Modifier) {
+    if (cache == null) return
+    Box(
+        modifier = modifier
+            .padding(4.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .padding(2.dp)
+            .testTag(CatalogTags.CACHE_BADGE),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (cache.status) {
+            CachedBookStatus.COMPLETED -> Icon(
+                Icons.Filled.DownloadDone,
+                contentDescription = "ダウンロード済み",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            CachedBookStatus.PENDING, CachedBookStatus.DOWNLOADING -> {
+                val progress = if (cache.totalBytes > 0) {
+                    cache.downloadedBytes.toFloat() / cache.totalBytes.toFloat()
+                } else {
+                    null
+                }
+                if (progress != null && cache.status == CachedBookStatus.DOWNLOADING) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp),
+                    )
+                } else {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                }
+            }
+            CachedBookStatus.FAILED -> Icon(
+                Icons.Filled.ErrorOutline,
+                contentDescription = "ダウンロード失敗",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(16.dp),
             )
         }
     }
@@ -587,4 +637,5 @@ object CatalogTags {
     const val FACET_TOGGLE = "catalog_facet_toggle"
     const val FACET_SHEET = "catalog_facet_sheet"
     const val FACET_CLEAR = "catalog_facet_clear"
+    const val CACHE_BADGE = "catalog_cache_badge"
 }

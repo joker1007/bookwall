@@ -11,4 +11,14 @@ interface EpubProgressDao {
 
     @Upsert
     suspend fun upsert(entity: EpubProgressEntity)
+
+    @Query("SELECT * FROM epub_progress WHERE dirty = 1")
+    suspend fun dirty(): List<EpubProgressEntity>
+
+    /** Guarded by updatedAt so a save racing the push keeps its dirty mark. */
+    @Query(
+        "UPDATE epub_progress SET dirty = 0 " +
+            "WHERE serverId = :serverId AND bookId = :bookId AND updatedAt = :updatedAt",
+    )
+    suspend fun clearDirty(serverId: Long, bookId: Long, updatedAt: Long)
 }

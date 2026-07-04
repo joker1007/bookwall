@@ -149,6 +149,25 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(acq.call("CbzLink")["type"]).to eq("application/x-cbz")
     end
 
+    it "exposes the file size via the acquisition link length attribute" do
+      sized = create(:book, library: library, file_format: :epub,
+        file_path: "sized.epub", title: "SizedBook", file_size: 4_300_000)
+      create(:book, library: library, file_format: :epub,
+        file_path: "unsized.epub", title: "UnsizedBook", file_size: 0)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      acq = ->(entry_title) {
+        doc.at_xpath(
+          "//atom:entry[atom:title='#{entry_title}']/atom:link[@rel='http://opds-spec.org/acquisition']",
+          "atom" => "http://www.w3.org/2005/Atom"
+        )
+      }
+      expect(acq.call("SizedBook")["length"]).to eq(sized.file_size.to_s)
+      expect(acq.call("UnsizedBook")["length"]).to be_nil
+    end
+
     it "advertises image_dir books as CBZ acquisitions (packaged on the fly at download)" do
       book = create(:book, library: library, file_format: :image_dir,
         file_path: "some-dir", title: "DirOnly")

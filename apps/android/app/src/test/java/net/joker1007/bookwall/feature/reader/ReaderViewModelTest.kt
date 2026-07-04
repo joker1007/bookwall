@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.joker1007.bookwall.MainDispatcherRule
 import net.joker1007.bookwall.data.FakeOpdsServerDao
+import net.joker1007.bookwall.data.reader.local.LocalBookSourceFactory
 import net.joker1007.bookwall.data.FakeProgressSyncRepository
 import net.joker1007.bookwall.data.FakeReaderPreferencesRepository
 import net.joker1007.bookwall.data.FakeReaderStateRepository
@@ -72,7 +73,11 @@ class ReaderViewModelTest {
                 ReaderViewModel.ARG_PSE_TEMPLATE to "/opds/books/7/pages/{pageNumber}",
             ),
         )
-        return ReaderViewModel(serverRepo, readerRepo, prefsRepo, { null }, syncRepo, queueHolder, coordinator, handle)
+        return ReaderViewModel(
+            serverRepo, readerRepo, prefsRepo, { null }, syncRepo, queueHolder, coordinator,
+            LocalBookSourceFactory(mainDispatcherRule.dispatcher), { error("not used off-device") },
+            {}, handle,
+        )
     }
 
     @Test

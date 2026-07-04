@@ -68,6 +68,7 @@ class OpdsParser @Inject constructor() : FeedParser {
         val tags = mutableListOf<String>()
         var acquisitionHref: String? = null
         var acquisitionType: String? = null
+        var fileSize: Long? = null
         var imageHref: String? = null
         var thumbnailHref: String? = null
         var pse: PseInfo? = null
@@ -94,6 +95,7 @@ class OpdsParser @Inject constructor() : FeedParser {
                             ACQUISITION_REL -> {
                                 acquisitionHref = href
                                 acquisitionType = parser.attr("type")
+                                fileSize = parser.attr("length")?.toLongOrNull()
                             }
                             IMAGE_REL -> imageHref = href
                             THUMB_REL -> thumbnailHref = href
@@ -121,6 +123,7 @@ class OpdsParser @Inject constructor() : FeedParser {
                 format = format,
                 acquisitionHref = acquisitionHref,
                 acquisitionType = acquisitionType,
+                fileSize = fileSize,
                 imageHref = imageHref,
                 thumbnailHref = thumbnailHref,
                 pse = pse,

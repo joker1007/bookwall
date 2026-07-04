@@ -13,4 +13,11 @@ class FakeEpubProgressDao : EpubProgressDao {
     override suspend fun upsert(entity: EpubProgressEntity) {
         rows[entity.serverId to entity.bookId] = entity
     }
+
+    override suspend fun dirty(): List<EpubProgressEntity> = rows.values.filter { it.dirty }
+
+    override suspend fun clearDirty(serverId: Long, bookId: Long, updatedAt: Long) {
+        val key = serverId to bookId
+        rows[key]?.takeIf { it.updatedAt == updatedAt }?.let { rows[key] = it.copy(dirty = false) }
+    }
 }

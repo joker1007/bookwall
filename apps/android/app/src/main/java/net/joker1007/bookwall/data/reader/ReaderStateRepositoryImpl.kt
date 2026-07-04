@@ -28,7 +28,12 @@ class ReaderStateRepositoryImpl @Inject constructor(
                 direction = state.direction.name,
                 spreadEnabled = state.spreadEnabled,
                 updatedAt = clock(),
+                dirty = true,
             ),
         )
+    }
+
+    override suspend fun markSynced(serverId: Long, bookId: Long) {
+        dao.find(serverId, bookId)?.let { dao.clearDirty(serverId, bookId, it.updatedAt) }
     }
 }

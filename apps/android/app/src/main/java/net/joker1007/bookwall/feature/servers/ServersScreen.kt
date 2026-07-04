@@ -13,7 +13,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -41,12 +43,33 @@ fun ServersScreen(
     onOpenServer: (Long) -> Unit,
     onAddServer: () -> Unit,
     onEditServer: (Long) -> Unit,
+    onOpenDownloads: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: ServersViewModel = hiltViewModel(),
 ) {
     val servers by viewModel.servers.collectAsState()
     Scaffold(
         modifier = Modifier.testTag(ServersScreenTags.ROOT),
-        topBar = { TopAppBar(title = { Text("OPDS サーバー") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("OPDS サーバー") },
+                actions = {
+                    // The start screen must reach cached books without any network.
+                    IconButton(
+                        onClick = onOpenDownloads,
+                        modifier = Modifier.testTag(ServersScreenTags.DOWNLOADS_BUTTON),
+                    ) {
+                        Icon(Icons.Default.DownloadDone, contentDescription = "ダウンロード済み")
+                    }
+                    IconButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.testTag(ServersScreenTags.SETTINGS_BUTTON),
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = "設定")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddServer,
@@ -151,6 +174,8 @@ object ServersScreenTags {
     const val ROOT = "servers_screen_root"
     const val EMPTY_MESSAGE = "servers_empty_message"
     const val ADD_FAB = "servers_add_fab"
+    const val DOWNLOADS_BUTTON = "servers_downloads_button"
+    const val SETTINGS_BUTTON = "servers_settings_button"
     fun editTag(id: Long) = "servers_edit_$id"
     fun deleteTag(id: Long) = "servers_delete_$id"
 }

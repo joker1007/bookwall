@@ -4,8 +4,13 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [OpdsServerEntity::class, ReaderStateEntity::class, EpubProgressEntity::class],
-    version = 5,
+    entities = [
+        OpdsServerEntity::class,
+        ReaderStateEntity::class,
+        EpubProgressEntity::class,
+        CachedBookEntity::class,
+    ],
+    version = 6,
     exportSchema = false,
 )
 abstract class BookwallDatabase : RoomDatabase() {
@@ -14,6 +19,8 @@ abstract class BookwallDatabase : RoomDatabase() {
     abstract fun readerStateDao(): ReaderStateDao
 
     abstract fun epubProgressDao(): EpubProgressDao
+
+    abstract fun cachedBookDao(): CachedBookDao
 
     companion object {
         const val NAME = "bookwall.db"

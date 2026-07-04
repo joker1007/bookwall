@@ -11,4 +11,6 @@ data class EpubProgressEntity(
     /** Reading progress 0..1 (foliate's relocate fraction), for sync reconciliation. */
     val progressFraction: Float,
     val updatedAt: Long,
+    /** True while the latest progress has not been pushed to the server. */
+    val dirty: Boolean = false,
 )
