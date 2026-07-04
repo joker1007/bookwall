@@ -10,7 +10,7 @@
 - **TanStack Query v5** — server state (books / session / tokens / reading progress)
 - **Zustand** — client state (`displayMode` and `sortOrder` are persisted to localStorage via `persist`)
 - **react-i18next** — JA/EN i18n (`src/locales/{en,ja}.json`)
-- **foliate-js** — EPUB renderer (`<foliate-view>` custom element / iframe + shadow DOM)
+- **foliate-js** — EPUB renderer (`<foliate-view>` custom element / iframe + shadow DOM). Local fixes live in `patches/` and are applied by **patch-package** on `npm install`
 - **PDF.js** — PDF renderer
 - **lucide-react** — icons
 
@@ -50,13 +50,15 @@ client/
 ├── vite.config.ts              # base="/ui/" + dev proxy + path alias @/
 ├── tsconfig.app.json           # paths: { "@/*": ["./src/*"] }
 ├── components.json             # shadcn/ui config
+├── patches/                    # patch-package patches (foliate-js)
+├── tests/e2e/                  # Playwright e2e (see playwright.config.ts)
 └── src/
     ├── main.tsx
     ├── App.tsx                 # Router + QueryClientProvider + SessionBootstrap
     ├── index.css               # Tailwind v4 + shadcn CSS variables
     ├── routes/                 # 1 file = 1 route
     │   ├── _layout.tsx         #   Thin wrapper that only mounts AppShell
-    │   ├── home.tsx            #   "/" Recently-read carousel + recently-added books
+    │   ├── home.tsx            #   "/" Recently-read / favorites carousels + recently-added books
     │   ├── login.tsx           #   "/login" public
     │   ├── signup.tsx          #   "/signup" public
     │   ├── books.detail.tsx    #   "/books/:id"
@@ -65,7 +67,8 @@ client/
     │   ├── series.detail.tsx
     │   ├── authors.detail.tsx
     │   ├── tags.detail.tsx
-    │   ├── series.tsx authors.tsx tags.tsx
+    │   ├── collections.detail.tsx
+    │   ├── series.tsx authors.tsx tags.tsx collections.tsx
     │   ├── favorites.tsx
     │   ├── search.tsx
     │   ├── settings.libraries.tsx
@@ -73,20 +76,29 @@ client/
     ├── components/
     │   ├── ui/                 # shadcn-generated (button, card, dialog, table, …)
     │   ├── layout/             # AppShell, Header, Sidebar
-    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (with progress-bar overlay), BookEditDialog, RecentReadsCarousel
-    │   ├── reader/             # EpubReaderView, ReaderScrubber, ReaderHotkeysDialog
+    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (with progress-bar overlay), BookEditDialog, BookActions, BulkActionBar, CollectionAssignDialog, RecentReadsCarousel, FavoritesCarousel
+    │   ├── reader/             # EpubReaderView, PdfReaderView, ReaderScrubber, ReaderSettingsFields, ReaderHotkeysDialog, TocList
+    │   ├── settings/           # PathBrowserDialog (server-side directory picker), UserMultiSelect (library sharing)
     │   ├── taxonomy/           # TaxonomyCard
     │   ├── ProtectedRoute.tsx
     │   ├── SessionBootstrap.tsx
     │   └── Placeholder.tsx
     ├── hooks/
     │   ├── useAuth.ts          # /api/session, /api/registrations
-    │   ├── useBooks.ts         # /api/books, /api/recent_reads, favorite toggle
+    │   ├── useBooks.ts         # /api/books, /api/recent_reads, /api/recent_favorites, next_in_series, favorite toggle
     │   ├── useBookMutation.ts  # PATCH / DELETE /api/books/:id
+    │   ├── useBulkBookActions.ts  # bulk favorite / unfavorite / destroy
+    │   ├── useCollections.ts   # /api/collections (+ collection books)
     │   ├── useLibraries.ts     # /api/libraries + /scans
+    │   ├── useFilesystem.ts    # /api/filesystem/browse (path browser)
+    │   ├── useUsers.ts         # /api/users (library sharing)
     │   ├── useReadingProgress.ts  # /api/books/:id/progress
+    │   ├── useResolvedReaderSettings.ts  # per-book settings merged with user defaults
     │   ├── useUserPreferences.ts  # /api/preferences (user-wide reader defaults)
+    │   ├── useScheduledTaskSettings.ts  # /api/scheduled_task_settings
     │   ├── useTaxonomy.ts      # /api/series /api/authors /api/tags
+    │   ├── useTaxonomyListState.ts
+    │   ├── useFullscreen.ts useReaderKeyboard.ts
     │   └── useApiTokens.ts     # /api/api_tokens
     ├── stores/
     │   ├── authStore.ts
@@ -96,7 +108,7 @@ client/
     │   ├── api.ts              # fetch wrapper (credentials: "include")
     │   ├── queryClient.ts
     │   └── utils.ts            # cn = clsx + tailwind-merge
-    └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, ...
+    └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, Collection, ...
 ```
 
 ## Memo for Claude Code

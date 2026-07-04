@@ -10,7 +10,7 @@
 - **TanStack Query v5** — サーバー状態 (書籍 / セッション / トークン / 読書進捗)
 - **Zustand** — クライアント状態 (`displayMode`, `sortOrder` を `persist` で localStorage に保存)
 - **react-i18next** — 日英 i18n (`src/locales/{en,ja}.json`)
-- **foliate-js** — EPUB レンダラ (`<foliate-view>` カスタム要素 / iframe + shadow DOM)
+- **foliate-js** — EPUB レンダラ (`<foliate-view>` カスタム要素 / iframe + shadow DOM)。ローカル修正は `patches/` に置き、`npm install` 時に **patch-package** で適用
 - **PDF.js** — PDF レンダラ
 - **lucide-react** — アイコン
 
@@ -50,13 +50,15 @@ client/
 ├── vite.config.ts              # base="/ui/" + dev proxy + path alias @/
 ├── tsconfig.app.json           # paths: { "@/*": ["./src/*"] }
 ├── components.json             # shadcn/ui 設定
+├── patches/                    # patch-package のパッチ (foliate-js)
+├── tests/e2e/                  # Playwright e2e (playwright.config.ts 参照)
 └── src/
     ├── main.tsx
     ├── App.tsx                 # Router + QueryClientProvider + SessionBootstrap
     ├── index.css               # Tailwind v4 + shadcn CSS variables
     ├── routes/                 # 1 ファイル = 1 ルート
     │   ├── _layout.tsx         #   AppShell をマウントするだけの薄いラッパ
-    │   ├── home.tsx            #   "/" 最近読んだ本のカルーセル + 最近追加された書籍
+    │   ├── home.tsx            #   "/" 最近読んだ本 / お気に入りカルーセル + 最近追加された書籍
     │   ├── login.tsx           #   "/login" 公開
     │   ├── signup.tsx          #   "/signup" 公開
     │   ├── books.detail.tsx    #   "/books/:id"
@@ -65,7 +67,8 @@ client/
     │   ├── series.detail.tsx
     │   ├── authors.detail.tsx
     │   ├── tags.detail.tsx
-    │   ├── series.tsx authors.tsx tags.tsx
+    │   ├── collections.detail.tsx
+    │   ├── series.tsx authors.tsx tags.tsx collections.tsx
     │   ├── favorites.tsx
     │   ├── search.tsx
     │   ├── settings.libraries.tsx
@@ -73,20 +76,29 @@ client/
     ├── components/
     │   ├── ui/                 # shadcn 生成物 (button, card, dialog, table, …)
     │   ├── layout/             # AppShell, Header, Sidebar
-    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (進捗バー overlay 付き), BookEditDialog, RecentReadsCarousel
-    │   ├── reader/             # EpubReaderView, ReaderScrubber, ReaderHotkeysDialog
+    │   ├── books/              # BookListView, BookCard, BookRow, BookCover (進捗バー overlay 付き), BookEditDialog, BookActions, BulkActionBar, CollectionAssignDialog, RecentReadsCarousel, FavoritesCarousel
+    │   ├── reader/             # EpubReaderView, PdfReaderView, ReaderScrubber, ReaderSettingsFields, ReaderHotkeysDialog, TocList
+    │   ├── settings/           # PathBrowserDialog (サーバーサイドのディレクトリ選択), UserMultiSelect (ライブラリ共有)
     │   ├── taxonomy/           # TaxonomyCard
     │   ├── ProtectedRoute.tsx
     │   ├── SessionBootstrap.tsx
     │   └── Placeholder.tsx
     ├── hooks/
     │   ├── useAuth.ts          # /api/session, /api/registrations
-    │   ├── useBooks.ts         # /api/books, /api/recent_reads, favorite toggle
+    │   ├── useBooks.ts         # /api/books, /api/recent_reads, /api/recent_favorites, next_in_series, favorite toggle
     │   ├── useBookMutation.ts  # PATCH / DELETE /api/books/:id
+    │   ├── useBulkBookActions.ts  # 一括お気に入り / 解除 / 削除
+    │   ├── useCollections.ts   # /api/collections (+ collection books)
     │   ├── useLibraries.ts     # /api/libraries + /scans
+    │   ├── useFilesystem.ts    # /api/filesystem/browse (パスブラウザ)
+    │   ├── useUsers.ts         # /api/users (ライブラリ共有)
     │   ├── useReadingProgress.ts  # /api/books/:id/progress
+    │   ├── useResolvedReaderSettings.ts  # per-book 設定とユーザー既定値のマージ
     │   ├── useUserPreferences.ts  # /api/preferences (user-wide reader defaults)
+    │   ├── useScheduledTaskSettings.ts  # /api/scheduled_task_settings
     │   ├── useTaxonomy.ts      # /api/series /api/authors /api/tags
+    │   ├── useTaxonomyListState.ts
+    │   ├── useFullscreen.ts useReaderKeyboard.ts
     │   └── useApiTokens.ts     # /api/api_tokens
     ├── stores/
     │   ├── authStore.ts
@@ -96,7 +108,7 @@ client/
     │   ├── api.ts              # fetch wrapper (credentials: "include")
     │   ├── queryClient.ts
     │   └── utils.ts            # cn = clsx + tailwind-merge
-    └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, ...
+    └── types/api.ts            # User, Book, Library, ReadingProgress, ApiToken, Collection, ...
 ```
 
 ## Memo for Claude Code

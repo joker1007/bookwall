@@ -1,6 +1,6 @@
 # Bookwall
 
-A Rails application that provides e-book management and a web-based reader.
+E-book management with a web-based reader (Rails + React) and a companion Android reader app.
 
 [日本語版 README はこちら / Japanese README](./README-ja.md)
 
@@ -26,7 +26,8 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 | Directory | Role | Stack |
 |---|---|---|
 | [`server/`](server/) | API + OPDS delivery, SQLite + Active Storage, book scanner, authentication | Rails 8.1 / Ruby 4.0 / Falcon / Thruster / SQLite (FTS5) / SolidQueue |
-| [`client/`](client/) | SPA mounted under `/ui`. Book list / detail / search / favorites / settings / Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
+| [`client/`](client/) | SPA mounted under `/ui`. Book list / detail / search / favorites / collections / settings / Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
+| [`apps/android/`](apps/android/) | OPDS reader app: catalog browsing, streaming + offline reading, two-way progress sync | Kotlin / Jetpack Compose / Hilt / Room / WorkManager / Coil / foliate-js (WebView) |
 
 ## Features
 
@@ -44,18 +45,30 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 - **Taxonomy browsing**: Index pages for series, authors, and tags with thumbnails. Library detail can toggle between book view and series view.
 - **Sorting**: Newest, registration date, title, series, and author (ascending / descending).
 
+### Library management UI
+- **Collections**: User-defined collections of books, also served as OPDS feeds.
+- **Bulk actions**: Multi-select books to favorite / unfavorite / delete at once.
+- **Library sharing**: Share a library with selected users (read-only for non-owners).
+- **Settings**: Register library paths through a server-side directory browser, and toggle the daily scheduled scan.
+
 ### Web Reader
 - **CBZ / PDF / image directories**: Pages are streamed from the server and rendered client-side. Supports two-page spread / single page, LTR / RTL, and four scale modes.
 - **EPUB**: Built on foliate-js. Table of contents, font size, theme (light / dark / sepia), and writing direction (auto / horizontal / vertical) are stored per book.
-- **Reading progress**: Page position (CBZ) and CFI + fraction (EPUB) are auto-saved. Progress is reflected as a bar overlaid on the cover, in the "recently read" carousel on the home page, and on the book detail page.
-- **Hover-revealed scrubber**: Pulled up from the bottom edge to jump directly to any page. CBZ shows a thumbnail at the hover position, EPUB shows the corresponding chapter label.
-- **Keyboard navigation + hints**: Arrows / Space / Backspace / Esc, plus `2` to toggle spread on CBZ and `Shift + Arrow` to advance by one page. `?` shows the shortcut list.
-- **Click zones & hover feedback**: Only the left and right 12% are clickable (to avoid blocking text selection in the middle), with hover tint.
+- **Reading progress**: Page position (CBZ) and CFI + fraction (EPUB) are auto-saved and reflected on covers, the home carousels, and the detail page.
+- **Scrubber**: Jump directly to any page, with thumbnail (CBZ) / chapter (EPUB) previews.
+- **Keyboard navigation**: Page turning, spread toggle, and single-page nudge; `?` shows the shortcut list.
+- **Series roll-over**: Advancing past the last page continues with the next volume in the series.
 
 ### Delivery & integrations
-- **OPDS / OPDS-PSE**: Delivered as Atom feeds to other reader apps.
+- **OPDS / OPDS-PSE**: Atom feeds for other reader apps — recent / recent reads / favorites / per-library / series / tags / collections, with tag facets and page streaming (PSE).
+- **Progress sync**: A first-party progress endpoint is advertised on the OPDS root as a capability link; the Android app pushes and pulls read positions through it.
 - **Authentication**: Cookie sessions (for UI) and Bearer tokens (for OPDS / Reader) coexist.
 - **Mobile support**: Works on viewports starting from 390px.
+
+### Android app
+- **OPDS client**: Register multiple servers (Basic auth / self-signed certificates), browse catalogs with sort / filter / tag facets.
+- **Readers**: Image books stream via OPDS-PSE (spread view, RTL); EPUB renders in the same foliate-js engine as the web reader, so CFI progress is interchangeable.
+- **Offline cache**: Background downloads with a size limit, a downloads screen that works fully offline, and auto-caching of books you read. Progress recorded offline syncs back when connectivity returns.
 
 ## Development
 
@@ -165,7 +178,9 @@ bookwall/
 ├── CLAUDE.md             # Project requirements (for Claude Code)
 ├── docs/                 # demo.mp4 (Playwright guided-tour recording, H.264)
 ├── server/               # Rails 8.1 API + OPDS. See server/README.md
-└── client/               # Vite + React + TS SPA. See client/README.md
+├── client/               # Vite + React + TS SPA. See client/README.md
+└── apps/
+    └── android/          # Android OPDS reader app. See apps/android/README.md
 ```
 
 The provenance and licenses of the test book fixtures under `server/spec/fixtures/files/` (CBZ / EPUB / PDF / image directories) are documented in [`server/spec/fixtures/files/SOURCES.md`](server/spec/fixtures/files/SOURCES.md).

@@ -55,20 +55,27 @@ bin/brakeman --no-pager    # Brakeman
 | `POST   /api/api_tokens` | OPDS / Reader 用 Bearer トークン発行 |
 | `GET    /api/libraries` | ライブラリ CRUD |
 | `POST   /api/libraries/:id/scans` | `ScanLibraryJob` を enqueue (202) |
-| `GET    /api/books` | 検索 (`q`, `sort`, `library_id`, `series_id`, `author_id`, `tag_id`, `favorites_only`) |
+| `GET    /api/books` | 検索 (`q`, `sort`, `library_id`, `series_id`, `author_id`, `tag_id`, `collection_id`, `favorites_only`) |
 | `PATCH  /api/books/:id` | メタ編集 (タイトル / 著者名 / タグ名など) |
 | `POST   /api/books/:id/favorite` | お気に入り追加 |
+| `POST   /api/books/bulk_favorite` `DELETE` / `POST /api/books/bulk_destroy` | 一括お気に入り追加 / 解除 / 削除 |
+| `GET    /api/books/:id/next_in_series` | 同一シリーズの次巻 (リーダーのロールオーバー用) |
 | `GET    /api/books/:id/file` | 書籍本体 (EPUB / CBZ / PDF bytes) を Web Reader 用に配信 (Cookie auth) |
 | `GET    /api/books/:id/pages/:n` | Web Reader 用の CBZ / image_dir ページ画像 (Cookie auth) |
 | `GET    /api/books/:id/progress` `PATCH` | 読書進捗 (current_page / epub_cfi / progress_fraction / per-book reader settings) |
-| `GET    /api/recent_reads` | サインインユーザの直近 12 冊 (ホームのカルーセル用) |
+| `GET    /api/recent_reads` `/api/recent_favorites` | サインインユーザの最近の本 (ホームのカルーセル用) |
 | `GET    /api/preferences` `PATCH` | ユーザ全体のリーダー既定値 (font_size / theme / writing_mode / direction / scale / spread / preload_ahead) |
+| `GET    /api/scheduled_task_settings` `PATCH` | 日次スケジュールスキャンのトグル |
 | `GET    /api/series` `/api/authors` `/api/tags` | タクソノミー一覧 (各 first_book を batch preload) |
-| `GET    /opds` | OPDS ルート (Atom navigation) |
-| `GET    /opds/recent` | 新着フィード |
-| `GET    /opds/libraries/:library_id` | ライブラリ別 acquisition フィード |
-| `GET    /opds/books/:book_id/file` | 書籍ダウンロード |
+| `CRUD   /api/collections` (+ `/api/collections/:id/books`) | ユーザー定義コレクションと所属書籍 |
+| `GET    /api/users` | ユーザー一覧 (ライブラリ共有用) |
+| `GET    /api/filesystem/browse` | サーバーサイドのディレクトリブラウザ (ライブラリパス選択用) |
+| `GET    /opds` | OPDS ルート (Atom navigation。進捗同期の capability link を広告) |
+| `GET    /opds/recent` `/recent-reads` `/favorites` | acquisition フィード |
+| `GET    /opds/libraries(/:id)` `/series(/:id)` `/tags(/:id)` `/collections(/:id)` | navigation / acquisition フィード (acquisition フィードはタグファセット付き) |
+| `GET    /opds/books/:book_id/file.:format` | 書籍ダウンロード (acquisition link にファイルサイズ付き。image_dir はオンザフライで CBZ 化) |
 | `GET    /opds/books/:book_id/pages/:n` | OPDS-PSE ページ画像 |
+| `GET    /opds/books/:book_id/progress` `PUT` | first-party の読書進捗同期 (Android アプリが利用) |
 
 OPDS は Bearer トークン (`Authorization: Bearer …`) と HTTP Basic の両方に対応。
 

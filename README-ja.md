@@ -1,6 +1,6 @@
 # Bookwall
 
-電子書籍管理とWebリーダーを提供するRailsアプリケーション。
+電子書籍管理と Web リーダー (Rails + React)、およびコンパニオンの Android リーダーアプリ。
 
 [English README](./README.md)
 
@@ -28,7 +28,8 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 | ディレクトリ | 役割 | スタック |
 |---|---|---|
 | [`server/`](server/) | API + OPDS 配信、SQLite + Active Storage、書籍スキャナ、認証 | Rails 8.1 / Ruby 4.0 / Falcon / Thruster / SQLite (FTS5) / SolidQueue |
-| [`client/`](client/) | `/ui` 配下に乗る SPA。書籍一覧・詳細・検索・お気に入り・設定画面・Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
+| [`client/`](client/) | `/ui` 配下に乗る SPA。書籍一覧・詳細・検索・お気に入り・コレクション・設定画面・Web Reader | Vite + React 19 + TypeScript / Tailwind v4 / shadcn/ui / React Router / TanStack Query / Zustand / foliate-js / PDF.js |
+| [`apps/android/`](apps/android/) | OPDS リーダーアプリ。カタログ閲覧、ストリーミング + オフライン読書、進捗の双方向同期 | Kotlin / Jetpack Compose / Hilt / Room / WorkManager / Coil / foliate-js (WebView) |
 
 ## 主な機能
 
@@ -46,18 +47,30 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 - **タクソノミー閲覧**: シリーズ・著者・タグ別の一覧 + サムネ表示。ライブラリ詳細はブック / シリーズビューをトグル可能
 - **ソート**: 新着順・登録日順・タイトル順・シリーズ順・著者順 (昇降)
 
+### ライブラリ管理 UI
+- **コレクション**: ユーザー定義の書籍コレクション (OPDS フィードでも配信)
+- **一括操作**: 複数選択してお気に入り追加 / 解除 / 削除
+- **ライブラリ共有**: 選択したユーザーとライブラリを共有 (非オーナーは読み取りのみ)
+- **設定画面**: サーバーサイドのディレクトリブラウザでライブラリパスを登録、日次スケジュールスキャンのトグル
+
 ### Web Reader
 - **CBZ / PDF / 画像ディレクトリ**: ページ画像配信 + クライアント側で表示。見開き / 1 ページ表示、LTR / RTL、4 種類のスケールモード
 - **EPUB**: foliate-js ベース。目次、フォントサイズ、テーマ (light / dark / sepia)、書字方向 (auto 自動判定 / horizontal / vertical) を per-book で保存
-- **読書進捗**: ページ位置 (CBZ) と CFI + fraction (EPUB) を自動保存。表紙の下端に進捗バーをオーバーレイ、ホーム画面の最近読んだ本カルーセル、書籍詳細ページに反映
-- **ホバーで現れるスクラバー**: 下端から引き出して任意ページに直接ジャンプ。CBZ はホバー位置のサムネを、EPUB は対応する章ラベルをプレビュー表示
-- **キーボードナビ + ヒント**: 矢印 / Space / Backspace / Esc に加え、CBZ では `2` で見開きトグル、`Shift + 矢印` で 1 ページだけ送り。`?` でショートカット一覧
-- **クリック領域とホバーフィードバック**: 左右 12% のみクリッカブル (中央の文字選択を妨げない)、ホバーティント付き
+- **読書進捗**: ページ位置 (CBZ) と CFI + fraction (EPUB) を自動保存し、表紙・ホームのカルーセル・書籍詳細に反映
+- **スクラバー**: 任意ページへ直接ジャンプ。CBZ はサムネ、EPUB は章ラベルをプレビュー
+- **キーボードナビ**: ページ送り・見開きトグル・1 ページ送り。`?` でショートカット一覧
+- **シリーズ ロールオーバー**: 最終ページを越えて送るとシリーズの次巻へ続けて読める
 
 ### 配信・連携
-- **OPDS / OPDS-PSE**: Atom フィードで他のリーダーアプリに配信
+- **OPDS / OPDS-PSE**: Atom フィードで他のリーダーアプリに配信 — 新着 / 最近読んだ本 / お気に入り / ライブラリ別 / シリーズ / タグ / コレクション。タグファセットとページストリーミング (PSE) 対応
+- **進捗同期**: OPDS ルートに first-party の進捗エンドポイントを capability link として広告。Android アプリはこれで読書位置を push / pull する
 - **認証**: Cookie セッション (UI 用) と Bearer トークン (OPDS / Reader 用) を併存
 - **モバイル対応**: 390px〜の viewport で動作
+
+### Android アプリ
+- **OPDS クライアント**: 複数サーバー登録 (Basic 認証 / 自己署名証明書)、ソート / フィルタ / タグファセット付きのカタログ閲覧
+- **リーダー**: 画像系は OPDS-PSE ストリーミング (見開き・RTL)。EPUB は web reader と同一の foliate-js エンジンで描画し CFI 進捗が相互運用可能
+- **オフラインキャッシュ**: サイズ上限付きのバックグラウンドDL、完全オフラインで動くダウンロード済み画面、読んだ本の自動キャッシュ。オフライン中の読書進捗は再接続時にサーバーへ同期
 
 ## Development
 
@@ -167,7 +180,9 @@ bookwall/
 ├── CLAUDE.md             # プロジェクト要件 (Claude Code 用)
 ├── docs/                 # demo.mp4 (Playwright で録ったガイドツアー、H.264)
 ├── server/               # Rails 8.1 API + OPDS。README は server/README.md
-└── client/               # Vite + React + TS SPA。README は client/README.md
+├── client/               # Vite + React + TS SPA。README は client/README.md
+└── apps/
+    └── android/          # Android OPDS リーダーアプリ。README は apps/android/README.md
 ```
 
 `server/spec/fixtures/files/` 配下のテスト用書籍ファイル (CBZ / EPUB / PDF / 画像ディレクトリ) の入手元・ライセンスは[`server/spec/fixtures/files/SOURCES.md`](server/spec/fixtures/files/SOURCES.md)。

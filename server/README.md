@@ -56,20 +56,27 @@ bin/brakeman --no-pager    # Brakeman
 | `POST   /api/api_tokens` | Issue a Bearer token for OPDS / Reader |
 | `GET    /api/libraries` | Library CRUD |
 | `POST   /api/libraries/:id/scans` | Enqueue `ScanLibraryJob` (202) |
-| `GET    /api/books` | Search (`q`, `sort`, `library_id`, `series_id`, `author_id`, `tag_id`, `favorites_only`) |
+| `GET    /api/books` | Search (`q`, `sort`, `library_id`, `series_id`, `author_id`, `tag_id`, `collection_id`, `favorites_only`) |
 | `PATCH  /api/books/:id` | Edit metadata (title / author names / tag names, etc.) |
 | `POST   /api/books/:id/favorite` | Add to favorites |
+| `POST   /api/books/bulk_favorite` `DELETE` / `POST /api/books/bulk_destroy` | Bulk favorite / unfavorite / delete |
+| `GET    /api/books/:id/next_in_series` | The next volume in the same series (reader roll-over) |
 | `GET    /api/books/:id/file` | Serve the book itself (EPUB / CBZ / PDF bytes) to the Web Reader (cookie auth) |
 | `GET    /api/books/:id/pages/:n` | CBZ / image_dir page image for the Web Reader (cookie auth) |
 | `GET    /api/books/:id/progress` `PATCH` | Reading progress (current_page / epub_cfi / progress_fraction / per-book reader settings) |
-| `GET    /api/recent_reads` | The signed-in user's 12 most recent books (for the home carousel) |
+| `GET    /api/recent_reads` `/api/recent_favorites` | The signed-in user's recent books (for the home carousels) |
 | `GET    /api/preferences` `PATCH` | User-wide reader defaults (font_size / theme / writing_mode / direction / scale / spread / preload_ahead) |
+| `GET    /api/scheduled_task_settings` `PATCH` | Toggle the daily scheduled scan |
 | `GET    /api/series` `/api/authors` `/api/tags` | Taxonomy indexes (each with first_book batch preload) |
-| `GET    /opds` | OPDS root (Atom navigation) |
-| `GET    /opds/recent` | Recent additions feed |
-| `GET    /opds/libraries/:library_id` | Per-library acquisition feed |
-| `GET    /opds/books/:book_id/file` | Book download |
+| `CRUD   /api/collections` (+ `/api/collections/:id/books`) | User-defined collections and their books |
+| `GET    /api/users` | User list (for library sharing) |
+| `GET    /api/filesystem/browse` | Server-side directory browser (library path picker) |
+| `GET    /opds` | OPDS root (Atom navigation, advertises the progress-sync capability link) |
+| `GET    /opds/recent` `/recent-reads` `/favorites` | Acquisition feeds |
+| `GET    /opds/libraries(/:id)` `/series(/:id)` `/tags(/:id)` `/collections(/:id)` | Navigation / acquisition feeds (acquisition feeds expose tag facets) |
+| `GET    /opds/books/:book_id/file.:format` | Book download (acquisition links carry the file size; image_dir is packaged as CBZ on the fly) |
 | `GET    /opds/books/:book_id/pages/:n` | OPDS-PSE page image |
+| `GET    /opds/books/:book_id/progress` `PUT` | First-party reading-progress sync (used by the Android app) |
 
 OPDS accepts both Bearer tokens (`Authorization: Bearer …`) and HTTP Basic.
 
