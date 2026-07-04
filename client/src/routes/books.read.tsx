@@ -190,6 +190,19 @@ function ReaderPageInner() {
     return direction === "rtl" ? [...base].reverse() : base;
   }, [page, spread, direction, total]);
 
+  // Pages whose <img> has fired load (or error). Server-side extraction can be
+  // slow on first fetch; while a visible page is missing here, show a spinner.
+  const [loadedPages, setLoadedPages] = useState<Set<number>>(new Set());
+  const markPageLoaded = useCallback((p: number) => {
+    setLoadedPages((prev) => {
+      if (prev.has(p)) return prev;
+      const next = new Set(prev);
+      next.add(p);
+      return next;
+    });
+  }, []);
+  const pagesLoading = visiblePages.some((p) => !loadedPages.has(p));
+
   // Preload 1 page behind and N ahead (N = user preference) into cache.
   const preloadPages = useMemo(() => {
     if (total === 0) return [];
@@ -368,10 +381,13 @@ function ReaderPageInner() {
                 draggable={false}
                 decoding="async"
                 fetchPriority="high"
+                onLoad={() => markPageLoaded(p)}
+                onError={() => markPageLoaded(p)}
               />
             ))}
           </div>
         )}
+        {pagesLoading ? <PageLoadingIndicator /> : null}
         <button
           type="button"
           aria-label={t("reader.pager.prev")}
@@ -488,6 +504,28 @@ function ReaderPageInner() {
         onOpenChange={setHotkeysOpen}
         showSinglePageNudge
       />
+    </div>
+  );
+}
+
+// Shown while a visible page image is still being prepared server-side.
+// Appears only after a short delay so cached pages don't flash it.
+function PageLoadingIndicator() {
+  const { t } = useTranslation();
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 300);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div
+      data-testid="page-loading"
+      role="status"
+      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+    >
+      <div className="size-10 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      <span className="sr-only">{t("common.loading")}</span>
     </div>
   );
 }

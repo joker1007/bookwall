@@ -62,6 +62,45 @@ test.describe("image reader progress restore", () => {
     expect(requestedPages).not.toContain(0);
   });
 
+  test("shows a loading indicator while a page is prepared server-side", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+
+    const libRes = await page.request.post("/api/libraries", {
+      data: { name: "Reader Loading", path: FIXTURES_PATH },
+    });
+    expect(libRes.ok()).toBeTruthy();
+    const lib = (await libRes.json()) as { id: number };
+    const scanRes = await page.request.post(`/api/libraries/${lib.id}/scans`);
+    expect(scanRes.status()).toBe(202);
+
+    const listRes = await page.request.get(`/api/books?library_id=${lib.id}`);
+    expect(listRes.ok()).toBeTruthy();
+    const { books } = (await listRes.json()) as {
+      books: { id: number; file_format: string }[];
+    };
+    const cbz = books.find((b) => b.file_format === "cbz");
+    expect(cbz, "fixtures should contain a CBZ book").toBeTruthy();
+    const bookId = cbz!.id;
+
+    // Simulate slow server-side page extraction; the spinner has a 300ms
+    // grace period, so 1.5s makes it reliably visible.
+    await page.route(`**/api/books/${bookId}/pages/*`, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+
+    await page.goto(`/ui/books/${bookId}/read`);
+
+    await expect(page.getByTestId("page-loading")).toBeVisible();
+    await expect(page.getByTestId("page-loading")).toBeHidden({
+      timeout: 10_000,
+    });
+    await expect(page.locator('img[src$="/pages/0"]')).toBeVisible();
+  });
+
   // Regression: a book whose progress row exists from a page-progress save
   // (so last_read_at is non-null) but whose reader settings were never
   // touched (settings == {}) must still fall back to the user's
