@@ -40,6 +40,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -61,6 +62,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import kotlinx.coroutines.delay
 import net.joker1007.bookwall.data.reader.PageSource
 import net.joker1007.bookwall.data.reader.ReadingDirection
 import net.joker1007.bookwall.data.reader.TapAction
@@ -255,19 +258,48 @@ private fun SpreadSlot(
             }
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 imageLoader?.let { loader ->
+                    var pageLoading by remember(page) { mutableStateOf(false) }
                     AsyncImage(
                         model = pageSource?.pageModel(page),
                         contentDescription = null,
                         imageLoader = loader,
                         contentScale = ContentScale.Fit,
                         alignment = alignment,
+                        onState = { state ->
+                            pageLoading = state is AsyncImagePainter.State.Loading
+                        },
                         modifier = Modifier.fillMaxSize(),
+                    )
+                    PageLoadingIndicator(
+                        loading = pageLoading,
+                        modifier = Modifier.align(Alignment.Center),
                     )
                 }
             }
         }
     }
 }
+
+/**
+ * Spinner shown while a page image is still being prepared server-side.
+ * Appears only after a short grace period so cached pages don't flash it.
+ */
+@Composable
+private fun PageLoadingIndicator(loading: Boolean, modifier: Modifier = Modifier) {
+    val visible by produceState(false, loading) {
+        if (loading) {
+            delay(PAGE_LOADING_GRACE_MS)
+            value = true
+        } else {
+            value = false
+        }
+    }
+    if (visible) {
+        CircularProgressIndicator(modifier = modifier.testTag(ReaderTags.PAGE_LOADING))
+    }
+}
+
+private const val PAGE_LOADING_GRACE_MS = 200L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -504,6 +536,7 @@ object ReaderTags {
     const val ROOT = "reader_root"
     const val PAGER = "reader_pager"
     const val LOADING = "reader_loading"
+    const val PAGE_LOADING = "reader_page_loading"
     const val ERROR = "reader_error"
     const val SETTINGS_BUTTON = "reader_settings_button"
     const val SETTINGS_SHEET = "reader_settings_sheet"
