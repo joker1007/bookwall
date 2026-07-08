@@ -61,6 +61,10 @@ RSpec.describe "Opds::Downloads", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.media_type).to eq("application/x-cbz")
       expect(response.headers["Content-Disposition"]).to include('filename="Image Dir Book.cbz"')
+      # The CBZ is streamed, not buffered: Rack::ETag would add a weak ETag if it
+      # buffered the body to digest it (which is what zip_kit's headers prevent).
+      expect(response.headers["ETag"]).to be_nil
+      expect(response.headers["X-Accel-Buffering"]).to eq("no")
       # Response body is a real zip with the directory's images repackaged.
       Zip::File.open_buffer(response.body) do |zip|
         names = zip.entries.map(&:name)

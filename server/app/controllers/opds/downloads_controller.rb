@@ -2,6 +2,8 @@
 
 module Opds
   class DownloadsController < BaseController
+    include ZipKit::RailsStreaming
+
     def file
       book = find_accessible_book!(params[:book_id])
       head :not_found and return unless params[:format].to_s == expected_format(book)
@@ -14,10 +16,13 @@ module Opds
       end
 
       if book.file_format == "image_dir"
-        send_data Opds::CbzBuilder.build(resolved),
-          type: Books::FileFormat.mime(book.file_format),
-          disposition: "attachment",
-          filename: Books::FileFormat.download_filename(book)
+        # image_dir has no single file, so repackage the directory's images into
+        # a CBZ streamed straight to the response. Streaming keeps memory flat and
+        # starts sending bytes immediately, even for multi-GB directories.
+        zip_kit_stream(
+          filename: Books::FileFormat.download_filename(book),
+          type: Books::FileFormat.mime(book.file_format)
+        ) { |zip| Opds::CbzBuilder.stream(resolved, zip) }
       else
         send_file resolved,
           type: Books::FileFormat.mime(book.file_format),

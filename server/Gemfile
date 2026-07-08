@@ -36,6 +36,10 @@ gem "rubyzip", require: "zip"
 gem "gepub"
 gem "hexapdf"
 
+# Streaming ZIP output for on-the-fly CBZ packaging of image_dir books
+# (rubyzip needs a seekable sink, so it can't stream to the HTTP response).
+gem "zip_kit"
+
 # Image processing for cover thumbnails
 gem "image_processing", "~> 1.2"
 gem "ruby-vips"
