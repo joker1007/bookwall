@@ -440,6 +440,7 @@ GEM
     websocket-extensions (0.1.5)
     yaml (0.4.0)
     zeitwerk (2.8.2)
+    zip_kit (6.3.4)
     zstd-ruby (2.0.6)
 
 PLATFORMS
@@ -483,6 +484,7 @@ DEPENDENCIES
   sqlite3 (>= 2.1)
   thruster
   tzinfo-data
+  zip_kit
   zstd-ruby
 
 CHECKSUMS
@@ -662,6 +664,7 @@ CHECKSUMS
   websocket-extensions (0.1.5) sha256=1c6ba63092cda343eb53fc657110c71c754c56484aad42578495227d717a8241
   yaml (0.4.0) sha256=240e69d1e6ce3584d6085978719a0faa6218ae426e034d8f9b02fb54d3471942
   zeitwerk (2.8.2) sha256=7212a61311083c604184b1ea2574b9aa05cd14f855a0841c06985cabe9181d12
+  zip_kit (6.3.4) sha256=407c6d39feef818678fae2d129077bd2f920c9806072af3482e671eeae3c48ea
   zstd-ruby (2.0.6) sha256=4d57faa75a11ed5db551fb8befe5bb508046518be1898a91a5d9ddf782f146de
 
 BUNDLED WITH

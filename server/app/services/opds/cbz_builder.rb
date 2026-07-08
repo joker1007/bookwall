@@ -1,20 +1,17 @@
 # frozen_string_literal: true
 
-require "zip"
-
 module Opds
   module CbzBuilder
     module_function
 
-    def build(dir_path)
-      buffer = Zip::OutputStream.write_buffer do |zip|
-        image_files(dir_path).each_with_index do |src_path, index|
-          zip.put_next_entry(entry_name(src_path, index))
-          File.open(src_path, "rb") { |f| IO.copy_stream(f, zip) }
+    # Streams the directory's images into `zip` (a ZipKit::Streamer) as a CBZ.
+    # Images are already compressed formats, so store them without deflating.
+    def stream(dir_path, zip)
+      image_files(dir_path).each_with_index do |src_path, index|
+        zip.write_stored_file(entry_name(src_path, index)) do |sink|
+          File.open(src_path, "rb") { |f| IO.copy_stream(f, sink) }
         end
       end
-      buffer.rewind
-      buffer.read
     end
 
     def image_files(dir_path)
