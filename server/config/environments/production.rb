@@ -29,6 +29,12 @@ Rails.application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
+  # Hand file responses (send_file: covers, book downloads) to Thruster via
+  # the X-Sendfile response header. Rack >= 3.2 no longer honors Thruster's
+  # X-Sendfile-Type request header, so this must be set explicitly. Requires
+  # a front that consumes X-Sendfile — bin/docker-server always runs Thruster.
+  config.action_dispatch.x_sendfile_header = "X-Sendfile"
+
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 

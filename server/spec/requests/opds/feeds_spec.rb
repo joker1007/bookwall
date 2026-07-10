@@ -330,7 +330,7 @@ RSpec.describe "Opds::Feeds", type: :request do
       thumb = Nokogiri::XML(response.body)
         .at_xpath("//atom:entry/atom:link[@rel='http://opds-spec.org/image/thumbnail']", "atom" => ATOM_NS)
       expect(thumb).to be_present
-      expect(thumb["href"]).not_to eq(CoverPlaceholder::THUMB_PATH)
+      expect(thumb["href"]).to start_with("/covers/thumbs/")
     end
 
     it "falls back to the placeholder thumbnail for a series without a cover" do

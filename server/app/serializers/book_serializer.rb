@@ -25,9 +25,8 @@ class BookSerializer
 
   attribute :cover do |b|
     next nil unless b.cover.attached?
-    helpers = Rails.application.routes.url_helpers
     {
-      url: helpers.rails_blob_path(b.cover, only_path: true),
+      url: CoverUrlHelper.cover_url(b),
       thumb_url: CoverUrlHelper.cover_thumb_url(b)
     }
   end

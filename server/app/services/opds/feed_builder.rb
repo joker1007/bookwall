@@ -54,13 +54,11 @@ module Opds
 
     # Image/thumbnail hrefs for a representative [book] (nil -> placeholder), for
     # decorating navigation entries. Mirrors the acquisition feed's cover links.
-    def self.cover_hrefs(book, helpers)
-      return {image_href: CoverPlaceholder::COVER_PATH, thumb_href: CoverPlaceholder::THUMB_PATH} unless book&.cover&.attached?
-
-      image = helpers.rails_blob_path(book.cover, only_path: true)
-      variant = thumb_variant(book)
-      thumb = variant ? helpers.rails_representation_path(variant, only_path: true) : image
-      {image_href: image, thumb_href: thumb}
+    def self.cover_hrefs(book)
+      {
+        image_href: CoverUrlHelper.cover_url(book) || CoverPlaceholder::COVER_PATH,
+        thumb_href: CoverUrlHelper.cover_thumb_url(book) || CoverPlaceholder::THUMB_PATH
+      }
     end
 
     def self.acquisition(title:, id:, self_url:, books:, helpers:, facets: [], reading_progress_by_book_id: {})
@@ -97,10 +95,8 @@ module Opds
             xml.link(acquisition_attrs)
 
             if book.cover.attached?
-              xml.link(rel: IMAGE_REL, href: helpers.rails_blob_path(book.cover, only_path: true), type: book.cover.content_type)
-              if (variant = thumb_variant(book))
-                xml.link(rel: THUMB_REL, href: helpers.rails_representation_path(variant, only_path: true), type: "image/jpeg")
-              end
+              xml.link(rel: IMAGE_REL, href: CoverUrlHelper.cover_url(book), type: book.cover.content_type)
+              xml.link(rel: THUMB_REL, href: CoverUrlHelper.cover_thumb_url(book), type: "image/jpeg")
             else
               xml.link(rel: IMAGE_REL, href: CoverPlaceholder::COVER_PATH, type: "image/jpeg")
               xml.link(rel: THUMB_REL, href: CoverPlaceholder::THUMB_PATH, type: "image/jpeg")
@@ -170,12 +166,6 @@ module Opds
         attrs["pse:lastReadDate"] = progress.last_read_at.utc.iso8601 if progress.last_read_at
       end
       attrs
-    end
-
-    def self.thumb_variant(book)
-      book.cover.variant(:thumb)
-    rescue StandardError
-      nil
     end
 
     def self.book_language(book)

@@ -8,6 +8,15 @@ Rails.application.routes.draw do
   get "/ui", to: "spa#index"
   get "/ui/*unmatched", to: "spa#index"
 
+  # Cover images are served via send_file so the fronting HTTP server
+  # (Thruster) can take over the byte transfer with X-Sendfile and cache
+  # the public responses, instead of streaming through Active Storage's
+  # proxy controllers. Signed ids keep the URLs tamper-proof.
+  scope :covers, format: false do
+    get "blobs/:signed_id/*filename" => "covers#blob", as: :cover_blob
+    get "thumbs/:signed_blob_id/:variation_key/*filename" => "covers#thumb", as: :cover_thumb
+  end
+
   namespace :api do
     if ENV["BOOKWALL_E2E_RESET"] == "1"
       post "test_support/reset", to: "test_support#reset"

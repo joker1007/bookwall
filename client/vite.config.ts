@@ -24,6 +24,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": { target: apiTarget, changeOrigin: true },
+      "/covers": { target: apiTarget, changeOrigin: true },
       "/opds": { target: apiTarget, changeOrigin: true },
       "/rails": { target: apiTarget, changeOrigin: true },
       "/up": { target: apiTarget, changeOrigin: true },
