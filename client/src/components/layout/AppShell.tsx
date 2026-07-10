@@ -14,7 +14,7 @@ export function AppShell() {
       <Header onOpenSidebar={() => setMobileNavOpen(true)} />
 
       <div className="flex flex-1">
-        <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
+        <aside className="sticky top-14 hidden h-[calc(100dvh_-_3.5rem)] w-60 shrink-0 self-start overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
           <Sidebar />
         </aside>
 
