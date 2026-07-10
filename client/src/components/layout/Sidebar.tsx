@@ -41,7 +41,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const items = libraries.data?.libraries ?? [];
 
   return (
-    <nav className="flex h-full flex-col gap-1 px-3 py-4">
+    <nav className="flex min-h-full flex-col gap-1 px-3 py-4">
       <div className="px-2 pb-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/60">
           {t("app.title")}
