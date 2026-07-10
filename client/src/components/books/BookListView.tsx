@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid, List, CheckSquare } from "lucide-react";
@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItemSizeSlider } from "@/components/common/ItemSizeSlider";
 import { GridSkeleton } from "@/components/common/GridSkeleton";
-import { Pagination } from "@/components/common/Pagination";
 import { BulkActionBar } from "./BulkActionBar";
-import { useUiStore, PER_PAGE_OPTIONS, type PerPage } from "@/stores/uiStore";
-import { useBookList, type BookListParams } from "@/hooks/useBooks";
+import { useUiStore } from "@/stores/uiStore";
+import { useInfiniteBookList, type BookListParams } from "@/hooks/useBooks";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { BookCard } from "./BookCard";
 import { BookRow } from "./BookRow";
 
@@ -28,6 +28,9 @@ interface BookListViewProps {
   emptyMessage?: string;
   headerActions?: ReactNode;
 }
+
+// Fetch chunk size: divisible by 2-6 grid columns so loads never leave a ragged row.
+const BOOK_CHUNK_SIZE = 60;
 
 const SORT_VALUES = [
   "added_at_desc",
@@ -54,18 +57,14 @@ export function BookListView({
   const setSortOrder = useUiStore((s) => s.setSortOrder);
   const itemSize = useUiStore((s) => s.itemSize);
   const setItemSize = useUiStore((s) => s.setItemSize);
-  const perPage = useUiStore((s) => s.perPage);
-  const setPerPage = useUiStore((s) => s.setPerPage);
 
-  const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   // URL `?sort=` wins so a shared link reproduces the exact view.
   const sort = searchParams.get("sort") ?? sortOrder;
 
-  const query = useBookList({
+  const query = useInfiniteBookList({
     ...baseParams,
     sort,
-    page,
-    limit: perPage,
+    limit: BOOK_CHUNK_SIZE,
   });
 
   const updateParam = (key: string, value: string | null) => {
@@ -75,21 +74,37 @@ export function BookListView({
     setSearchParams(next, { replace: false });
   };
 
-  const handlePerPageChange = (value: string) => {
-    const next = Number(value) as PerPage;
-    if (!PER_PAGE_OPTIONS.includes(next)) return;
-    setPerPage(next);
-    if (page !== 1) updateParam("page", null);
-  };
+  // Drop the legacy `?page=` param from old shared links.
+  useEffect(() => {
+    if (!searchParams.has("page")) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  const data = query.data;
+  // Offset paging can surface the same book on two pages when the list shifts
+  // between loads; dedupe by id to keep React keys stable.
+  const books = useMemo(() => {
+    if (!query.data) return undefined;
+    const seen = new Set<number>();
+    return query.data.pages
+      .flatMap((p) => p.books)
+      .filter((b) => !seen.has(b.id) && (seen.add(b.id), true));
+  }, [query.data]);
+  const totalCount = query.data?.pages[0]?.pagination.count;
+
+  const sentinelRef = useIntersectionObserver({
+    onIntersect: () => query.fetchNextPage(),
+    enabled: query.hasNextPage && !query.isFetchingNextPage,
+  });
+
   const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   // Clear selection when list contents change so stale ids never leak into a bulk action.
-  const listKey = `${JSON.stringify(baseParams ?? {})}|${sort}|${page}`;
+  const listKey = `${JSON.stringify(baseParams ?? {})}|${sort}`;
   const [prevKey, setPrevKey] = useState(listKey);
   if (listKey !== prevKey) {
     setPrevKey(listKey);
@@ -106,7 +121,7 @@ export function BookListView({
   };
   const clearSelection = () => setSelectedIds(new Set());
   const selectAll = () => {
-    if (data?.books) setSelectedIds(new Set(data.books.map((b) => b.id)));
+    if (books) setSelectedIds(new Set(books.map((b) => b.id)));
   };
   const toggleSelectionMode = () => {
     setSelectionMode((on) => !on);
@@ -115,7 +130,7 @@ export function BookListView({
 
   const collectionId = baseParams?.collection_id;
   const allSelected =
-    !!data && data.books.length > 0 && selectedIds.size === data.books.length;
+    !!books && books.length > 0 && selectedIds.size === books.length;
 
   return (
     <section className="flex flex-col gap-4 px-3 py-6">
@@ -146,19 +161,6 @@ export function BookListView({
             {SORT_VALUES.map((value) => (
               <SelectItem key={value} value={value}>
                 {t(`books.sort.${value}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={String(perPage)} onValueChange={handlePerPageChange}>
-          <SelectTrigger className="h-10 w-28" aria-label={t("books.perPage.label")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PER_PAGE_OPTIONS.map((n) => (
-              <SelectItem key={n} value={String(n)}>
-                {t("books.perPage.option", { count: n })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -216,14 +218,21 @@ export function BookListView({
 
       {query.isPending ? (
         <BookListSkeleton mode={displayMode} itemSize={itemSize} />
-      ) : query.isError ? (
+      ) : query.isError && !query.isFetchNextPageError ? (
         <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
-      ) : data && data.books.length === 0 ? (
+      ) : books && books.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           {resolvedEmpty}
         </p>
       ) : (
         <>
+          <p className="text-sm text-muted-foreground">
+            {t("books.infinite.status", {
+              loaded: books!.length,
+              total: totalCount,
+            })}
+          </p>
+
           {displayMode === "grid" ? (
             <div
               className="grid gap-3"
@@ -231,7 +240,7 @@ export function BookListView({
                 gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`,
               }}
             >
-              {data!.books.map((book) => (
+              {books!.map((book) => (
                 <BookCard
                   key={book.id}
                   book={book}
@@ -243,7 +252,7 @@ export function BookListView({
             </div>
           ) : (
             <ul className="flex flex-col gap-1">
-              {data!.books.map((book) => (
+              {books!.map((book) => (
                 <li key={book.id}>
                   <BookRow
                     book={book}
@@ -256,11 +265,29 @@ export function BookListView({
             </ul>
           )}
 
-          <Pagination
-            page={data!.pagination.page}
-            pages={data!.pagination.pages}
-            onPageChange={(p) => updateParam("page", p === 1 ? null : String(p))}
-          />
+          {/* Always in the DOM: conditional mounting makes the observer miss
+              attach timing between fetches. */}
+          <div ref={sentinelRef} data-testid="infinite-scroll-sentinel" aria-hidden />
+
+          {query.isFetchingNextPage ? (
+            displayMode === "grid" ? (
+              <GridSkeleton itemSize={itemSize} />
+            ) : (
+              <p role="status" className="p-2 text-sm text-muted-foreground">
+                {t("books.infinite.loading")}
+              </p>
+            )
+          ) : null}
+
+          {query.isFetchNextPageError && !query.isFetchingNextPage ? (
+            <Button
+              variant="outline"
+              className="self-center"
+              onClick={() => query.fetchNextPage()}
+            >
+              {t("books.infinite.retry")}
+            </Button>
+          ) : null}
         </>
       )}
     </section>

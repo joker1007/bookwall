@@ -185,6 +185,11 @@
       "next": "Next page",
       "status": "{{page}} / {{pages}}"
     },
+    "infinite": {
+      "status": "Showing {{loaded}} of {{total}}",
+      "loading": "Loading more…",
+      "retry": "Load more"
+    },
     "detail": {
       "loadFailed": "Failed to load the book.",
       "seriesLabel": "Series:",
