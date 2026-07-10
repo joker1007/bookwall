@@ -11,10 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookCover } from "@/components/books/BookCover";
 import { BookCard } from "@/components/books/BookCard";
 import { BookEditDialog } from "@/components/books/BookEditDialog";
-import { Pagination } from "@/components/common/Pagination";
 import type { Book } from "@/types/api";
-
-const SERIES_BOOKS_PER_PAGE = 50;
 
 export default function BookDetailPage() {
   const { t } = useTranslation();
@@ -213,15 +210,12 @@ export default function BookDetailPage() {
 
 function SeriesBooks({ book }: { book: Book }) {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
   const query = useBookList({
     series_id: book.series_id ?? undefined,
     sort: "series_asc",
-    limit: SERIES_BOOKS_PER_PAGE,
-    page,
   });
 
-  if (query.data && query.data.pagination.count <= 1) return null;
+  if (query.data && query.data.count <= 1) return null;
 
   return (
     <section className="flex flex-col gap-3">
@@ -258,11 +252,6 @@ function SeriesBooks({ book }: { book: Book }) {
               </div>
             ))}
           </div>
-          <Pagination
-            page={query.data.pagination.page}
-            pages={query.data.pagination.pages}
-            onPageChange={setPage}
-          />
         </>
       )}
     </section>

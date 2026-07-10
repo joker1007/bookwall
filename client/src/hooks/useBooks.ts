@@ -1,11 +1,7 @@
-import {
-  useInfiniteQuery,
-  useQuery,
-  type UseQueryOptions,
-} from "@tanstack/react-query";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Book, Pagination } from "@/types/api";
+import type { Book } from "@/types/api";
 
 export interface BookListParams {
   q?: string;
@@ -16,13 +12,13 @@ export interface BookListParams {
   collection_id?: number | string;
   favorites_only?: boolean;
   sort?: string;
-  page?: number;
-  limit?: number;
 }
 
+// The list endpoint returns every matching book at once; the client
+// virtualizes the DOM instead of paginating.
 export interface BookListResponse {
   books: Book[];
-  pagination: Pagination;
+  count: number;
 }
 
 function cleanParams(params: BookListParams): Record<string, string | number | boolean> {
@@ -45,26 +41,6 @@ export function useBookList(
     queryFn: () => api<BookListResponse>("/api/books", { params: cleaned }),
     placeholderData: (previous) => previous,
     ...options,
-  });
-}
-
-export type InfiniteBookListParams = Omit<BookListParams, "page">;
-
-export function useInfiniteBookList(params: InfiniteBookListParams) {
-  const cleaned = cleanParams(params);
-  return useInfiniteQuery({
-    // The "infinite" segment keeps this cache separate from useBookList while
-    // the ["books"] prefix still matches every existing invalidation.
-    queryKey: ["books", "infinite", cleaned],
-    queryFn: ({ pageParam }) =>
-      api<BookListResponse>("/api/books", {
-        params: { ...cleaned, page: pageParam },
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (last) =>
-      last.pagination.page < last.pagination.pages
-        ? last.pagination.page + 1
-        : undefined,
   });
 }
 

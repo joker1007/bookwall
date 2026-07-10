@@ -10,14 +10,14 @@ RSpec.describe "Api::Books", type: :request do
   describe "GET /api/books" do
     it_behaves_like "requires authentication", :get, "/api/books"
 
-    it "lists books with pagination metadata" do
+    it "lists all books with a total count" do
       sign_in!
       create_list(:book, 3, library: library)
 
       get "/api/books"
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["books"].size).to eq(3)
-      expect(response.parsed_body["pagination"]).to include("page", "pages", "count")
+      expect(response.parsed_body["count"]).to eq(3)
     end
 
     it "searches via q parameter" do

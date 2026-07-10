@@ -17,15 +17,15 @@ module Api
         sort: params[:sort],
         base_scope: accessible_books
       )
-      pagy, books = pagy(
-        :offset,
-        search.relation
-          .includes(:authors, :tags, :series)
-          .with_attached_cover
-      )
+      # The client virtualizes the list DOM, so the full result set is
+      # returned in one response instead of paginating.
+      books = search.relation
+        .includes(:authors, :tags, :series)
+        .with_attached_cover
+        .load
       render json: {
         books: serialize_books(books),
-        pagination: pagy_metadata(pagy)
+        count: books.size
       }
     end
 
