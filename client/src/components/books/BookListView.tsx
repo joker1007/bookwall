@@ -29,7 +29,7 @@ interface BookListViewProps {
   headerActions?: ReactNode;
 }
 
-const BOOK_CHUNK_SIZE = 100;
+const BOOK_CHUNK_SIZE = 1000;
 
 const SORT_VALUES = [
   "added_at_desc",
