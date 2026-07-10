@@ -29,8 +29,7 @@ interface BookListViewProps {
   headerActions?: ReactNode;
 }
 
-// Fetch chunk size: divisible by 2-6 grid columns so loads never leave a ragged row.
-const BOOK_CHUNK_SIZE = 60;
+const BOOK_CHUNK_SIZE = 100;
 
 const SORT_VALUES = [
   "added_at_desc",

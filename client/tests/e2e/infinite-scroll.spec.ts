@@ -2,10 +2,10 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "./helpers/test-base";
 import type { Book } from "../../src/types/api";
 
-// BookListView fetches in fixed chunks of 60 (BOOK_CHUNK_SIZE). The fixtures
+// BookListView fetches in fixed chunks of 100 (BOOK_CHUNK_SIZE). The fixtures
 // scan only yields 5 books, so we mock /api/books to exercise chunk paging.
-const CHUNK = 60;
-const TOTAL = 70;
+const CHUNK = 100;
+const TOTAL = 110;
 const PAGES = Math.ceil(TOTAL / CHUNK);
 
 function mockBook(id: number): Book {
