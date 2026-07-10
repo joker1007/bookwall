@@ -46,8 +46,8 @@ RSpec.describe BookSerializer do
     it "exposes url and thumb_url when attached" do
       book = attach_cover(create(:book, library: library))
       cover = serialize(book)["cover"]
-      expect(cover[:url]).to be_present
-      expect(cover[:thumb_url]).to be_present
+      expect(cover[:url]).to start_with("/covers/blobs/")
+      expect(cover[:thumb_url]).to start_with("/covers/thumbs/")
     end
 
     it "falls back to a placeholder thumb when the cover is not variable" do

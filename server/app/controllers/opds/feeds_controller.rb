@@ -94,7 +94,7 @@ module Opds
           title: s.name,
           href: helpers.opds_series_path(series_id: s.id),
           id: "urn:bookwall:series:#{s.id}"
-        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[s.id], helpers))
+        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[s.id]))
       end
       xml = Opds::FeedBuilder.navigation(
         title: "Series",
@@ -147,7 +147,7 @@ module Opds
           title: c.name,
           href: helpers.opds_collection_path(collection_id: c.id),
           id: "urn:bookwall:collection:#{c.id}"
-        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[c.id], helpers))
+        }.merge(Opds::FeedBuilder.cover_hrefs(first_books[c.id]))
       end
       xml = Opds::FeedBuilder.navigation(
         title: "Collections",
