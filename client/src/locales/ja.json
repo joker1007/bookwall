@@ -185,6 +185,11 @@
       "next": "次のページ",
       "status": "{{page}} / {{pages}}"
     },
+    "infinite": {
+      "status": "{{total}} 件中 {{loaded}} 件を表示",
+      "loading": "さらに読み込み中…",
+      "retry": "続きを読み込む"
+    },
     "detail": {
       "loadFailed": "書籍の取得に失敗しました。",
       "seriesLabel": "シリーズ:",

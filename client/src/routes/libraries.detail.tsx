@@ -22,7 +22,7 @@ export default function LibraryDetailPage() {
     const params = new URLSearchParams(searchParams);
     if (next === "books") params.delete("view");
     else params.set("view", next);
-    // Book and series pages share the `?page` slot, so reset it on switch.
+    // Only the series view uses `?page` now; clear it when switching views.
     params.delete("page");
     setSearchParams(params, { replace: false });
   };
