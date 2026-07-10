@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-virtual": "^3.14.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "foliate-js": "^1.0.1",

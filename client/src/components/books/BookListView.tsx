@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid, List, CheckSquare } from "lucide-react";
@@ -16,20 +16,17 @@ import { ItemSizeSlider } from "@/components/common/ItemSizeSlider";
 import { GridSkeleton } from "@/components/common/GridSkeleton";
 import { BulkActionBar } from "./BulkActionBar";
 import { useUiStore } from "@/stores/uiStore";
-import { useInfiniteBookList, type BookListParams } from "@/hooks/useBooks";
-import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { BookCard } from "./BookCard";
-import { BookRow } from "./BookRow";
+import { useBookList, type BookListParams } from "@/hooks/useBooks";
+import { VirtualBookGrid } from "./VirtualBookGrid";
+import { VirtualBookList } from "./VirtualBookList";
 
 interface BookListViewProps {
   title: string;
   description?: string;
-  baseParams?: Omit<BookListParams, "page" | "sort" | "limit">;
+  baseParams?: Omit<BookListParams, "sort">;
   emptyMessage?: string;
   headerActions?: ReactNode;
 }
-
-const BOOK_CHUNK_SIZE = 1000;
 
 const SORT_VALUES = [
   "added_at_desc",
@@ -60,11 +57,7 @@ export function BookListView({
   // URL `?sort=` wins so a shared link reproduces the exact view.
   const sort = searchParams.get("sort") ?? sortOrder;
 
-  const query = useInfiniteBookList({
-    ...baseParams,
-    sort,
-    limit: BOOK_CHUNK_SIZE,
-  });
+  const query = useBookList({ ...baseParams, sort });
 
   const updateParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -81,21 +74,7 @@ export function BookListView({
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Offset paging can surface the same book on two pages when the list shifts
-  // between loads; dedupe by id to keep React keys stable.
-  const books = useMemo(() => {
-    if (!query.data) return undefined;
-    const seen = new Set<number>();
-    return query.data.pages
-      .flatMap((p) => p.books)
-      .filter((b) => !seen.has(b.id) && (seen.add(b.id), true));
-  }, [query.data]);
-  const totalCount = query.data?.pages[0]?.pagination.count;
-
-  const sentinelRef = useIntersectionObserver({
-    onIntersect: () => query.fetchNextPage(),
-    enabled: query.hasNextPage && !query.isFetchingNextPage,
-  });
+  const books = query.data?.books;
 
   const resolvedEmpty = emptyMessage ?? t("books.listEmpty");
 
@@ -217,7 +196,7 @@ export function BookListView({
 
       {query.isPending ? (
         <BookListSkeleton mode={displayMode} itemSize={itemSize} />
-      ) : query.isError && !query.isFetchNextPageError ? (
+      ) : query.isError ? (
         <p className="text-sm text-destructive">{t("books.detail.loadFailed")}</p>
       ) : books && books.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -226,67 +205,25 @@ export function BookListView({
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {t("books.infinite.status", {
-              loaded: books!.length,
-              total: totalCount,
-            })}
+            {t("books.count", { count: books!.length })}
           </p>
 
           {displayMode === "grid" ? (
-            <div
-              className="grid gap-3"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`,
-              }}
-            >
-              {books!.map((book) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  selectable={selectionMode}
-                  selected={selectedIds.has(book.id)}
-                  onToggleSelect={toggleSelect}
-                />
-              ))}
-            </div>
+            <VirtualBookGrid
+              books={books!}
+              itemSize={itemSize}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
           ) : (
-            <ul className="flex flex-col gap-1">
-              {books!.map((book) => (
-                <li key={book.id}>
-                  <BookRow
-                    book={book}
-                    selectable={selectionMode}
-                    selected={selectedIds.has(book.id)}
-                    onToggleSelect={toggleSelect}
-                  />
-                </li>
-              ))}
-            </ul>
+            <VirtualBookList
+              books={books!}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
           )}
-
-          {/* Always in the DOM: conditional mounting makes the observer miss
-              attach timing between fetches. */}
-          <div ref={sentinelRef} data-testid="infinite-scroll-sentinel" aria-hidden />
-
-          {query.isFetchingNextPage ? (
-            displayMode === "grid" ? (
-              <GridSkeleton itemSize={itemSize} />
-            ) : (
-              <p role="status" className="p-2 text-sm text-muted-foreground">
-                {t("books.infinite.loading")}
-              </p>
-            )
-          ) : null}
-
-          {query.isFetchNextPageError && !query.isFetchingNextPage ? (
-            <Button
-              variant="outline"
-              className="self-center"
-              onClick={() => query.fetchNextPage()}
-            >
-              {t("books.infinite.retry")}
-            </Button>
-          ) : null}
         </>
       )}
     </section>
