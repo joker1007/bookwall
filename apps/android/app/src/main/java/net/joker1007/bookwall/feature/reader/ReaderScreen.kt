@@ -1,6 +1,10 @@
 package net.joker1007.bookwall.feature.reader
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,9 +40,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -48,11 +55,19 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import android.app.Activity
 import android.view.WindowManager
@@ -75,6 +90,47 @@ import net.joker1007.bookwall.data.reader.isForward
 import net.joker1007.bookwall.data.reader.slotIndexForPage
 import net.joker1007.bookwall.data.reader.tapTargetPage
 import net.joker1007.bookwall.ui.NextBookDialog
+
+private const val ZOOM_EPS = 0.01f
+private const val MAX_ZOOM_SCALE = 4f
+
+/** Exposes the current page's zoom factor to tests via semantics. */
+val ReaderZoomScaleKey = SemanticsPropertyKey<Float>("ReaderZoomScale")
+private var SemanticsPropertyReceiver.readerZoomScale by ReaderZoomScaleKey
+
+/**
+ * Pinch-zoom state for the image reader. Held once at the [ReaderScreen] level
+ * (not per pager slot) so it survives around the currently visible page and is
+ * reset on every page change. Pan is clamped so a magnified page can't be
+ * dragged past its own edges, assuming the default center [graphicsLayer] origin.
+ */
+@Stable
+class ReaderZoomState {
+    var scale by mutableFloatStateOf(1f)
+        private set
+    var offset by mutableStateOf(Offset.Zero)
+        private set
+
+    val isZoomed: Boolean get() = scale > 1f + ZOOM_EPS
+
+    fun onTransform(pan: Offset, zoom: Float, containerSize: IntSize) {
+        val newScale = (scale * zoom).coerceIn(1f, MAX_ZOOM_SCALE)
+        val maxX = (containerSize.width * (newScale - 1f) / 2f).coerceAtLeast(0f)
+        val maxY = (containerSize.height * (newScale - 1f) / 2f).coerceAtLeast(0f)
+        val moved = offset + pan
+        scale = newScale
+        offset = if (newScale <= 1f + ZOOM_EPS) {
+            Offset.Zero
+        } else {
+            Offset(moved.x.coerceIn(-maxX, maxX), moved.y.coerceIn(-maxY, maxY))
+        }
+    }
+
+    fun reset() {
+        scale = 1f
+        offset = Offset.Zero
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,15 +178,21 @@ fun ReaderScreen(
                         initialPage = slotIndexForPage(slots, state.currentPage),
                         pageCount = { slots.size },
                     )
+                    val zoom = remember { ReaderZoomState() }
+                    // Only flips the pager's scroll gate when zoom crosses the
+                    // threshold, so a pinch doesn't recompose the pager per frame.
+                    val zoomed by remember { derivedStateOf { zoom.isZoomed } }
 
                     LaunchedEffect(state.currentPage, slots) {
                         val target = slotIndexForPage(slots, state.currentPage)
                         if (pagerState.currentPage != target && !pagerState.isScrollInProgress) {
+                            zoom.reset()
                             pagerState.animateScrollToPage(target)
                         }
                     }
                     LaunchedEffect(pagerState, slots) {
                         snapshotFlow { pagerState.currentPage }.collect { slot ->
+                            zoom.reset()
                             slots.getOrNull(slot)?.firstOrNull()?.let(viewModel::onPageSettled)
                         }
                     }
@@ -153,6 +215,7 @@ fun ReaderScreen(
                         state = pagerState,
                         reverseLayout = state.direction == ReadingDirection.RTL,
                         beyondViewportPageCount = 1,
+                        userScrollEnabled = !zoomed,
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag(ReaderTags.PAGER),
@@ -163,6 +226,8 @@ fun ReaderScreen(
                             pageSource = viewModel.pageSource,
                             imageLoader = imageLoader,
                             onTapZone = dispatchTap,
+                            zoom = zoom,
+                            zoomEnabled = slotIndex == pagerState.currentPage,
                         )
                     }
                 }
@@ -231,11 +296,15 @@ private fun SpreadSlot(
     pageSource: PageSource?,
     imageLoader: ImageLoader?,
     onTapZone: (TapZone) -> Unit,
+    zoom: ReaderZoomState,
+    zoomEnabled: Boolean,
 ) {
     val ordered = if (direction == ReadingDirection.RTL) pages.reversed() else pages
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
     Row(
         modifier = Modifier
             .fillMaxSize()
+            .onSizeChanged { containerSize = it }
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
                     val third = size.width / 3f
@@ -246,7 +315,48 @@ private fun SpreadSlot(
                     }
                     onTapZone(zone)
                 }
-            },
+            }
+            // Only the visible page reacts to and renders the pinch transform;
+            // prefetched neighbors (beyondViewportPageCount) stay at identity so
+            // they don't inherit the shared zoom state.
+            .then(
+                if (zoomEnabled) {
+                    Modifier
+                        .testTag(ReaderTags.ZOOM_LAYER)
+                        .semantics { readerZoomScale = zoom.scale }
+                        // Pan/zoom is detected *before* graphicsLayer so pan deltas
+                        // stay in raw screen pixels, matching the clamp math. Events
+                        // are consumed only for a two-finger pinch or while already
+                        // zoomed; a single finger at 1x is left for the pager to page.
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val multiTouch = event.changes.count { it.pressed } >= 2
+                                    if (multiTouch || zoom.isZoomed) {
+                                        zoom.onTransform(
+                                            pan = event.calculatePan(),
+                                            zoom = if (multiTouch) event.calculateZoom() else 1f,
+                                            containerSize = containerSize,
+                                        )
+                                        event.changes.forEach {
+                                            if (it.positionChanged()) it.consume()
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
+                            }
+                        }
+                        .graphicsLayer {
+                            scaleX = zoom.scale
+                            scaleY = zoom.scale
+                            translationX = zoom.offset.x
+                            translationY = zoom.offset.y
+                        }
+                } else {
+                    Modifier
+                }
+            ),
     ) {
         ordered.forEachIndexed { index, page ->
             // In a two-page spread, hug the pages to the center so they join
@@ -535,6 +645,7 @@ private fun ImmersiveReaderEffect(menuVisible: Boolean) {
 object ReaderTags {
     const val ROOT = "reader_root"
     const val PAGER = "reader_pager"
+    const val ZOOM_LAYER = "reader_zoom_layer"
     const val LOADING = "reader_loading"
     const val PAGE_LOADING = "reader_page_loading"
     const val ERROR = "reader_error"
