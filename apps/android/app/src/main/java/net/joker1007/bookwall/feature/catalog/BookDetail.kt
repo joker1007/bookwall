@@ -1,5 +1,6 @@
 package net.joker1007.bookwall.feature.catalog
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,7 @@ fun BookDetail(
     cacheStatus: CachedBookEntity? = null,
     onDownload: ((OpdsEntry.Book) -> Unit)? = null,
     onRemoveCache: ((OpdsEntry.Book) -> Unit)? = null,
+    onOpenSeries: ((String) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -52,6 +54,19 @@ fun BookDetail(
         }
         if (book.tags.isNotEmpty()) {
             DetailRow("タグ", book.tags.joinToString(", "))
+        }
+        val seriesHref = book.seriesHref
+        val seriesName = book.seriesName
+        if (seriesName != null && seriesHref != null && onOpenSeries != null) {
+            Text(
+                text = "シリーズ: $seriesName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenSeries(seriesHref) }
+                    .testTag(BookDetailTags.SERIES_LINK),
+            )
         }
         book.format?.let { DetailRow("形式", it) }
         book.summary?.let {
@@ -181,6 +196,7 @@ private fun CacheActions(
 
 object BookDetailTags {
     const val READ_BUTTON = "book_detail_read"
+    const val SERIES_LINK = "book_detail_series"
     const val DOWNLOAD_BUTTON = "book_detail_download"
     const val DOWNLOAD_PROGRESS = "book_detail_download_progress"
     const val CANCEL_DOWNLOAD_BUTTON = "book_detail_cancel_download"

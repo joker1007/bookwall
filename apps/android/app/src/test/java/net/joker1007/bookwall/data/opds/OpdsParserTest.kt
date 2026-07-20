@@ -85,6 +85,8 @@ class OpdsParserTest {
         assertEquals("/rails/blob/cover.jpg", book.imageHref)
         assertEquals("/rails/rep/thumb.jpg", book.thumbnailHref)
         assertEquals("2025-12-24T00:00:00Z", book.added)
+        assertEquals("/opds/series/7", book.seriesHref)
+        assertEquals("Akira", book.seriesName)
 
         val pse = requireNotNull(book.pse)
         assertEquals(120, pse.pageCount)
@@ -102,6 +104,8 @@ class OpdsParserTest {
         assertNull(epub.pse)
         assertNull(epub.thumbnailHref)
         assertNull(epub.fileSize)
+        assertNull(epub.seriesHref)
+        assertNull(epub.seriesName)
     }
 
     private companion object {
@@ -157,6 +161,7 @@ class OpdsParserTest {
                 <link rel="http://opds-spec.org/acquisition" href="/opds/books/42/file.cbz" type="application/vnd.comicbook+zip" length="45000000"/>
                 <link rel="http://opds-spec.org/image" href="/rails/blob/cover.jpg" type="image/jpeg"/>
                 <link rel="http://opds-spec.org/image/thumbnail" href="/rails/rep/thumb.jpg" type="image/jpeg"/>
+                <link rel="related" href="/opds/series/7" type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="Akira"/>
                 <pse:link rel="http://vaemendis.net/opds-pse/stream" href="/opds/books/42/pages/{pageNumber}" type="image/jpeg" pse:count="120" pse:lastRead="10" pse:lastReadDate="2026-01-01T00:00:00Z"/>
               </entry>
               <entry>

@@ -42,9 +42,9 @@ import kotlinx.coroutines.launch
 import net.joker1007.bookwall.data.epub.EpubProgressRepository
 import net.joker1007.bookwall.data.opds.OpdsEntry
 import net.joker1007.bookwall.data.reader.BookOpenCoordinator
+import net.joker1007.bookwall.data.reader.NextInSeriesResolver
 import net.joker1007.bookwall.data.reader.ProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ProgressSyncScheduler
-import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.reconcileEpubCfi
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepository
@@ -80,7 +80,7 @@ class FoliateReaderActivity : ComponentActivity() {
 
     @Inject lateinit var serverRepository: ServerRepository
 
-    @Inject lateinit var readingQueueHolder: ReadingQueueHolder
+    @Inject lateinit var nextInSeriesResolver: NextInSeriesResolver
 
     @Inject lateinit var bookOpenCoordinator: BookOpenCoordinator
 
@@ -114,14 +114,16 @@ class FoliateReaderActivity : ComponentActivity() {
         title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         serverId = intent.getLongExtra(EXTRA_SERVER_ID, 0L)
         bookId = intent.getLongExtra(EXTRA_BOOK_ID, 0L)
-        nextBook = readingQueueHolder.nextAfter(serverId, bookId)
+        val seriesHref = intent.getStringExtra(EXTRA_SERIES_HREF)
 
         // Resolve the restore position in parallel with the WebView loading: the
         // furthest of the local save and the server's progress (pulled if the
-        // server supports sync). onReady() awaits this before opening.
+        // server supports sync). onReady() awaits this before opening. The next
+        // volume is resolved off the same server via the series feed.
         lifecycleScope.launch {
             val srv = serverRepository.getServer(serverId)
             server = srv
+            if (srv != null) nextBook = nextInSeriesResolver.resolve(srv, seriesHref, bookId)
             val local = epubProgressRepository.load(serverId, bookId)
             val remote = srv?.let { progressSyncRepository.pullEpubProgress(it, bookId) }
             initialCfi.complete(
@@ -390,6 +392,7 @@ class FoliateReaderActivity : ComponentActivity() {
         private const val EXTRA_BOOK_ID = "book_id"
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_FILE_PATH = "file_path"
+        private const val EXTRA_SERIES_HREF = "series_href"
 
         fun intent(
             context: Context,
@@ -397,11 +400,13 @@ class FoliateReaderActivity : ComponentActivity() {
             bookId: Long,
             title: String,
             filePath: String,
+            seriesHref: String? = null,
         ): Intent = Intent(context, FoliateReaderActivity::class.java).apply {
             putExtra(EXTRA_SERVER_ID, serverId)
             putExtra(EXTRA_BOOK_ID, bookId)
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_FILE_PATH, filePath)
+            putExtra(EXTRA_SERIES_HREF, seriesHref)
         }
     }
 }

@@ -57,7 +57,8 @@ class BookLauncherViewModel @Inject constructor(
             when {
                 book.isEpub -> {
                     if (cached != null) {
-                        _foliateLaunch.value = FoliateLaunch(serverId, bookId, book.title, cached.absolutePath)
+                        _foliateLaunch.value =
+                            FoliateLaunch(serverId, bookId, book.title, cached.absolutePath, book.seriesHref)
                     } else {
                         downloadAndOpenEpub(serverId, book, adoptAsCache = autoCache)
                     }
@@ -104,6 +105,7 @@ class BookLauncherViewModel @Inject constructor(
                     bookId = bookId,
                     title = book.title,
                     filePath = file.absolutePath,
+                    seriesHref = book.seriesHref,
                 )
             }
     }

@@ -50,6 +50,10 @@ sealed interface OpdsEntry {
         val pse: PseInfo? = null,
         /** Atom published (library added_at), ISO-8601; used to sort by added date. */
         val added: String? = null,
+        /** Href of the book's series sub-catalog (atom rel="related"), if it belongs to one. */
+        val seriesHref: String? = null,
+        /** Series display name carried in the series link's title, if present. */
+        val seriesName: String? = null,
     ) : OpdsEntry
 }
 
