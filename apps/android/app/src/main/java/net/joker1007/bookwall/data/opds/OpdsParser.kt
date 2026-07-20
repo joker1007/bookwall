@@ -75,6 +75,8 @@ class OpdsParser @Inject constructor() : FeedParser {
         var navHref: String? = null
         var navRel: String? = null
         var added: String? = null
+        var seriesHref: String? = null
+        var seriesName: String? = null
 
         var event = parser.next()
         while (!(event == XmlPullParser.END_TAG && parser.name == "entry")) {
@@ -99,6 +101,10 @@ class OpdsParser @Inject constructor() : FeedParser {
                             }
                             IMAGE_REL -> imageHref = href
                             THUMB_REL -> thumbnailHref = href
+                            RELATED_REL -> {
+                                seriesHref = href
+                                seriesName = parser.attr("title")
+                            }
                             else -> if (navHref == null && href != null) {
                                 navHref = href
                                 navRel = rel
@@ -128,6 +134,8 @@ class OpdsParser @Inject constructor() : FeedParser {
                 thumbnailHref = thumbnailHref,
                 pse = pse,
                 added = added,
+                seriesHref = seriesHref,
+                seriesName = seriesName,
             )
             navHref != null -> OpdsEntry.Navigation(
                 title = title,
@@ -180,6 +188,9 @@ class OpdsParser @Inject constructor() : FeedParser {
         const val THUMB_REL = "http://opds-spec.org/image/thumbnail"
         const val PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream"
         const val FACET_REL = "http://opds-spec.org/facet"
+        // A book entry's link to its series sub-catalog. Standard atom rel; the
+        // server emits it only for that purpose, so we treat it as the series link.
+        const val RELATED_REL = "related"
         const val PROGRESS_SYNC_REL = "https://bookwall.joker1007.net/rel/progress-sync"
         const val PSE_PAGE_TOKEN = "{pageNumber}"
         const val BOOK_ID_TOKEN = "{bookId}"

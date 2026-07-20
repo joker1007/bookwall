@@ -58,7 +58,7 @@ fun BookwallApp(launcher: BookLauncherViewModel = hiltViewModel()) {
                 navController.popBackStack(Destinations.READER, inclusive = true)
             }
             context.startActivity(
-                FoliateReaderActivity.intent(context, l.serverId, l.bookId, l.title, l.filePath),
+                FoliateReaderActivity.intent(context, l.serverId, l.bookId, l.title, l.filePath, l.seriesHref),
             )
             launcher.consumeFoliateLaunch()
         }
@@ -124,6 +124,7 @@ fun BookwallApp(launcher: BookLauncherViewModel = hiltViewModel()) {
                 navArgument(ReaderViewModel.ARG_TITLE) { type = NavType.StringType; defaultValue = "" },
                 navArgument(ReaderViewModel.ARG_PSE_TEMPLATE) { type = NavType.StringType; defaultValue = "" },
                 navArgument(ReaderViewModel.ARG_LOCAL_PATH) { type = NavType.StringType; defaultValue = "" },
+                navArgument(ReaderViewModel.ARG_SERIES_HREF) { type = NavType.StringType; defaultValue = "" },
             ),
         ) {
             ReaderScreen(onBack = { navController.popBackStack() })
@@ -139,7 +140,8 @@ object Destinations {
     const val CATALOG = "catalog?serverId={serverId}&feedUrl={feedUrl}"
     const val READER =
         "reader?serverId={serverId}&bookId={bookId}&pageCount={pageCount}" +
-            "&initialPage={initialPage}&title={title}&pseTemplate={pseTemplate}&localPath={localPath}"
+            "&initialPage={initialPage}&title={title}&pseTemplate={pseTemplate}&localPath={localPath}" +
+            "&seriesHref={seriesHref}"
 
     fun serverForm(serverId: Long = AddEditServerViewModel.NEW_SERVER_ID): String =
         "server_form?serverId=$serverId"
@@ -160,11 +162,13 @@ object Destinations {
         val title = Uri.encode(book.title)
         return "reader?serverId=$serverId&bookId=$bookId&pageCount=$pageCount" +
             "&initialPage=$initialPage&title=$title&pseTemplate=$template" +
-            "&localPath=${Uri.encode(localPath.orEmpty())}"
+            "&localPath=${Uri.encode(localPath.orEmpty())}" +
+            "&seriesHref=${Uri.encode(book.seriesHref.orEmpty())}"
     }
 
     /** Reader route for a cached book opened offline (no feed metadata). */
     fun cachedReader(serverId: Long, bookId: Long, pageCount: Int, title: String, localPath: String): String =
         "reader?serverId=$serverId&bookId=$bookId&pageCount=$pageCount" +
-            "&initialPage=0&title=${Uri.encode(title)}&pseTemplate=&localPath=${Uri.encode(localPath)}"
+            "&initialPage=0&title=${Uri.encode(title)}&pseTemplate=&localPath=${Uri.encode(localPath)}" +
+            "&seriesHref="
 }

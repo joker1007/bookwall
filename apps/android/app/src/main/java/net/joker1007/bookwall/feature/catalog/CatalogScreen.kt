@@ -173,11 +173,14 @@ fun CatalogScreen(
                 cacheStatus = book.numericId?.let { cacheStates[it] },
                 onRead = { selected ->
                     viewModel.dismissBook()
-                    viewModel.rememberQueue()
                     onOpenBook(selected)
                 },
                 onDownload = viewModel::downloadBook,
                 onRemoveCache = viewModel::removeCache,
+                onOpenSeries = { href ->
+                    viewModel.dismissBook()
+                    viewModel.resolve(href)?.let(onOpenFeed)
+                },
                 modifier = Modifier.testTag(CatalogTags.DETAIL_SHEET),
             )
         }

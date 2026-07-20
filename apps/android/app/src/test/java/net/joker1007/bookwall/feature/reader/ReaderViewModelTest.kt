@@ -13,22 +13,33 @@ import net.joker1007.bookwall.data.FakeProgressSyncRepository
 import net.joker1007.bookwall.data.FakeReaderPreferencesRepository
 import net.joker1007.bookwall.data.FakeReaderStateRepository
 import net.joker1007.bookwall.data.FakeSecretCipher
-import net.joker1007.bookwall.data.opds.OpdsEntry
-import net.joker1007.bookwall.data.opds.PseInfo
+import net.joker1007.bookwall.data.opds.FeedParser
+import net.joker1007.bookwall.data.opds.OpdsFeed
+import net.joker1007.bookwall.data.opds.OpdsParser
+import net.joker1007.bookwall.data.opds.OpdsRepository
 import net.joker1007.bookwall.data.opds.numericId
 import net.joker1007.bookwall.data.reader.BookOpenCoordinator
+import net.joker1007.bookwall.data.reader.NextInSeriesResolver
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReadingDirection
-import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.server.OpdsServer
 import net.joker1007.bookwall.data.server.ServerRepositoryImpl
+import net.joker1007.bookwall.network.OkHttpClientFactory
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.kxml2.io.KXmlParser
+import org.xmlpull.v1.XmlPullParser
+import java.io.InputStream
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReaderViewModelTest {
@@ -39,30 +50,48 @@ class ReaderViewModelTest {
     private val readerRepo = FakeReaderStateRepository()
     private val prefsRepo = FakeReaderPreferencesRepository()
     private val syncRepo = FakeProgressSyncRepository()
-    private val queueHolder = ReadingQueueHolder()
     private val coordinator = BookOpenCoordinator()
 
-    private fun book(id: Long, title: String) = OpdsEntry.Book(
-        title = title,
-        id = "urn:bookwall:book:$id",
-        pse = PseInfo(streamHrefTemplate = "/opds/books/$id/pages/{pageNumber}", pageCount = 10),
-    )
+    private lateinit var mockServer: MockWebServer
+
+    private val feedParser = object : FeedParser {
+        private val core = OpdsParser()
+        override fun parse(input: InputStream): OpdsFeed {
+            val pull = KXmlParser().apply {
+                setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+                setInput(input, "UTF-8")
+            }
+            return core.parse(pull)
+        }
+    }
+
+    @Before
+    fun setUp() {
+        mockServer = MockWebServer().apply { start() }
+    }
+
+    @After
+    fun tearDown() {
+        mockServer.shutdown()
+    }
 
     private suspend fun viewModel(
         pageCount: Int = 10,
         initialPage: Int = 3,
         syncTemplate: String? = null,
-        queueNext: Boolean = false,
+        seriesNext: Boolean = false,
     ): ReaderViewModel {
         val dao = FakeOpdsServerDao()
         val serverRepo = ServerRepositoryImpl(dao, FakeSecretCipher(), clock = { 0L })
+        val baseUrl = mockServer.url("/opds").toString()
         val id = serverRepo.upsert(
-            OpdsServer(name = "s", baseUrl = "https://h", syncProgressTemplate = syncTemplate),
+            OpdsServer(name = "s", baseUrl = baseUrl, syncProgressTemplate = syncTemplate),
         )
-        // The current book is 7; queue 8 after it so the VM resolves a next book.
-        // Clear otherwise: the shared holder + reused fake server ids would leak
-        // a previous test's queue into a VM that should have none.
-        queueHolder.set(id, if (queueNext) listOf(book(7, "Vol 7"), book(8, "Vol 8")) else emptyList())
+        // The current book is 7; when seriesNext the series feed lists 7 then 8,
+        // so the resolver picks 8 as the next volume.
+        if (seriesNext) mockServer.enqueue(MockResponse().setResponseCode(200).setBody(SERIES_FEED))
+        val opdsRepo = OpdsRepository(OkHttpClientFactory(OkHttpClient()), feedParser, mainDispatcherRule.dispatcher)
+        val resolver = NextInSeriesResolver(opdsRepo)
         val handle = SavedStateHandle(
             mapOf(
                 ReaderViewModel.ARG_SERVER_ID to id,
@@ -71,10 +100,11 @@ class ReaderViewModelTest {
                 ReaderViewModel.ARG_INITIAL_PAGE to initialPage,
                 ReaderViewModel.ARG_TITLE to "Title",
                 ReaderViewModel.ARG_PSE_TEMPLATE to "/opds/books/7/pages/{pageNumber}",
+                ReaderViewModel.ARG_SERIES_HREF to if (seriesNext) "/opds/series/1" else "",
             ),
         )
         return ReaderViewModel(
-            serverRepo, readerRepo, prefsRepo, { null }, syncRepo, queueHolder, coordinator,
+            serverRepo, readerRepo, prefsRepo, { null }, syncRepo, resolver, coordinator,
             LocalBookSourceFactory(mainDispatcherRule.dispatcher), { error("not used off-device") },
             {}, handle,
         )
@@ -85,9 +115,10 @@ class ReaderViewModelTest {
         val vm = viewModel(initialPage = 3)
         advanceUntilIdle()
 
+        val base = mockServer.url("").toString().trimEnd('/')
         assertEquals(3, vm.state.value.currentPage)
-        assertEquals("https://h/opds/books/7/pages/0", vm.pageSource?.pageModel(0))
-        assertEquals("https://h/opds/books/7/pages/5", vm.pageSource?.pageModel(5))
+        assertEquals("$base/opds/books/7/pages/0", vm.pageSource?.pageModel(0))
+        assertEquals("$base/opds/books/7/pages/5", vm.pageSource?.pageModel(5))
     }
 
     @Test
@@ -187,16 +218,16 @@ class ReaderViewModelTest {
     }
 
     @Test
-    fun `resolves the next book from the queue`() = runTest {
-        val vm = viewModel(queueNext = true)
+    fun `resolves the next volume from the series feed`() = runTest {
+        val vm = viewModel(seriesNext = true)
         advanceUntilIdle()
 
         assertEquals("Vol 8", vm.state.value.nextBook?.title)
     }
 
     @Test
-    fun `next book is null without a queue`() = runTest {
-        val vm = viewModel(queueNext = false)
+    fun `next book is null without a series`() = runTest {
+        val vm = viewModel(seriesNext = false)
         advanceUntilIdle()
 
         assertTrue(vm.state.value.nextBook == null)
@@ -204,12 +235,12 @@ class ReaderViewModelTest {
 
     @Test
     fun `requestNextBookConfirm shows the dialog only when a next book exists`() = runTest {
-        val withNext = viewModel(queueNext = true)
+        val withNext = viewModel(seriesNext = true)
         advanceUntilIdle()
         withNext.requestNextBookConfirm()
         assertTrue(withNext.state.value.confirmNextVisible)
 
-        val withoutNext = viewModel(queueNext = false)
+        val withoutNext = viewModel(seriesNext = false)
         advanceUntilIdle()
         withoutNext.requestNextBookConfirm()
         assertTrue(!withoutNext.state.value.confirmNextVisible)
@@ -217,7 +248,7 @@ class ReaderViewModelTest {
 
     @Test
     fun `confirmNextBook emits an open request and dismisses`() = runTest {
-        val vm = viewModel(queueNext = true)
+        val vm = viewModel(seriesNext = true)
         advanceUntilIdle()
         vm.requestNextBookConfirm()
 
@@ -230,7 +261,7 @@ class ReaderViewModelTest {
 
     @Test
     fun `dismissNextBookConfirm hides the dialog`() = runTest {
-        val vm = viewModel(queueNext = true)
+        val vm = viewModel(seriesNext = true)
         advanceUntilIdle()
         vm.requestNextBookConfirm()
         vm.dismissNextBookConfirm()
@@ -247,5 +278,30 @@ class ReaderViewModelTest {
         advanceUntilIdle()
 
         assertEquals(TapAction.NEXT_CONTINUOUS, prefsRepo.current().left)
+    }
+
+    private companion object {
+        val SERIES_FEED = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom"
+                  xmlns:pse="http://vaemendis.net/opds-pse/ns">
+              <title>Series 1</title>
+              <id>urn:bookwall:series:1</id>
+              <updated>2026-01-01T00:00:00Z</updated>
+              <link rel="self" href="/opds/series/1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+              <entry>
+                <title>Vol 7</title>
+                <id>urn:bookwall:book:7</id>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/7/file.cbz" type="application/vnd.comicbook+zip"/>
+                <pse:link rel="http://vaemendis.net/opds-pse/stream" href="/opds/books/7/pages/{pageNumber}" type="image/jpeg" pse:count="10"/>
+              </entry>
+              <entry>
+                <title>Vol 8</title>
+                <id>urn:bookwall:book:8</id>
+                <link rel="http://opds-spec.org/acquisition" href="/opds/books/8/file.cbz" type="application/vnd.comicbook+zip"/>
+                <pse:link rel="http://vaemendis.net/opds-pse/stream" href="/opds/books/8/pages/{pageNumber}" type="image/jpeg" pse:count="10"/>
+              </entry>
+            </feed>
+        """.trimIndent()
     }
 }

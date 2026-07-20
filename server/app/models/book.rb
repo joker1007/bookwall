@@ -32,6 +32,9 @@ class Book < ApplicationRecord
   validates :file_size, numericality: {greater_than_or_equal_to: 0}
 
   scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
+  # Canonical order for volumes within a series. Shared by #next_in_series and the
+  # OPDS series feed so the reader's "next volume" matches the feed order exactly.
+  scope :in_series_order, -> { order(:volume, :id) }
 
   def absolute_path
     return file_path if library.nil?
@@ -48,7 +51,7 @@ class Book < ApplicationRecord
 
   def next_in_series(scope = self.class.all)
     return nil unless series_id
-    ordered_ids = scope.where(series_id: series_id).order(:volume, :id).pluck(:id)
+    ordered_ids = scope.where(series_id: series_id).in_series_order.pluck(:id)
     position = ordered_ids.index(id)
     return nil if position.nil?
     next_id = ordered_ids[position + 1]

@@ -26,8 +26,8 @@ import net.joker1007.bookwall.data.reader.ProgressSyncRepository
 import net.joker1007.bookwall.data.reader.ProgressSyncScheduler
 import net.joker1007.bookwall.data.reader.ReaderPreferencesRepository
 import net.joker1007.bookwall.data.reader.ReaderState
+import net.joker1007.bookwall.data.reader.NextInSeriesResolver
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
-import net.joker1007.bookwall.data.reader.ReadingQueueHolder
 import net.joker1007.bookwall.data.reader.ReadingDirection
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
@@ -50,7 +50,7 @@ data class ReaderUiState(
     val pageOffset: Int = 0,
     val menuVisible: Boolean = false,
     val settingsVisible: Boolean = false,
-    /** Next book in the catalog queue, or null when there is none. */
+    /** Next volume in the same series, or null when there is none. */
     val nextBook: OpdsEntry.Book? = null,
     /** Whether the "open the next book?" confirmation dialog is shown. */
     val confirmNextVisible: Boolean = false,
@@ -63,7 +63,7 @@ class ReaderViewModel @Inject constructor(
     private val preferencesRepository: ReaderPreferencesRepository,
     private val imageLoaderProvider: ServerImageLoaderProvider,
     private val progressSyncRepository: ProgressSyncRepository,
-    private val readingQueueHolder: ReadingQueueHolder,
+    private val nextInSeriesResolver: NextInSeriesResolver,
     private val bookOpenCoordinator: BookOpenCoordinator,
     private val localBookSourceFactory: LocalBookSourceFactory,
     private val localImageLoaderProvider: LocalImageLoaderProvider,
@@ -78,6 +78,7 @@ class ReaderViewModel @Inject constructor(
     private val title: String = savedStateHandle.get<String>(ARG_TITLE).orEmpty()
     private val pseTemplate: String = savedStateHandle.get<String>(ARG_PSE_TEMPLATE).orEmpty()
     private val localPath: String = savedStateHandle.get<String>(ARG_LOCAL_PATH).orEmpty()
+    private val seriesHref: String = savedStateHandle.get<String>(ARG_SERIES_HREF).orEmpty()
 
     private val _state = MutableStateFlow(ReaderUiState(title = title, pageCount = pageCount))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
@@ -123,8 +124,16 @@ class ReaderViewModel @Inject constructor(
                     currentPage = clampPage(saved?.currentPage ?: initialPage),
                     direction = saved?.direction ?: it.direction,
                     spreadEnabled = saved?.spreadEnabled ?: it.spreadEnabled,
-                    nextBook = readingQueueHolder.nextAfter(serverId, bookId),
                 )
+            }
+            // Resolve the next volume off the critical path: it needs a network
+            // fetch of the series feed and only gates the end-of-book roll-over.
+            if (srv != null && seriesHref.isNotEmpty()) {
+                launch {
+                    nextInSeriesResolver.resolve(srv, seriesHref, bookId)?.let { next ->
+                        _state.update { it.copy(nextBook = next) }
+                    }
+                }
             }
         }
     }
@@ -243,5 +252,6 @@ class ReaderViewModel @Inject constructor(
         const val ARG_TITLE = "title"
         const val ARG_PSE_TEMPLATE = "pseTemplate"
         const val ARG_LOCAL_PATH = "localPath"
+        const val ARG_SERIES_HREF = "seriesHref"
     }
 }

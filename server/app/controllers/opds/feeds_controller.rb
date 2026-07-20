@@ -26,7 +26,7 @@ module Opds
 
     def recent
       books = accessible_books.order(added_at: :desc).limit(100)
-                  .includes(:authors, :tags)
+                  .includes(:authors, :tags, :series)
                   .with_attached_cover
       render_acquisition_feed("Recent", "urn:bookwall:recent", view_context_helpers.opds_recent_path, books)
     end
@@ -38,7 +38,7 @@ module Opds
         .in_libraries(accessible_library_ids)
         .order(last_read_at: :desc)
         .limit(RECENT_READS_LIMIT)
-        .includes(book: [:authors, :tags, {cover_attachment: :blob}])
+        .includes(book: [:authors, :tags, :series, {cover_attachment: :blob}])
         .map(&:book)
       render_acquisition_feed(
         "Recently Read", "urn:bookwall:recent-reads",
@@ -51,7 +51,7 @@ module Opds
       scope = Book.joins(:favorites).where(favorites: {user_id: user.id})
                   .where(library_id: accessible_library_ids)
       facets = build_facets(scope) { |filters| view_context_helpers.opds_favorites_path(filters) }
-      books = facets.books.includes(:authors, :tags).with_attached_cover
+      books = facets.books.includes(:authors, :tags, :series).with_attached_cover
       render_acquisition_feed(
         "Favorites", "urn:bookwall:favorites",
         view_context_helpers.opds_favorites_path(active_facet_params), books, facets: facets.links
@@ -77,7 +77,7 @@ module Opds
       facets = build_facets(lib.books) do |filters|
         view_context_helpers.opds_library_path(filters.merge(library_id: lib.id))
       end
-      books = facets.books.includes(:authors, :tags).with_attached_cover.order(:title)
+      books = facets.books.includes(:authors, :tags, :series).with_attached_cover.order(:title)
       render_acquisition_feed(
         lib.name, "urn:bookwall:library:#{lib.id}",
         view_context_helpers.opds_library_path(active_facet_params.merge(library_id: lib.id)),
@@ -107,7 +107,7 @@ module Opds
 
     def series_show
       series = Series.accessible_by(Current.user).find(params[:series_id])
-      books = series.books.includes(:authors, :tags).with_attached_cover.order(:volume, :title)
+      books = series.books.includes(:authors, :tags, :series).with_attached_cover.in_series_order
       render_acquisition_feed(series.name, "urn:bookwall:series:#{series.id}",
                               view_context_helpers.opds_series_path(series_id: series.id), books)
     end
@@ -133,7 +133,7 @@ module Opds
     def tag_show
       tag = Tag.accessible_by(Current.user).find(params[:tag_id])
       books = tag.books.where(library_id: accessible_library_ids)
-                 .includes(:authors, :tags).with_attached_cover.order(:title)
+                 .includes(:authors, :tags, :series).with_attached_cover.order(:title)
       render_acquisition_feed(tag.name, "urn:bookwall:tag:#{tag.id}",
                               view_context_helpers.opds_tag_path(tag_id: tag.id), books)
     end
@@ -161,7 +161,7 @@ module Opds
     def collection_show
       collection = Current.user.collections.find(params[:collection_id])
       books = collection.books.where(library_id: accessible_library_ids)
-                .includes(:authors, :tags).with_attached_cover.order(:title)
+                .includes(:authors, :tags, :series).with_attached_cover.order(:title)
       render_acquisition_feed(collection.name, "urn:bookwall:collection:#{collection.id}",
                               view_context_helpers.opds_collection_path(collection_id: collection.id), books)
     end

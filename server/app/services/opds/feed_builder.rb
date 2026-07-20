@@ -85,6 +85,18 @@ module Opds
             content_text = entry_content(book)
             xml.content_(type: "text") { xml.text(content_text) } if content_text.present?
 
+            # Link to the book's series sub-catalog so clients can surface the series
+            # and roll over to the next volume. Standard atom "related" rel (no custom
+            # capability), so generic OPDS clients simply ignore it.
+            if book.series_id
+              xml.link(
+                rel: "related",
+                href: helpers.opds_series_path(series_id: book.series_id),
+                type: Opds::ACQUISITION_MIME,
+                title: book.series.name
+              )
+            end
+
             acquisition_attrs = {
               rel: ACQUISITION_REL,
               href: helpers.opds_book_file_path(book_id: book.id, format: acquisition_format(book)),

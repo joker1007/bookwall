@@ -52,6 +52,33 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(response.body).to include("opds-pse/stream")
     end
 
+    it "emits a related link to the book's series sub-catalog with the series name" do
+      series = create(:series, library: library, name: "Akira")
+      book = create(:book, library: library, series: series, volume: 1)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      link = Nokogiri::XML(response.body).at_xpath(
+        "//atom:entry/atom:link[@rel='related']", "atom" => ATOM_NS
+      )
+      expect(link).not_to be_nil
+      expect(link["href"]).to eq("/opds/series/#{series.id}")
+      expect(link["title"]).to eq("Akira")
+      expect(link["type"]).to eq(Opds::ACQUISITION_MIME)
+      expect(book.series_id).to eq(series.id)
+    end
+
+    it "omits the series related link for a book without a series" do
+      create(:book, library: library, series: nil)
+
+      get "/opds/recent", headers: {"Authorization" => auth_header}
+
+      link = Nokogiri::XML(response.body).at_xpath(
+        "//atom:entry/atom:link[@rel='related']", "atom" => ATOM_NS
+      )
+      expect(link).to be_nil
+    end
+
     it "emits atom:published (added_at) for sorting by registration date" do
       create(:book, library: library, added_at: Time.utc(2026, 5, 20, 9, 0, 0))
       get "/opds/recent", headers: {"Authorization" => auth_header}
@@ -345,7 +372,7 @@ RSpec.describe "Opds::Feeds", type: :request do
   end
 
   describe "GET /opds/series/:id" do
-    it "lists books in the series ordered by volume then title" do
+    it "lists books in the series ordered by volume" do
       series = create(:series, library: library, name: "Akira")
       vol2 = create(:book, library: library, series: series, title: "Akira v2", volume: 2, file_path: "akira-2.cbz")
       vol1 = create(:book, library: library, series: series, title: "Akira v1", volume: 1, file_path: "akira-1.cbz")
@@ -359,6 +386,21 @@ RSpec.describe "Opds::Feeds", type: :request do
       titles = doc.xpath("//atom:entry/atom:title", ns).map(&:text)
       expect(titles).to eq([vol1.title, vol2.title])
       expect(titles).not_to include(other.title)
+    end
+
+    it "orders same-volume books by id, matching Book#next_in_series so the reader agrees with the feed" do
+      series = create(:series, library: library, name: "Dup")
+      # Two books share volume 1; the id tiebreak (not title) must match next_in_series.
+      first = create(:book, library: library, series: series, title: "Zeta", volume: 1, file_path: "dup-a.cbz")
+      second = create(:book, library: library, series: series, title: "Alpha", volume: 1, file_path: "dup-b.cbz")
+
+      get "/opds/series/#{series.id}", headers: {"Authorization" => auth_header}
+
+      doc = Nokogiri::XML(response.body)
+      ns = {"atom" => "http://www.w3.org/2005/Atom"}
+      titles = doc.xpath("//atom:entry/atom:title", ns).map(&:text)
+      expect(titles).to eq([first.title, second.title])
+      expect(first.next_in_series).to eq(second)
     end
 
     it "returns 404 for an unknown series" do
