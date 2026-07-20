@@ -34,7 +34,7 @@ class Book < ApplicationRecord
   scope :accessible_by, ->(user) { where(library_id: Library.accessible_by(user).select(:id)) }
   # Canonical order for volumes within a series. Shared by #next_in_series and the
   # OPDS series feed so the reader's "next volume" matches the feed order exactly.
-  scope :in_series_order, -> { order(:volume, :id) }
+  scope :in_series_order, -> { order(:volume, :title) }
 
   def absolute_path
     return file_path if library.nil?

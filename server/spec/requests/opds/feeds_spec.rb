@@ -388,19 +388,20 @@ RSpec.describe "Opds::Feeds", type: :request do
       expect(titles).not_to include(other.title)
     end
 
-    it "orders same-volume books by id, matching Book#next_in_series so the reader agrees with the feed" do
+    it "orders same-volume books by title, matching Book#next_in_series so the reader agrees with the feed" do
       series = create(:series, library: library, name: "Dup")
-      # Two books share volume 1; the id tiebreak (not title) must match next_in_series.
-      first = create(:book, library: library, series: series, title: "Zeta", volume: 1, file_path: "dup-a.cbz")
-      second = create(:book, library: library, series: series, title: "Alpha", volume: 1, file_path: "dup-b.cbz")
+      # Two books share volume 1; the title tiebreak orders "Alpha" before "Zeta"
+      # regardless of insertion (id) order, and next_in_series must agree.
+      zeta = create(:book, library: library, series: series, title: "Zeta", volume: 1, file_path: "dup-a.cbz")
+      alpha = create(:book, library: library, series: series, title: "Alpha", volume: 1, file_path: "dup-b.cbz")
 
       get "/opds/series/#{series.id}", headers: {"Authorization" => auth_header}
 
       doc = Nokogiri::XML(response.body)
       ns = {"atom" => "http://www.w3.org/2005/Atom"}
       titles = doc.xpath("//atom:entry/atom:title", ns).map(&:text)
-      expect(titles).to eq([first.title, second.title])
-      expect(first.next_in_series).to eq(second)
+      expect(titles).to eq([alpha.title, zeta.title])
+      expect(alpha.next_in_series).to eq(zeta)
     end
 
     it "returns 404 for an unknown series" do
