@@ -2,5 +2,23 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "automergeStrategy": "merge-commit",
+  "packageRules": [
+    {
+      "description": "Minor and patch updates are automerged for every manager (bundler, npm, gradle, gradle-wrapper). Majors still get a manual review.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions are automerged for every update type, majors included.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
+    }
   ]
 }
