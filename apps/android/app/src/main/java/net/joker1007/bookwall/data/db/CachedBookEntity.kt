@@ -32,4 +32,6 @@ data class CachedBookEntity(
     val createdAt: Long,
     /** Bumped when the cached file is opened; drives LRU eviction. */
     val lastAccessedAt: Long,
+    /** Strong ETag of the file being downloaded; sent as If-Range so a resume never splices a changed file. */
+    val etag: String? = null,
 )
