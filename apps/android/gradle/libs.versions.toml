@@ -22,7 +22,7 @@ hiltWork = "1.2.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-turbine = "1.2.0"
+turbine = "1.2.1"
 kxml2 = "2.3.0"
 json = "20240303"
 
