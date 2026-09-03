@@ -111,6 +111,7 @@ docker run -d --name bookwall \
 ```
 
 - Thruster listens on port **8237** and proxies to the internal Falcon (`TARGET_PORT=3000`).
+- `HTTP_WRITE_TIMEOUT=0` disables Thruster's 30-second response write deadline so large book downloads are not cut off midway. Set it to a positive number of seconds if you want a limit.
 - The **`/config` volume** holds the SQLite databases (primary / cache / queue / cable) and the Active Storage cover files.
 - Mount your actual library (CBZ / EPUB / PDF, etc.) as a separate volume and register its path as a library from Bookwall's settings screen.
 

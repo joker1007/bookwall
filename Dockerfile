@@ -91,9 +91,12 @@ COPY --chown=rails:rails --from=server_build /rails /rails
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
+# Thruster's default write timeout (30s) is a deadline for the whole response,
+# so book downloads larger than the client can pull in 30s get cut off.
 ENV HTTP_PORT="8237" \
   TARGET_PORT="3000" \
-  FALCON_INSTANCES="4"
+  FALCON_INSTANCES="4" \
+  HTTP_WRITE_TIMEOUT="0"
 EXPOSE 8237
 # bin/docker-server boots both the web server (Thruster + Falcon) and
 # the SolidQueue worker in the same container. Override the CMD with
