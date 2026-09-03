@@ -3,6 +3,7 @@
 module Opds
   class DownloadsController < BaseController
     include ZipKit::RailsStreaming
+    include ByteRangeServing
 
     def file
       book = find_accessible_book!(params[:book_id])
@@ -24,14 +25,21 @@ module Opds
           type: Books::FileFormat.mime(book.file_format)
         ) { |zip| Opds::CbzBuilder.stream(resolved, zip) }
       else
-        send_file resolved,
-          type: Books::FileFormat.mime(book.file_format),
-          disposition: "attachment",
-          filename: Books::FileFormat.download_filename(book)
+        send_single_file(book, resolved)
       end
     end
 
     private
+
+    def send_single_file(book, path)
+      mime = Books::FileFormat.mime(book.file_format)
+      filename = Books::FileFormat.download_filename(book)
+      response.set_header("Accept-Ranges", "bytes")
+      return unless stale?(strong_etag: book.updated_at.to_i.to_s)
+      return if serve_byte_range(path, type: mime, filename: filename)
+
+      send_file path, type: mime, disposition: "attachment", filename: filename
+    end
 
     def expected_format(book)
       case book.file_format.to_s
