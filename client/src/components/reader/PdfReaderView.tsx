@@ -200,7 +200,6 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
     if (progress.isPending) return;
     let cancelled = false;
     let task: ReturnType<PdfjsModule["getDocument"]> | null = null;
-    let createdDoc: PDFDocumentProxy | null = null;
 
     (async () => {
       try {
@@ -213,11 +212,9 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
           rangeChunkSize: 65536,
         });
         const openedDoc = await task.promise;
-        if (cancelled) {
-          openedDoc.destroy();
-          return;
-        }
-        createdDoc = openedDoc;
+        // The cleanup below already destroyed the loading task, which tears
+        // down the transport and worker behind this document.
+        if (cancelled) return;
         setNumPages(openedDoc.numPages);
         const rawOutline = await openedDoc.getOutline();
         if (cancelled) return;
@@ -244,7 +241,6 @@ export function PdfReaderView({ book }: PdfReaderViewProps) {
       } catch {
         // ignore
       }
-      createdDoc?.destroy();
     };
   }, [book.id, progress.isPending]);
 
