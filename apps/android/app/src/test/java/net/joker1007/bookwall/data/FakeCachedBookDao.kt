@@ -37,6 +37,16 @@ class FakeCachedBookDao : CachedBookDao {
         update(serverId, bookId) { it.copy(downloadedBytes = downloadedBytes, totalBytes = totalBytes) }
     }
 
+    override suspend fun updateEtag(serverId: Long, bookId: Long, etag: String?) {
+        update(serverId, bookId) { it.copy(etag = etag) }
+    }
+
+    override suspend fun requeueDownloading() {
+        rows.value = rows.value.map {
+            if (it.status == CachedBookStatus.DOWNLOADING) it.copy(status = CachedBookStatus.PENDING) else it
+        }
+    }
+
     override suspend fun touch(serverId: Long, bookId: Long, now: Long) {
         update(serverId, bookId) { it.copy(lastAccessedAt = now) }
     }

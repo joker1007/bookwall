@@ -154,8 +154,8 @@ class BookCacheRepositoryImpl @Inject constructor(
         for (row in rows) {
             when (row.status) {
                 CachedBookStatus.DOWNLOADING -> {
-                    // Left over from a killed process; restart from scratch.
-                    fileStore.partFileFor(row.fileName).delete()
+                    // Left over from a killed process; the part file is resumed with a Range request.
+                    dao.updateProgress(row.serverId, row.bookId, fileStore.partFileFor(row.fileName).length(), row.totalBytes)
                     dao.updateStatus(row.serverId, row.bookId, CachedBookStatus.PENDING)
                     hasPending = true
                 }

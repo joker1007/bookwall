@@ -38,4 +38,10 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
-val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6)
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `cached_books` ADD COLUMN `etag` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6, MIGRATION_6_7)

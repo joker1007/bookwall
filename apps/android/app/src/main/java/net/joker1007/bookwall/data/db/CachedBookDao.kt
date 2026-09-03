@@ -31,6 +31,13 @@ interface CachedBookDao {
     )
     suspend fun updateProgress(serverId: Long, bookId: Long, downloadedBytes: Long, totalBytes: Long)
 
+    @Query("UPDATE cached_books SET etag = :etag WHERE serverId = :serverId AND bookId = :bookId")
+    suspend fun updateEtag(serverId: Long, bookId: Long, etag: String?)
+
+    /** Rows left DOWNLOADING by a stopped worker; their part files are resumed. */
+    @Query("UPDATE cached_books SET status = 'PENDING' WHERE status = 'DOWNLOADING'")
+    suspend fun requeueDownloading()
+
     @Query("UPDATE cached_books SET lastAccessedAt = :now WHERE serverId = :serverId AND bookId = :bookId")
     suspend fun touch(serverId: Long, bookId: Long, now: Long)
 

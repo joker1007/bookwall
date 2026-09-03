@@ -2,6 +2,7 @@
 
 module Api
   class BooksController < BaseController
+    include ByteRangeServing
     before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series]
     before_action :require_book_owner!, only: %i[update destroy]
 
@@ -97,45 +98,16 @@ module Api
       etag = @book.updated_at.to_i.to_s
       response.set_header("Cache-Control", "private, max-age=31536000, immutable")
       response.set_header("Accept-Ranges", "bytes")
-      return unless stale?(etag: etag)
+      return unless stale?(strong_etag: etag)
 
-      return if serve_byte_range(resolved)
+      mime = Books::FileFormat.mime(@book.file_format)
+      filename = Books::FileFormat.download_filename(@book)
+      return if serve_byte_range(resolved, type: mime, filename: filename)
 
-      send_file resolved,
-        type: Books::FileFormat.mime(@book.file_format),
-        disposition: "attachment",
-        filename: Books::FileFormat.download_filename(@book)
+      send_file resolved, type: mime, disposition: "attachment", filename: filename
     end
 
     private
-
-    # Falcon's send_file ignores Range, so slice the bytes ourselves. Returns
-    # false (caller does the full send_file) for no/multipart range requests.
-    def serve_byte_range(path)
-      range_header = request.get_header("HTTP_RANGE")
-      return false if range_header.blank?
-
-      file_size = File.size(path)
-      ranges = Rack::Utils.get_byte_ranges(range_header, file_size)
-      return false if ranges.nil?
-
-      if ranges.empty?
-        response.set_header("Content-Range", "bytes */#{file_size}")
-        head :range_not_satisfiable
-        return true
-      end
-
-      return false if ranges.size != 1
-
-      range = ranges.first
-      response.set_header("Content-Range", "bytes #{range.begin}-#{range.end}/#{file_size}")
-      send_data File.binread(path, range.size, range.begin),
-        type: Books::FileFormat.mime(@book.file_format),
-        disposition: "attachment",
-        filename: Books::FileFormat.download_filename(@book),
-        status: :partial_content
-      true
-    end
 
     def set_book
       @book = find_accessible_book!(params[:id])
