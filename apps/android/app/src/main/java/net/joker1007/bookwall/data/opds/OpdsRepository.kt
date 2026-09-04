@@ -37,7 +37,7 @@ class OpdsRepository @Inject constructor(
             clientFactory.forServer(server).newCall(request).execute().use { response ->
                 when {
                     response.isSuccessful -> {
-                        val body = response.body ?: return@use FeedResult.ParseError
+                        val body = response.body
                         try {
                             FeedResult.Success(parser.parse(body.byteStream()))
                         } catch (_: XmlPullParserException) {

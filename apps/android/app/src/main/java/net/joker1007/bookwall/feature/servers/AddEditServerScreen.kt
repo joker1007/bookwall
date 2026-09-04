@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import net.joker1007.bookwall.data.server.AuthType
 import net.joker1007.bookwall.network.ConnectionResult
 
@@ -183,7 +183,7 @@ private fun AuthTypeDropdown(selected: AuthType, onSelected: (AuthType) -> Unit)
             label = { Text("認証方式") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable)
+                .menuAnchor(androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth()
                 .testTag(ServerFormTags.AUTH_TYPE),
         )

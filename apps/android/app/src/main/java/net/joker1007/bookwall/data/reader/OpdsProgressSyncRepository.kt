@@ -47,7 +47,7 @@ class OpdsProgressSyncRepository @Inject constructor(
             try {
                 clientFactory.forServer(server).newCall(request).execute().use { response ->
                     if (!response.isSuccessful) return@use null
-                    val text = response.body?.string() ?: return@use null
+                    val text = response.body.string()
                     val json = JSONObject(text)
                     RemoteEpubProgress(
                         cfi = json.optString("epub_cfi").ifEmpty { null },
