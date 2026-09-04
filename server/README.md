@@ -50,7 +50,8 @@ bin/brakeman --no-pager    # Brakeman
 |---|---|
 | `GET    /` | 301 redirect to `/ui/` |
 | `GET    /ui` `/ui/*` | SPA fallback (returns `public/ui/index.html`) |
-| `POST   /api/registrations` | Sign-up |
+| `POST   /api/registrations` | Sign-up (open until the first account exists; 403 `registration_closed` afterwards unless public registration is enabled) |
+| `GET    /api/registration_settings` `PATCH` | Public registration toggle (`GET` is unauthenticated so the login page can hide the sign-up link) |
 | `POST   /api/session` | Login (issues a cookie session) |
 | `DELETE /api/session` | Logout |
 | `POST   /api/api_tokens` | Issue a Bearer token for OPDS / Reader |

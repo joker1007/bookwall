@@ -5,6 +5,10 @@ module Api
     allow_unauthenticated_access only: %i[create]
 
     def create
+      unless RegistrationSetting.registration_open?
+        return render json: {error: "registration_closed"}, status: :forbidden
+      end
+
       user = User.new(registration_params)
       if user.save
         start_new_session_for(user)

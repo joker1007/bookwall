@@ -28,6 +28,7 @@ module Api
         Session.delete_all
         User.delete_all
         ScheduledTaskSetting.delete_all
+        RegistrationSetting.delete_all
         ActiveRecord::Base.connection.execute("DELETE FROM books_fts")
       end
       cookies.delete(:session_id)

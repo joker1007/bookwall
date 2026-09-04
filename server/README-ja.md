@@ -49,7 +49,8 @@ bin/brakeman --no-pager    # Brakeman
 |---|---|
 | `GET    /` | `/ui/` への 301 リダイレクト |
 | `GET    /ui` `/ui/*` | SPA fallback (`public/ui/index.html` を返す) |
-| `POST   /api/registrations` | サインアップ |
+| `POST   /api/registrations` | サインアップ (最初のアカウント作成まで開放。以降はパブリック登録が有効でない限り 403 `registration_closed`) |
+| `GET    /api/registration_settings` `PATCH` | パブリック登録のトグル (`GET` は未認証で参照可能。ログイン画面でサインアップリンクを出し分ける) |
 | `POST   /api/session` | ログイン (Cookie セッション発行) |
 | `DELETE /api/session` | ログアウト |
 | `POST   /api/api_tokens` | OPDS / Reader 用 Bearer トークン発行 |

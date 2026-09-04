@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { REGISTRATION_SETTINGS_KEY } from "@/hooks/useRegistrationSettings";
 import type { User } from "@/types/api";
 
 const SESSION_KEY = ["session"] as const;
@@ -69,6 +70,7 @@ export function useRegister() {
     onSuccess: (user) => {
       setUser(user);
       queryClient.setQueryData(SESSION_KEY, user);
+      queryClient.invalidateQueries({ queryKey: REGISTRATION_SETTINGS_KEY });
     },
   });
 }

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogin } from "@/hooks/useAuth";
+import { useRegistrationSettings } from "@/hooks/useRegistrationSettings";
 import { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const login = useLogin();
+  const registration = useRegistrationSettings();
 
   if (status === "authenticated") {
     return <Navigate to={resolveRedirect(location.search)} replace />;
@@ -69,12 +71,14 @@ export default function LoginPage() {
             <Button type="submit" disabled={login.isPending} className="min-h-11">
               {login.isPending ? t("auth.loginInProgress") : t("auth.loginButton")}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              {t("auth.signupPrompt")}{" "}
-              <Link to="/signup" className="text-foreground underline-offset-4 hover:underline">
-                {t("auth.signupLink")}
-              </Link>
-            </p>
+            {registration.data?.registration_open ? (
+              <p className="text-center text-sm text-muted-foreground">
+                {t("auth.signupPrompt")}{" "}
+                <Link to="/signup" className="text-foreground underline-offset-4 hover:underline">
+                  {t("auth.signupLink")}
+                </Link>
+              </p>
+            ) : null}
           </form>
         </CardContent>
       </Card>

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/authStore";
 import { useRegister } from "@/hooks/useAuth";
+import { useRegistrationSettings } from "@/hooks/useRegistrationSettings";
 import { ApiError } from "@/lib/api";
 
 export default function SignupPage() {
@@ -17,8 +18,12 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const register = useRegister();
+  const registration = useRegistrationSettings();
 
   if (status === "authenticated") return <Navigate to="/" replace />;
+  if (registration.data && !registration.data.registration_open) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -112,6 +117,7 @@ export default function SignupPage() {
 
 function formatSignupError(error: unknown, t: (key: string) => string) {
   if (error instanceof ApiError) {
+    if (error.status === 403) return t("auth.registrationClosed");
     const body = error.body as { errors?: string[] } | undefined;
     if (body?.errors?.length) return body.errors.join(" / ");
   }

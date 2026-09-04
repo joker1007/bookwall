@@ -64,7 +64,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 ### 配信・連携
 - **OPDS / OPDS-PSE**: Atom フィードで他のリーダーアプリに配信 — 新着 / 最近読んだ本 / お気に入り / ライブラリ別 / シリーズ / タグ / コレクション。タグファセットとページストリーミング (PSE) 対応
 - **進捗同期**: OPDS ルートに first-party の進捗エンドポイントを capability link として広告。Android アプリはこれで読書位置を push / pull する
-- **認証**: Cookie セッション (UI 用) と Bearer トークン (OPDS / Reader 用) を併存
+- **認証**: Cookie セッション (UI 用) と Bearer トークン (OPDS / Reader 用) を併存。サインアップは最初のアカウント作成まで開放され、以降は設定画面でパブリック登録を有効にしない限り閉じる
 - **モバイル対応**: 390px〜の viewport で動作
 
 ### Android アプリ

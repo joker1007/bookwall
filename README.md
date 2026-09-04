@@ -62,7 +62,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 ### Delivery & integrations
 - **OPDS / OPDS-PSE**: Atom feeds for other reader apps — recent / recent reads / favorites / per-library / series / tags / collections, with tag facets and page streaming (PSE).
 - **Progress sync**: A first-party progress endpoint is advertised on the OPDS root as a capability link; the Android app pushes and pulls read positions through it.
-- **Authentication**: Cookie sessions (for UI) and Bearer tokens (for OPDS / Reader) coexist.
+- **Authentication**: Cookie sessions (for UI) and Bearer tokens (for OPDS / Reader) coexist. Sign-up is open only until the first account is created; afterwards it stays closed unless public registration is switched on in Settings.
 - **Mobile support**: Works on viewports starting from 390px.
 
 ### Android app

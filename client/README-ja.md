@@ -60,7 +60,7 @@ client/
     │   ├── _layout.tsx         #   AppShell をマウントするだけの薄いラッパ
     │   ├── home.tsx            #   "/" 最近読んだ本 / お気に入りカルーセル + 最近追加された書籍
     │   ├── login.tsx           #   "/login" 公開
-    │   ├── signup.tsx          #   "/signup" 公開
+    │   ├── signup.tsx          #   "/signup" 公開 (登録が閉じている間は /login へリダイレクト)
     │   ├── books.detail.tsx    #   "/books/:id"
     │   ├── books.read.tsx      #   "/books/:id/read" CBZ / PDF / image_dir リーダー (EPUB は内包)
     │   ├── libraries.detail.tsx
@@ -96,6 +96,7 @@ client/
     │   ├── useResolvedReaderSettings.ts  # per-book 設定とユーザー既定値のマージ
     │   ├── useUserPreferences.ts  # /api/preferences (user-wide reader defaults)
     │   ├── useScheduledTaskSettings.ts  # /api/scheduled_task_settings
+    │   ├── useRegistrationSettings.ts   # /api/registration_settings (パブリック登録のトグル)
     │   ├── useTaxonomy.ts      # /api/series /api/authors /api/tags
     │   ├── useTaxonomyListState.ts
     │   ├── useFullscreen.ts useReaderKeyboard.ts
