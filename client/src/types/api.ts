@@ -60,6 +60,11 @@ export interface ScheduledTaskSettings {
   cleanup_enabled: boolean;
 }
 
+export interface RegistrationSettings {
+  public_registration_enabled: boolean;
+  registration_open: boolean;
+}
+
 export type ScanStatus = "pending" | "running" | "succeeded" | "failed";
 
 export interface ScanLog {

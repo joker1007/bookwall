@@ -69,6 +69,7 @@
     "passwordMismatch": "Passwords do not match.",
     "invalidCredentials": "Incorrect email or password.",
     "signupFailed": "Sign-up failed. Please check your input.",
+    "registrationClosed": "Sign-up is closed on this server. Ask an existing user to enable public registration in Settings.",
     "loggedInAs": "Logged in as {{email}}"
   },
   "home": {
@@ -324,6 +325,12 @@
       "dailyScanHint": "Scans every library with auto scan enabled each day at 4:00.",
       "cleanup": "Daily cleanup",
       "cleanupHint": "Removes books whose files are gone, plus tags and authors left with no books, each day at 4:30."
+    },
+    "registration": {
+      "title": "Registration",
+      "description": "Sign-up is open only until the first account is created. Turn this on to let anyone with access to this server create an account.",
+      "publicRegistration": "Public registration",
+      "publicRegistrationHint": "Shows the sign-up link on the login page and accepts new accounts. Leave off on servers exposed to the Internet."
     },
     "libraries": {
       "title": "Library settings",

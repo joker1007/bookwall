@@ -60,7 +60,7 @@ client/
     │   ├── _layout.tsx         #   Thin wrapper that only mounts AppShell
     │   ├── home.tsx            #   "/" Recently-read / favorites carousels + recently-added books
     │   ├── login.tsx           #   "/login" public
-    │   ├── signup.tsx          #   "/signup" public
+    │   ├── signup.tsx          #   "/signup" public (redirects to /login while registration is closed)
     │   ├── books.detail.tsx    #   "/books/:id"
     │   ├── books.read.tsx      #   "/books/:id/read" CBZ / PDF / image_dir reader (EPUB is embedded)
     │   ├── libraries.detail.tsx
@@ -96,6 +96,7 @@ client/
     │   ├── useResolvedReaderSettings.ts  # per-book settings merged with user defaults
     │   ├── useUserPreferences.ts  # /api/preferences (user-wide reader defaults)
     │   ├── useScheduledTaskSettings.ts  # /api/scheduled_task_settings
+    │   ├── useRegistrationSettings.ts   # /api/registration_settings (public registration toggle)
     │   ├── useTaxonomy.ts      # /api/series /api/authors /api/tags
     │   ├── useTaxonomyListState.ts
     │   ├── useFullscreen.ts useReaderKeyboard.ts

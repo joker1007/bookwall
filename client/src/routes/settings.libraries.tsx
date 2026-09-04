@@ -46,6 +46,10 @@ import {
   useScheduledTaskSettings,
   useUpdateScheduledTaskSettings,
 } from "@/hooks/useScheduledTaskSettings";
+import {
+  useRegistrationSettings,
+  useUpdateRegistrationSettings,
+} from "@/hooks/useRegistrationSettings";
 import { ApiError } from "@/lib/api";
 import {
   READER_FONT_SIZE_DEFAULT,
@@ -154,6 +158,7 @@ export default function LibrariesSettings() {
       />
 
       <ScheduledTasksSection />
+      <PublicRegistrationSection />
       <ReaderDefaultsSection />
     </section>
   );
@@ -181,7 +186,7 @@ function ScheduledTasksSection() {
         <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
       ) : (
         <div className="grid gap-4">
-          <ScheduledTaskToggle
+          <SettingToggle
             id="scheduled-daily-scan"
             label={t("settings.scheduledTasks.dailyScan")}
             hint={t("settings.scheduledTasks.dailyScanHint")}
@@ -189,7 +194,7 @@ function ScheduledTasksSection() {
             onChange={(v) => update.mutate({ daily_scan_enabled: v })}
             disabled={update.isPending}
           />
-          <ScheduledTaskToggle
+          <SettingToggle
             id="scheduled-cleanup"
             label={t("settings.scheduledTasks.cleanup")}
             hint={t("settings.scheduledTasks.cleanupHint")}
@@ -203,7 +208,41 @@ function ScheduledTasksSection() {
   );
 }
 
-interface ScheduledTaskToggleProps {
+function PublicRegistrationSection() {
+  const { t } = useTranslation();
+  const settings = useRegistrationSettings();
+  const update = useUpdateRegistrationSettings();
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-border bg-card p-4">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("settings.registration.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.registration.description")}
+        </p>
+      </header>
+
+      {settings.isPending ? (
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+      ) : settings.isError ? (
+        <p className="text-sm text-destructive">{t("common.fetchFailed")}</p>
+      ) : (
+        <SettingToggle
+          id="public-registration"
+          label={t("settings.registration.publicRegistration")}
+          hint={t("settings.registration.publicRegistrationHint")}
+          value={settings.data!.public_registration_enabled}
+          onChange={(v) => update.mutate({ public_registration_enabled: v })}
+          disabled={update.isPending}
+        />
+      )}
+    </section>
+  );
+}
+
+interface SettingToggleProps {
   id: string;
   label: string;
   hint: string;
@@ -212,14 +251,14 @@ interface ScheduledTaskToggleProps {
   disabled?: boolean;
 }
 
-function ScheduledTaskToggle({
+function SettingToggle({
   id,
   label,
   hint,
   value,
   onChange,
   disabled,
-}: ScheduledTaskToggleProps) {
+}: SettingToggleProps) {
   const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between gap-3">

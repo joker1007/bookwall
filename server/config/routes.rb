@@ -24,6 +24,7 @@ Rails.application.routes.draw do
 
     resource :session, only: %i[show create destroy]
     resources :registrations, only: %i[create]
+    resource :registration_settings, only: %i[show update]
     resources :api_tokens, only: %i[index create destroy]
     resource :preferences, only: %i[show update]
     resource :scheduled_task_settings, only: %i[show update]
