@@ -41,7 +41,7 @@ gem "hexapdf"
 gem "zip_kit"
 
 # Image processing for cover thumbnails
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.0"
 gem "ruby-vips"
 
 # XML / HTML parsing (also used for OPDS feed builder)
