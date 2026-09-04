@@ -8,9 +8,7 @@ plugins {
 android {
     namespace = "net.joker1007.bookwall"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {
