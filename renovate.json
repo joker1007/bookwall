@@ -19,6 +19,14 @@
         "github-actions"
       ],
       "automerge": true
+    },
+    {
+      "description": "Android Studio caps the AGP version it can open a project with, so an AGP bump has to land together with an IDE upgrade. Renovate still opens the PR; a human merges it once Studio is ready.",
+      "matchPackageNames": [
+        "com.android.tools.build:gradle",
+        "com.android.application"
+      ],
+      "automerge": false
     }
   ]
 }
