@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 module Scanners
-  # Returns the set of book jobs {path:, format:, mtime:}; an image_dir wins over
-  # any book file nested below it.
+  # Returns the set of book jobs {path:, format:, mtime:}. A directory of images
+  # becomes an image_dir book only when no book file sits directly beside them;
+  # otherwise the book files win and the loose images are ignored.
   class LibraryDiscovery
     # Dir.glob ignores File::FNM_CASEFOLD, so expand each letter into a `[lU]` class.
     def self.casefold_glob(ext)
@@ -21,17 +22,25 @@ module Scanners
     end
 
     def call
-      image_dirs = collect_image_dirs
-      jobs = image_dirs.map do |dir|
+      book_jobs = collect_book_files
+      book_dirs = book_jobs.map { |job| File.dirname(job[:path]) }.to_set
+
+      image_dir_jobs = collect_image_dirs.reject { |dir| book_dirs.include?(dir) }.map do |dir|
         # mtime left nil and resolved lazily in LibraryDiff to skip the per-child stat.
         {path: dir.freeze, format: :image_dir, mtime: nil}.freeze
       end
 
+      image_dir_jobs + book_jobs
+    end
+
+    private
+
+    def collect_book_files
+      jobs = []
       BOOK_FORMAT_GLOBS.each do |fmt, pattern|
         Dir.glob(pattern, base: @root) do |rel|
           next if hidden_path?(rel)
           full = File.join(@root, rel)
-          next if inside_image_dir?(full, image_dirs)
           stat = begin
             File.stat(full)
           rescue SystemCallError
@@ -41,11 +50,8 @@ module Scanners
           jobs << {path: full.freeze, format: fmt, mtime: stat.mtime}.freeze
         end
       end
-
       jobs
     end
-
-    private
 
     def collect_image_dirs
       dirs = Set.new
@@ -63,10 +69,6 @@ module Scanners
 
     def hidden_path?(rel)
       rel.split(File::SEPARATOR).any? { |seg| seg.start_with?(".") }
-    end
-
-    def inside_image_dir?(path, image_dirs)
-      image_dirs.any? { |d| path.start_with?("#{d}/") }
     end
   end
 end
