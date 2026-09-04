@@ -113,7 +113,7 @@ class BookCacheDownloadWorkerTest {
         }
         return TestListenableWorkerBuilder<BookCacheDownloadWorker>(context)
             .setWorkerFactory(factory)
-            .build() as BookCacheDownloadWorker
+            .build()
     }
 
     private fun pendingRow(bookId: Long, path: String, thumbPath: String? = null) = CachedBookEntity(

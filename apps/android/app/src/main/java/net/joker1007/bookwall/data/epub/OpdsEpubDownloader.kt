@@ -30,7 +30,7 @@ class OpdsEpubDownloader @Inject constructor(
 
         clientFactory.forServer(server).newCall(Request.Builder().url(url).build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Download failed: HTTP ${response.code}")
-            val body = response.body ?: throw IOException("Empty response body")
+            val body = response.body
             file.outputStream().use { out -> body.byteStream().copyTo(out) }
         }
         file

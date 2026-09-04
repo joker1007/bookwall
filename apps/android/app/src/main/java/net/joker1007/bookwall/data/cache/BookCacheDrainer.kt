@@ -85,7 +85,7 @@ class BookCacheDrainer(
             if (response.code == 200 || row.etag == null) {
                 dao.updateEtag(row.serverId, row.bookId, response.header("ETag")?.takeUnless { it.startsWith("W/") })
             }
-            val body = response.body ?: throw IOException("Empty response body")
+            val body = response.body
             var copied = plan.offset
             var lastCheck = copied
             var lastReport = 0L
@@ -125,7 +125,7 @@ class BookCacheDrainer(
         200 -> Plan(
             offset = 0,
             append = false,
-            total = response.body?.contentLength()?.takeIf { it > 0 } ?: row.totalBytes,
+            total = response.body.contentLength().takeIf { it > 0 } ?: row.totalBytes,
         )
         206 -> {
             val range = ContentRange.parse(response.header("Content-Range"))
@@ -168,7 +168,7 @@ class BookCacheDrainer(
             val name = fileStore.thumbFileName(row.serverId, row.bookId)
             clientFactory.forServer(server).newCall(Request.Builder().url(url).build()).execute().use { response ->
                 if (!response.isSuccessful) return null
-                val body = response.body ?: return null
+                val body = response.body
                 fileStore.fileFor(name).outputStream().use { out -> body.byteStream().copyTo(out) }
             }
             name
