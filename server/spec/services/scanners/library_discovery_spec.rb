@@ -28,13 +28,47 @@ RSpec.describe Scanners::LibraryDiscovery do
     expect(image_dirs.map { |j| j[:path] }).to contain_exactly(dir)
   end
 
-  it "skips archive files that live inside an image_dir" do
-    dir = File.join(tmpdir, "Chapter 1")
+  it "prefers book files over loose images in the same directory" do
+    dir = File.join(tmpdir, "Volume 1")
     FileUtils.mkdir_p(dir)
-    FileUtils.touch(File.join(dir, "001.jpg"))
-    FileUtils.touch(File.join(dir, "extra.cbz"))
+    FileUtils.touch(File.join(dir, "cover.jpg"))
+    FileUtils.touch(File.join(dir, "vol1.cbz"))
+    FileUtils.touch(File.join(dir, "vol1.epub"))
 
-    expect(discover.map { |j| j[:format] }).to contain_exactly(:image_dir)
+    jobs = discover
+    expect(jobs.map { |j| j[:format] }).to contain_exactly(:cbz, :epub)
+    expect(jobs.map { |j| j[:path] }).to contain_exactly(
+      File.join(dir, "vol1.cbz"), File.join(dir, "vol1.epub")
+    )
+  end
+
+  it "still treats a subdirectory of images as an image_dir when book files sit in its parent" do
+    parent = File.join(tmpdir, "Series")
+    child = File.join(parent, "Chapter 1")
+    FileUtils.mkdir_p(child)
+    FileUtils.touch(File.join(parent, "vol1.cbz"))
+    FileUtils.touch(File.join(parent, "cover.jpg"))
+    FileUtils.touch(File.join(child, "001.jpg"))
+
+    jobs = discover
+    expect(jobs.map { |j| [j[:format], j[:path]] }).to contain_exactly(
+      [:cbz, File.join(parent, "vol1.cbz")],
+      [:image_dir, child]
+    )
+  end
+
+  it "scans book files nested below an image_dir" do
+    dir = File.join(tmpdir, "Chapter 1")
+    nested = File.join(dir, "extras")
+    FileUtils.mkdir_p(nested)
+    FileUtils.touch(File.join(dir, "001.jpg"))
+    FileUtils.touch(File.join(nested, "bonus.pdf"))
+
+    jobs = discover
+    expect(jobs.map { |j| [j[:format], j[:path]] }).to contain_exactly(
+      [:image_dir, dir],
+      [:pdf, File.join(nested, "bonus.pdf")]
+    )
   end
 
   it "ignores hidden files and directories" do
