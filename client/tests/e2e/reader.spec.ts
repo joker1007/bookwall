@@ -224,3 +224,53 @@ test.describe("PDF reader", () => {
     await expect(page.locator("canvas").first()).toBeVisible();
   });
 });
+
+test.describe("image reader thumbnails", () => {
+  test("jumps to a page from the thumbnail overlay", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+
+    const libRes = await page.request.post("/api/libraries", {
+      data: { name: "Reader Thumbnails", path: FIXTURES_PATH },
+    });
+    expect(libRes.ok()).toBeTruthy();
+    const lib = (await libRes.json()) as { id: number };
+    const scanRes = await page.request.post(`/api/libraries/${lib.id}/scans`);
+    expect(scanRes.status()).toBe(202);
+
+    const listRes = await page.request.get(`/api/books?library_id=${lib.id}`);
+    expect(listRes.ok()).toBeTruthy();
+    const { books } = (await listRes.json()) as {
+      books: { id: number; file_format: string }[];
+    };
+    const cbz = books.find((b) => b.file_format === "cbz");
+    expect(cbz, "fixtures should contain a CBZ book").toBeTruthy();
+    const bookId = cbz!.id;
+
+    await page.goto(`/ui/books/${bookId}/read`);
+    await expect(page.getByRole("banner").getByText("1 / 4")).toBeVisible();
+
+    await page.getByRole("button", { name: "Page thumbnails" }).click();
+    const grid = page.getByTestId("thumbnail-grid");
+    await expect(grid).toBeVisible();
+    await expect(grid.getByRole("button", { name: /^\d+ \/ 4$/ })).toHaveCount(4);
+    await expect(grid.getByRole("button", { name: "1 / 4" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    await grid.getByRole("button", { name: "3 / 4" }).click();
+    await expect(grid).toBeHidden();
+    await expect(page.getByRole("banner").getByText("3 / 4")).toBeVisible();
+    await expect(page.getByAltText("3 / 4", { exact: true })).toBeVisible();
+
+    // "g" reopens it, Esc closes it without leaving the reader.
+    await page.keyboard.press("g");
+    await expect(grid).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(grid).toBeHidden();
+    await expect(page.getByRole("banner").getByText("3 / 4")).toBeVisible();
+  });
+});

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Keyboard,
+  LayoutGrid,
   Maximize,
   Minimize,
   Settings as SettingsIcon,
@@ -12,6 +13,7 @@ import { EpubReaderView } from "@/components/reader/EpubReaderView";
 import { PdfReaderView } from "@/components/reader/PdfReaderView";
 import { ReaderHotkeysDialog } from "@/components/reader/ReaderHotkeysDialog";
 import { ReaderScrubber } from "@/components/reader/ReaderScrubber";
+import { ReaderThumbnailGrid } from "@/components/reader/ReaderThumbnailGrid";
 import {
   ReaderOptionField,
   ReaderSpreadField,
@@ -74,6 +76,7 @@ function ReaderPageInner() {
   const [scale, setScale] = useState<ReaderScale>("fit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
+  const [thumbnailsOpen, setThumbnailsOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
@@ -154,6 +157,12 @@ function ReaderPageInner() {
   };
 
   const toggleHotkeys = useCallback(() => setHotkeysOpen((v) => !v), []);
+  const toggleThumbnails = useCallback(() => setThumbnailsOpen((v) => !v), []);
+  const closeThumbnails = useCallback(() => setThumbnailsOpen(false), []);
+  const jumpToPage = useCallback((p: number) => {
+    setPage(p);
+    setThumbnailsOpen(false);
+  }, []);
   const toggleSpread = useCallback(() => {
     setSpread((prev) => {
       const next = !prev;
@@ -170,12 +179,13 @@ function ReaderPageInner() {
 
   useReaderKeyboard({
     direction,
-    paused: settingsOpen || hotkeysOpen,
+    paused: settingsOpen || hotkeysOpen || thumbnailsOpen,
     onNext: goNext,
     onPrev: goPrev,
     onNextSingle: goNextOne,
     onPrevSingle: goPrevOne,
     onToggleSpread: toggleSpread,
+    onToggleThumbnails: toggleThumbnails,
     onToggleHotkeys: toggleHotkeys,
     onToggleFullscreen: toggleFullscreen,
     onEscape: handleEscape,
@@ -319,6 +329,16 @@ function ReaderPageInner() {
         <Button
           variant="ghost"
           size="icon"
+          aria-label={t("reader.thumbnails.open")}
+          aria-pressed={thumbnailsOpen}
+          onClick={toggleThumbnails}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <LayoutGrid className="size-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label={t("reader.fullscreen.enter")}
           onClick={toggleFullscreen}
           className="text-white hover:bg-white/10 hover:text-white"
@@ -442,6 +462,17 @@ function ReaderPageInner() {
           />
         ) : null}
       </div>
+
+      {thumbnailsOpen ? (
+        <ReaderThumbnailGrid
+          bookId={id}
+          total={total}
+          currentPage={page}
+          direction={direction}
+          onSelect={jumpToPage}
+          onClose={closeThumbnails}
+        />
+      ) : null}
 
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="w-80 sm:w-96">

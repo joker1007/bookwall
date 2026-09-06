@@ -295,10 +295,16 @@
       "singlePageNudge": "1 ページだけ送る (見開きモード時)",
       "toggleSpread": "見開き表示の切替",
       "toggleFullscreen": "フルスクリーンの切替",
+      "toggleThumbnails": "サムネイル一覧の切替",
       "close": "リーダーを閉じる",
       "toggleHelp": "このダイアログを表示",
       "clickEdgesKey": "左右クリック",
       "clickEdges": "画面の左右端をクリックでページを送ります (方向は書字方向に追従)。"
+    },
+    "thumbnails": {
+      "open": "サムネイル一覧",
+      "title": "サムネイル一覧",
+      "close": "サムネイル一覧を閉じる"
     },
     "fullscreen": {
       "enter": "フルスクリーンに切替",

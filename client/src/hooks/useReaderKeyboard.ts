@@ -14,6 +14,7 @@ interface ReaderKeyboardOptions {
   onNextSingle?: () => void;
   onPrevSingle?: () => void;
   onToggleSpread?: () => void;
+  onToggleThumbnails?: () => void;
 }
 
 export function useReaderKeyboard({
@@ -27,6 +28,7 @@ export function useReaderKeyboard({
   onNextSingle,
   onPrevSingle,
   onToggleSpread,
+  onToggleThumbnails,
 }: ReaderKeyboardOptions) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -66,6 +68,9 @@ export function useReaderKeyboard({
       } else if (e.key === "2" && onToggleSpread) {
         e.preventDefault();
         onToggleSpread();
+      } else if ((e.key === "g" || e.key === "G") && onToggleThumbnails) {
+        e.preventDefault();
+        onToggleThumbnails();
       } else if (e.key === "Escape") {
         e.preventDefault();
         onEscape();
@@ -84,5 +89,6 @@ export function useReaderKeyboard({
     onNextSingle,
     onPrevSingle,
     onToggleSpread,
+    onToggleThumbnails,
   ]);
 }

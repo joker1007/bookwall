@@ -53,6 +53,10 @@ export function ReaderHotkeysDialog({
             keys: <Kbd>2</Kbd>,
             action: t("reader.hotkeys.toggleSpread"),
           },
+          {
+            keys: <Kbd>G</Kbd>,
+            action: t("reader.hotkeys.toggleThumbnails"),
+          },
         ]
       : []),
     {

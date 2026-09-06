@@ -77,7 +77,7 @@ client/
     │   ├── ui/                 # shadcn 生成物 (button, card, dialog, table, …)
     │   ├── layout/             # AppShell, Header, Sidebar
     │   ├── books/              # BookListView, BookCard, BookRow, BookCover (進捗バー overlay 付き), BookEditDialog, BookActions, BulkActionBar, CollectionAssignDialog, RecentReadsCarousel, FavoritesCarousel
-    │   ├── reader/             # EpubReaderView, PdfReaderView, ReaderScrubber, ReaderSettingsFields, ReaderHotkeysDialog, TocList
+    │   ├── reader/             # EpubReaderView, PdfReaderView, ReaderScrubber, ReaderThumbnailGrid, ReaderSettingsFields, ReaderHotkeysDialog, TocList
     │   ├── settings/           # PathBrowserDialog (サーバーサイドのディレクトリ選択), UserMultiSelect (ライブラリ共有)
     │   ├── taxonomy/           # TaxonomyCard
     │   ├── ProtectedRoute.tsx
