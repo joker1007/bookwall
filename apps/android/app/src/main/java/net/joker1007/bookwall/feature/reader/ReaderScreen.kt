@@ -32,6 +32,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -62,6 +65,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -81,6 +85,7 @@ import coil3.compose.AsyncImagePainter
 import kotlinx.coroutines.delay
 import net.joker1007.bookwall.data.reader.PageSource
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.SpreadMode
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.reader.TapZoneConfig
@@ -141,6 +146,8 @@ fun ReaderScreen(
     val state by viewModel.state.collectAsState()
     val imageLoader by viewModel.imageLoader.collectAsState()
     val tapConfig by viewModel.tapZoneConfig.collectAsState()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
     ImmersiveReaderEffect(menuVisible = state.menuVisible)
 
@@ -169,11 +176,12 @@ fun ReaderScreen(
                 modifier = Modifier.align(Alignment.Center),
             )
             else -> {
-                val slots = remember(state.pageCount, state.spreadEnabled, state.pageOffset) {
-                    buildSpreads(state.pageCount, state.spreadEnabled, state.pageOffset)
+                val spreadEnabled = state.spreadMode.isEnabled(landscape = isLandscape)
+                val slots = remember(state.pageCount, spreadEnabled, state.pageOffset) {
+                    buildSpreads(state.pageCount, spreadEnabled, state.pageOffset)
                 }
 
-                key(state.spreadEnabled, state.pageOffset) {
+                key(spreadEnabled, state.pageOffset) {
                     val pagerState = rememberPagerState(
                         initialPage = slotIndexForPage(slots, state.currentPage),
                         pageCount = { slots.size },
@@ -268,10 +276,11 @@ fun ReaderScreen(
     if (state.settingsVisible) {
         ReaderSettingsSheet(
             direction = state.direction,
-            spreadEnabled = state.spreadEnabled,
+            spreadMode = state.spreadMode,
+            spreadEnabled = state.spreadMode.isEnabled(landscape = isLandscape),
             tapConfig = tapConfig,
             onDirectionChange = viewModel::setDirection,
-            onSpreadChange = viewModel::setSpread,
+            onSpreadModeChange = viewModel::setSpreadMode,
             onNudgeOffset = viewModel::nudgeOffset,
             onZoneAction = viewModel::setZoneAction,
             onDismiss = viewModel::closeSettings,
@@ -415,10 +424,11 @@ private const val PAGE_LOADING_GRACE_MS = 200L
 @Composable
 private fun ReaderSettingsSheet(
     direction: ReadingDirection,
+    spreadMode: SpreadMode,
     spreadEnabled: Boolean,
     tapConfig: TapZoneConfig,
     onDirectionChange: (ReadingDirection) -> Unit,
-    onSpreadChange: (Boolean) -> Unit,
+    onSpreadModeChange: (SpreadMode) -> Unit,
     onNudgeOffset: () -> Unit,
     onZoneAction: (TapZone, TapAction) -> Unit,
     onDismiss: () -> Unit,
@@ -440,12 +450,26 @@ private fun ReaderSettingsSheet(
                 onCheckedChange = { onDirectionChange(if (it) ReadingDirection.RTL else ReadingDirection.LTR) },
                 testTag = ReaderTags.DIRECTION_SWITCH,
             )
-            SettingSwitchRow(
-                label = "見開き表示",
-                checked = spreadEnabled,
-                onCheckedChange = onSpreadChange,
-                testTag = ReaderTags.SPREAD_SWITCH,
-            )
+            Text("見開き表示", style = MaterialTheme.typography.bodyLarge)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SpreadMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = mode == spreadMode,
+                        onClick = { onSpreadModeChange(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = SpreadMode.entries.size),
+                        modifier = Modifier.testTag(ReaderTags.spreadModeTag(mode)),
+                    ) {
+                        Text(spreadModeLabel(mode))
+                    }
+                }
+            }
+            if (spreadMode == SpreadMode.AUTO) {
+                Text(
+                    "横向きのときだけ見開きで表示します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (spreadEnabled) {
                 OutlinedButton(
                     onClick = onNudgeOffset,
@@ -498,6 +522,12 @@ private fun TapZoneRow(
             }
         }
     }
+}
+
+private fun spreadModeLabel(mode: SpreadMode): String = when (mode) {
+    SpreadMode.OFF -> "オフ"
+    SpreadMode.AUTO -> "自動"
+    SpreadMode.ON -> "オン"
 }
 
 private fun tapActionLabel(action: TapAction): String = when (action) {
@@ -652,10 +682,12 @@ object ReaderTags {
     const val SETTINGS_BUTTON = "reader_settings_button"
     const val SETTINGS_SHEET = "reader_settings_sheet"
     const val DIRECTION_SWITCH = "reader_direction_switch"
-    const val SPREAD_SWITCH = "reader_spread_switch"
+    const val SPREAD_MODE_ROW = "reader_spread_mode"
     const val OFFSET_BUTTON = "reader_offset_button"
     const val SCRUBBER = "reader_scrubber"
     const val SCRUB_THUMBNAIL = "reader_scrub_thumbnail"
     const val TAP_LEFT = "reader_tap_left"
     const val TAP_RIGHT = "reader_tap_right"
+
+    fun spreadModeTag(mode: SpreadMode): String = "${SPREAD_MODE_ROW}_${mode.name.lowercase()}"
 }

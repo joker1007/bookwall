@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipeLeft
+import net.joker1007.bookwall.data.reader.SpreadMode
 import net.joker1007.bookwall.feature.reader.ReaderTags
 import net.joker1007.bookwall.feature.reader.ReaderZoomScaleKey
 import net.joker1007.bookwall.ui.NextBookDialogTags
@@ -69,6 +70,22 @@ class ReaderRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
         val node = composeRule.onAllNodesWithTag(ReaderTags.ZOOM_LAYER)
             .fetchSemanticsNodes().firstOrNull() ?: return null
         return if (node.config.contains(ReaderZoomScaleKey)) node.config[ReaderZoomScaleKey] else null
+    }
+
+    fun openSettings() = apply {
+        composeRule.onNodeWithTag(ReaderTags.SETTINGS_BUTTON).performClick()
+        composeRule.onNodeWithTag(ReaderTags.SETTINGS_SHEET).assertIsDisplayed()
+    }
+
+    fun selectSpreadMode(mode: SpreadMode) = apply {
+        composeRule.onNodeWithTag(ReaderTags.spreadModeTag(mode)).performClick()
+    }
+
+    /** The offset button is only offered while pages are actually paired. */
+    fun assertSpreadActive(active: Boolean) = apply {
+        composeRule.waitUntil(ZOOM_TIMEOUT) {
+            composeRule.onAllNodesWithTag(ReaderTags.OFFSET_BUTTON).fetchSemanticsNodes().isNotEmpty() == active
+        }
     }
 
     fun assertNextBookDialogShown() = apply {

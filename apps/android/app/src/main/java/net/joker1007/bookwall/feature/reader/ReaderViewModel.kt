@@ -29,6 +29,7 @@ import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.NextInSeriesResolver
 import net.joker1007.bookwall.data.reader.ReaderStateRepository
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.SpreadMode
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.reader.TapZoneConfig
@@ -45,7 +46,7 @@ data class ReaderUiState(
     val pageCount: Int = 0,
     val currentPage: Int = 0,
     val direction: ReadingDirection = ReadingDirection.RTL,
-    val spreadEnabled: Boolean = false,
+    val spreadMode: SpreadMode = SpreadMode.OFF,
     /** Shifts spread pairing by one page to realign mismatched spreads (0 or 1). */
     val pageOffset: Int = 0,
     val menuVisible: Boolean = false,
@@ -123,7 +124,7 @@ class ReaderViewModel @Inject constructor(
                     pageCount = pageCount,
                     currentPage = clampPage(saved?.currentPage ?: initialPage),
                     direction = saved?.direction ?: it.direction,
-                    spreadEnabled = saved?.spreadEnabled ?: it.spreadEnabled,
+                    spreadMode = saved?.spreadMode ?: it.spreadMode,
                 )
             }
             // Resolve the next volume off the critical path: it needs a network
@@ -197,9 +198,9 @@ class ReaderViewModel @Inject constructor(
         persist()
     }
 
-    fun setSpread(enabled: Boolean) {
-        if (enabled == _state.value.spreadEnabled) return
-        _state.update { it.copy(spreadEnabled = enabled) }
+    fun setSpreadMode(mode: SpreadMode) {
+        if (mode == _state.value.spreadMode) return
+        _state.update { it.copy(spreadMode = mode) }
         persist()
     }
 
@@ -237,7 +238,7 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             readerStateRepository.save(
                 serverId, bookId,
-                ReaderState(currentPage = s.currentPage, direction = s.direction, spreadEnabled = s.spreadEnabled),
+                ReaderState(currentPage = s.currentPage, direction = s.direction, spreadMode = s.spreadMode),
             )
         }
     }

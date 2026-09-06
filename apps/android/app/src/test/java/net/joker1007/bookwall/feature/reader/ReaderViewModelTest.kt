@@ -22,6 +22,7 @@ import net.joker1007.bookwall.data.reader.BookOpenCoordinator
 import net.joker1007.bookwall.data.reader.NextInSeriesResolver
 import net.joker1007.bookwall.data.reader.ReaderState
 import net.joker1007.bookwall.data.reader.ReadingDirection
+import net.joker1007.bookwall.data.reader.SpreadMode
 import net.joker1007.bookwall.data.reader.TapAction
 import net.joker1007.bookwall.data.reader.TapZone
 import net.joker1007.bookwall.data.server.OpdsServer
@@ -170,15 +171,15 @@ class ReaderViewModelTest {
     }
 
     @Test
-    fun `setSpread updates and persists`() = runTest {
+    fun `setSpreadMode updates and persists`() = runTest {
         val vm = viewModel(initialPage = 0)
         advanceUntilIdle()
 
-        vm.setSpread(true)
+        vm.setSpreadMode(SpreadMode.AUTO)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.spreadEnabled)
-        assertTrue(readerRepo.saved.values.first().spreadEnabled)
+        assertEquals(SpreadMode.AUTO, vm.state.value.spreadMode)
+        assertEquals(SpreadMode.AUTO, readerRepo.saved.values.first().spreadMode)
     }
 
     @Test

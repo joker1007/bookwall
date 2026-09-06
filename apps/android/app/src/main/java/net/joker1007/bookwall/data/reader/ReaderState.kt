@@ -6,5 +6,5 @@ enum class ReadingDirection { LTR, RTL }
 data class ReaderState(
     val currentPage: Int = 0,
     val direction: ReadingDirection = ReadingDirection.RTL,
-    val spreadEnabled: Boolean = false,
+    val spreadMode: SpreadMode = SpreadMode.OFF,
 )

@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
         EpubProgressEntity::class,
         CachedBookEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class BookwallDatabase : RoomDatabase() {

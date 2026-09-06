@@ -15,7 +15,7 @@ class ReaderStateRepositoryImpl @Inject constructor(
                 currentPage = e.currentPage,
                 direction = runCatching { ReadingDirection.valueOf(e.direction) }
                     .getOrDefault(ReadingDirection.RTL),
-                spreadEnabled = e.spreadEnabled,
+                spreadMode = SpreadMode.fromStorage(e.spreadMode),
             )
         }
 
@@ -26,7 +26,7 @@ class ReaderStateRepositoryImpl @Inject constructor(
                 bookId = bookId,
                 currentPage = state.currentPage,
                 direction = state.direction.name,
-                spreadEnabled = state.spreadEnabled,
+                spreadMode = state.spreadMode.name,
                 updatedAt = clock(),
                 dirty = true,
             ),
