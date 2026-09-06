@@ -295,10 +295,16 @@
       "singlePageNudge": "Advance by one page (overrides spread mode)",
       "toggleSpread": "Toggle two-page spread",
       "toggleFullscreen": "Toggle fullscreen",
+      "toggleThumbnails": "Toggle the page thumbnail view",
       "close": "Close the reader",
       "toggleHelp": "Show this dialog",
       "clickEdgesKey": "Click edges",
       "clickEdges": "Left / right margin clicks turn pages (direction follows the book's writing direction)."
+    },
+    "thumbnails": {
+      "open": "Page thumbnails",
+      "title": "Page thumbnails",
+      "close": "Close thumbnails"
     },
     "fullscreen": {
       "enter": "Enter fullscreen",

@@ -58,6 +58,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 - **EPUB**: foliate-js ベース。目次、フォントサイズ、テーマ (light / dark / sepia)、書字方向 (auto 自動判定 / horizontal / vertical) を per-book で保存
 - **読書進捗**: ページ位置 (CBZ) と CFI + fraction (EPUB) を自動保存し、表紙・ホームのカルーセル・書籍詳細に反映
 - **スクラバー**: 任意ページへ直接ジャンプ。CBZ はサムネ、EPUB は章ラベルをプレビュー
+- **サムネイル一覧**: 全ページのサムネイルをオーバーレイ表示 (CBZ / 画像ディレクトリ)。遅延ロードで、クリックしたページへジャンプ
 - **キーボードナビ**: ページ送り・見開きトグル・1 ページ送り。`?` でショートカット一覧
 - **シリーズ ロールオーバー**: 最終ページを越えて送るとシリーズの次巻へ続けて読める
 

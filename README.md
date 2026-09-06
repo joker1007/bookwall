@@ -56,6 +56,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 - **EPUB**: Built on foliate-js. Table of contents, font size, theme (light / dark / sepia), and writing direction (auto / horizontal / vertical) are stored per book.
 - **Reading progress**: Page position (CBZ) and CFI + fraction (EPUB) are auto-saved and reflected on covers, the home carousels, and the detail page.
 - **Scrubber**: Jump directly to any page, with thumbnail (CBZ) / chapter (EPUB) previews.
+- **Thumbnail grid**: A lazy-loaded overlay of every page (CBZ / image directories) for jumping straight to a page.
 - **Keyboard navigation**: Page turning, spread toggle, and single-page nudge; `?` shows the shortcut list.
 - **Series roll-over**: Advancing past the last page continues with the next volume in the series.
 
