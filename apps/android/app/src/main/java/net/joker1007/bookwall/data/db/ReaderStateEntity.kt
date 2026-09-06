@@ -8,7 +8,7 @@ data class ReaderStateEntity(
     val bookId: Long,
     val currentPage: Int,
     val direction: String,
-    val spreadEnabled: Boolean,
+    val spreadMode: String,
     val updatedAt: Long,
     /** True while the latest progress has not been pushed to the server. */
     val dirty: Boolean = false,

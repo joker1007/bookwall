@@ -44,4 +44,36 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
-val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6, MIGRATION_6_7)
+/** Replaces the boolean `spreadEnabled` with the tri-state `spreadMode` (OFF/AUTO/ON). */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `reader_states_new` (
+                `serverId` INTEGER NOT NULL,
+                `bookId` INTEGER NOT NULL,
+                `currentPage` INTEGER NOT NULL,
+                `direction` TEXT NOT NULL,
+                `spreadMode` TEXT NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `dirty` INTEGER NOT NULL,
+                PRIMARY KEY(`serverId`, `bookId`)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `reader_states_new`
+                (`serverId`, `bookId`, `currentPage`, `direction`, `spreadMode`, `updatedAt`, `dirty`)
+            SELECT `serverId`, `bookId`, `currentPage`, `direction`,
+                CASE WHEN `spreadEnabled` = 1 THEN 'ON' ELSE 'OFF' END,
+                `updatedAt`, `dirty`
+            FROM `reader_states`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `reader_states`")
+        db.execSQL("ALTER TABLE `reader_states_new` RENAME TO `reader_states`")
+    }
+}
+
+val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
