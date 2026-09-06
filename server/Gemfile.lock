@@ -1,3 +1,12 @@
+GIT
+  remote: https://github.com/skoji/gepub.git
+  revision: 89cd86f5591a523907b00435b5a3fff80c74f7f2
+  ref: 89cd86f5591a523907b00435b5a3fff80c74f7f2
+  specs:
+    gepub (2.0.1)
+      nokogiri (>= 1.8.2, < 2.0)
+      rubyzip (>= 3.0, < 3.5)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -171,9 +180,6 @@ GEM
       et-orbi (~> 1.4)
       raabro (~> 1.4)
     geom2d (0.4.1)
-    gepub (2.0.1)
-      nokogiri (>= 1.8.2, < 2.0)
-      rubyzip (>= 3.0, < 3.3)
     globalid (1.4.0)
       activesupport (>= 6.1)
     hexapdf (1.10.0)
@@ -378,7 +384,7 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
-    rubyzip (3.2.2)
+    rubyzip (3.4.1)
     samovar (2.5.1)
       console (~> 1.0)
     securerandom (0.4.1)
@@ -455,7 +461,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   falcon
-  gepub
+  gepub!
   hexapdf
   image_processing (~> 2.0)
   nokogiri
@@ -467,7 +473,7 @@ DEPENDENCIES
   rspec-rails (~> 8.0)
   rubocop-rails-omakase
   ruby-vips
-  rubyzip
+  rubyzip (>= 3.4.1)
   shoulda-matchers
   solid_cable
   solid_cache
@@ -538,7 +544,7 @@ CHECKSUMS
   fiber-storage (1.0.1) sha256=f48e5b6d8b0be96dac486332b55cee82240057065dc761c1ea692b2e719240e1
   fugit (1.13.0) sha256=a4f093fce740da52f216740a5041e2a594ea763cdb89e8b2754ca4399634ab18
   geom2d (0.4.1) sha256=ea0998ea90c4f2752e24fe13d85a4f89bee689d151316140ebcc6369bf634ed9
-  gepub (2.0.1) sha256=b7f2667d6edcb034b8e8809293b245b62b2815de12b950ad4a282bcafe73b15b
+  gepub (2.0.1)
   globalid (1.4.0) sha256=037f12fbf1d9d7a014d501c2d5c77356fd4ddd96d7a7991d6700bba96706f427
   hexapdf (1.10.0) sha256=9c2e8d094876878c6203d441655fafc1890870041456e03205eec7d83edf9db2
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
@@ -616,7 +622,7 @@ CHECKSUMS
   rubocop-rails-omakase (1.1.0) sha256=2af73ac8ee5852de2919abbd2618af9c15c19b512c4cfc1f9a5d3b6ef009109d
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   ruby-vips (2.3.0) sha256=e685ec02c13969912debbd98019e50492e12989282da5f37d05f5471442f5374
-  rubyzip (3.2.2) sha256=c0ed99385f0625415c8f05bcae33fe649ed2952894a95ff8b08f26ca57ea5b3c
+  rubyzip (3.4.1) sha256=0a79e745b5c25872ebd148457df5665da8530ed8626c993b01457128f173ca02
   samovar (2.5.1) sha256=8a9fc41eb8868084f0321eb41678c485cfbc7d282fb306c0be67c3284b1d2394
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   shoulda-matchers (8.0.1) sha256=5dbb46e5765b9da225111b085e0819e8c8a121ff94bba430a153eb1ea2c60288
