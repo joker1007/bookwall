@@ -32,8 +32,10 @@ gem "pagy"
 gem "rack-cors"
 
 # E-book format parsers
-gem "rubyzip", require: "zip"
-gem "gepub"
+# rubyzip >= 3.4.0 fixes CVE-2026-85396 (path traversal in Zip::Entry#extract).
+gem "rubyzip", ">= 3.4.1", require: "zip"
+# gepub 2.0.1 (latest release) pins rubyzip < 3.3; main already allows < 3.5.
+gem "gepub", github: "skoji/gepub", ref: "89cd86f5591a523907b00435b5a3fff80c74f7f2"
 gem "hexapdf"
 
 # Streaming ZIP output for on-the-fly CBZ packaging of image_dir books
