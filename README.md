@@ -68,7 +68,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 
 ### Android app
 - **OPDS client**: Register multiple servers (Basic auth / self-signed certificates), browse catalogs with sort / filter / tag facets.
-- **Readers**: Image books stream via OPDS-PSE (spread view, RTL); EPUB renders in the same foliate-js engine as the web reader, so CFI progress is interchangeable.
+- **Readers**: Image books stream via OPDS-PSE (spread view, RTL, thumbnail grid for jumping to a page); EPUB renders in the same foliate-js engine as the web reader, so CFI progress is interchangeable.
 - **Offline cache**: Background downloads with a size limit, a downloads screen that works fully offline, and auto-caching of books you read. Progress recorded offline syncs back when connectivity returns.
 
 ## Development

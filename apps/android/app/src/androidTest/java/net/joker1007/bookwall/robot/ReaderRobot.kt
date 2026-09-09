@@ -4,7 +4,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -13,6 +16,7 @@ import androidx.compose.ui.test.swipeLeft
 import net.joker1007.bookwall.data.reader.SpreadMode
 import net.joker1007.bookwall.feature.reader.ReaderTags
 import net.joker1007.bookwall.feature.reader.ReaderZoomScaleKey
+import net.joker1007.bookwall.feature.reader.thumbnailLabel
 import net.joker1007.bookwall.ui.NextBookDialogTags
 
 /** Robot driving the image reader screen. */
@@ -85,6 +89,37 @@ class ReaderRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
     fun assertSpreadActive(active: Boolean) = apply {
         composeRule.waitUntil(ZOOM_TIMEOUT) {
             composeRule.onAllNodesWithTag(ReaderTags.OFFSET_BUTTON).fetchSemanticsNodes().isNotEmpty() == active
+        }
+    }
+
+    fun openThumbnails() = apply {
+        composeRule.onNodeWithTag(ReaderTags.THUMBNAILS_BUTTON).performClick()
+        composeRule.onNodeWithTag(ReaderTags.THUMBNAIL_GRID).assertIsDisplayed()
+    }
+
+    // Cells are clickable, so their testTag is merged away; match the
+    // contentDescription instead.
+    fun clickThumbnail(page: Int) = apply {
+        composeRule.waitUntil(ZOOM_TIMEOUT) {
+            composeRule.onAllNodesWithContentDescription(thumbnailLabel(page)).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription(thumbnailLabel(page)).performClick()
+    }
+
+    fun closeThumbnails() = apply {
+        composeRule.onNodeWithTag(ReaderTags.THUMBNAIL_CLOSE).performClick()
+    }
+
+    fun assertThumbnailsHidden() = apply {
+        composeRule.waitUntil(ZOOM_TIMEOUT) {
+            composeRule.onAllNodesWithTag(ReaderTags.THUMBNAIL_GRID).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    /** The scrubber label reads "n / total" while the menu is open. */
+    fun assertPageIndicator(text: String) = apply {
+        composeRule.waitUntil(ZOOM_TIMEOUT) {
+            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

@@ -51,6 +51,7 @@ data class ReaderUiState(
     val pageOffset: Int = 0,
     val menuVisible: Boolean = false,
     val settingsVisible: Boolean = false,
+    val thumbnailsVisible: Boolean = false,
     /** Next volume in the same series, or null when there is none. */
     val nextBook: OpdsEntry.Book? = null,
     /** Whether the "open the next book?" confirmation dialog is shown. */
@@ -191,6 +192,16 @@ class ReaderViewModel @Inject constructor(
     fun openSettings() = _state.update { it.copy(settingsVisible = true) }
 
     fun closeSettings() = _state.update { it.copy(settingsVisible = false) }
+
+    fun openThumbnails() = _state.update { it.copy(thumbnailsVisible = true) }
+
+    fun closeThumbnails() = _state.update { it.copy(thumbnailsVisible = false) }
+
+    /** Jumps to a page picked from the thumbnail grid and dismisses it. */
+    fun selectThumbnail(page: Int) {
+        goToPage(page)
+        closeThumbnails()
+    }
 
     fun setDirection(direction: ReadingDirection) {
         if (direction == _state.value.direction) return

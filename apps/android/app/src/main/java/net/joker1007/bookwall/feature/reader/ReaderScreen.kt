@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -198,11 +199,17 @@ fun ReaderScreen(
                             pagerState.animateScrollToPage(target)
                         }
                     }
+                    // Report only once the scroll has settled: a long programmatic jump
+                    // passes through intermediate pages, and reporting those would
+                    // restart the effect above and cut the jump short.
                     LaunchedEffect(pagerState, slots) {
-                        snapshotFlow { pagerState.currentPage }.collect { slot ->
-                            zoom.reset()
-                            slots.getOrNull(slot)?.firstOrNull()?.let(viewModel::onPageSettled)
-                        }
+                        snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }
+                            .collect { (slot, scrolling) ->
+                                zoom.reset()
+                                if (!scrolling) {
+                                    slots.getOrNull(slot)?.firstOrNull()?.let(viewModel::onPageSettled)
+                                }
+                            }
                     }
 
                     val lastPage = (state.pageCount - 1).coerceAtLeast(0)
@@ -250,6 +257,12 @@ fun ReaderScreen(
                         },
                         actions = {
                             IconButton(
+                                onClick = viewModel::openThumbnails,
+                                modifier = Modifier.testTag(ReaderTags.THUMBNAILS_BUTTON),
+                            ) {
+                                Icon(Icons.Default.GridView, contentDescription = "サムネイル一覧", tint = Color.White)
+                            }
+                            IconButton(
                                 onClick = viewModel::openSettings,
                                 modifier = Modifier.testTag(ReaderTags.SETTINGS_BUTTON),
                             ) {
@@ -267,6 +280,18 @@ fun ReaderScreen(
                         imageLoader = imageLoader,
                         onScrub = viewModel::goToPage,
                         modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+
+                if (state.thumbnailsVisible) {
+                    ReaderThumbnailGrid(
+                        currentPage = state.currentPage,
+                        pageCount = state.pageCount,
+                        direction = state.direction,
+                        pageSource = viewModel.pageSource,
+                        imageLoader = imageLoader,
+                        onSelect = viewModel::selectThumbnail,
+                        onClose = viewModel::closeThumbnails,
                     )
                 }
             }
@@ -681,6 +706,9 @@ object ReaderTags {
     const val ERROR = "reader_error"
     const val SETTINGS_BUTTON = "reader_settings_button"
     const val SETTINGS_SHEET = "reader_settings_sheet"
+    const val THUMBNAILS_BUTTON = "reader_thumbnails_button"
+    const val THUMBNAIL_GRID = "reader_thumbnail_grid"
+    const val THUMBNAIL_CLOSE = "reader_thumbnail_close"
     const val DIRECTION_SWITCH = "reader_direction_switch"
     const val SPREAD_MODE_ROW = "reader_spread_mode"
     const val OFFSET_BUTTON = "reader_offset_button"
@@ -690,4 +718,6 @@ object ReaderTags {
     const val TAP_RIGHT = "reader_tap_right"
 
     fun spreadModeTag(mode: SpreadMode): String = "${SPREAD_MODE_ROW}_${mode.name.lowercase()}"
+
+    fun thumbnailTag(page: Int): String = "reader_thumbnail_$page"
 }
