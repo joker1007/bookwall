@@ -171,6 +171,22 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `selectThumbnail jumps to the page and closes the grid`() = runTest {
+        val vm = viewModel(initialPage = 0)
+        advanceUntilIdle()
+
+        vm.openThumbnails()
+        assertTrue(vm.state.value.thumbnailsVisible)
+
+        vm.selectThumbnail(7)
+        advanceUntilIdle()
+
+        assertEquals(7, vm.state.value.currentPage)
+        assertTrue(!vm.state.value.thumbnailsVisible)
+        assertEquals(7, readerRepo.saved.values.single().currentPage)
+    }
+
+    @Test
     fun `setSpreadMode updates and persists`() = runTest {
         val vm = viewModel(initialPage = 0)
         advanceUntilIdle()

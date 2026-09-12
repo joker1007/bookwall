@@ -70,7 +70,7 @@ ffmpeg -y -i client/test-results/tour-Bookwall-guided-tour-desktop-chromium/vide
 
 ### Android アプリ
 - **OPDS クライアント**: 複数サーバー登録 (Basic 認証 / 自己署名証明書)、ソート / フィルタ / タグファセット付きのカタログ閲覧
-- **リーダー**: 画像系は OPDS-PSE ストリーミング (見開き・RTL)。EPUB は web reader と同一の foliate-js エンジンで描画し CFI 進捗が相互運用可能
+- **リーダー**: 画像系は OPDS-PSE ストリーミング (見開き・RTL・サムネイル一覧からのページジャンプ)。EPUB は web reader と同一の foliate-js エンジンで描画し CFI 進捗が相互運用可能
 - **オフラインキャッシュ**: サイズ上限付きのバックグラウンドDL、完全オフラインで動くダウンロード済み画面、読んだ本の自動キャッシュ。オフライン中の読書進捗は再接続時にサーバーへ同期
 
 ## Development
