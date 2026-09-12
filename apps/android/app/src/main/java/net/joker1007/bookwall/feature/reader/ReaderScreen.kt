@@ -708,6 +708,7 @@ object ReaderTags {
     const val SETTINGS_SHEET = "reader_settings_sheet"
     const val THUMBNAILS_BUTTON = "reader_thumbnails_button"
     const val THUMBNAIL_GRID = "reader_thumbnail_grid"
+    const val THUMBNAIL_LIST = "reader_thumbnail_list"
     const val THUMBNAIL_CLOSE = "reader_thumbnail_close"
     const val DIRECTION_SWITCH = "reader_direction_switch"
     const val SPREAD_MODE_ROW = "reader_spread_mode"

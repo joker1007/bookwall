@@ -96,7 +96,9 @@ fun ReaderThumbnailGrid(
                 contentPadding = PaddingValues(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(ReaderTags.THUMBNAIL_LIST),
             ) {
                 items(count = pageCount, key = { it }) { page ->
                     ThumbnailCell(
@@ -167,4 +169,4 @@ private fun ThumbnailCell(
 /** Accessibility label for a thumbnail cell; also what E2E tests look up. */
 fun thumbnailLabel(page: Int): String = "ページ ${page + 1}"
 
-private val CELL_MIN_WIDTH = 96.dp
+private val CELL_MIN_WIDTH = 144.dp

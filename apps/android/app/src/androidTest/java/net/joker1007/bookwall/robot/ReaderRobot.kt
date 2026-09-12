@@ -3,13 +3,14 @@ package net.joker1007.bookwall.robot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipeLeft
@@ -100,9 +101,9 @@ class ReaderRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
     // Cells are clickable, so their testTag is merged away; match the
     // contentDescription instead.
     fun clickThumbnail(page: Int) = apply {
-        composeRule.waitUntil(ZOOM_TIMEOUT) {
-            composeRule.onAllNodesWithContentDescription(thumbnailLabel(page)).fetchSemanticsNodes().isNotEmpty()
-        }
+        // The overlay root swallows clicks, which merges the grid tag away.
+        composeRule.onNodeWithTag(ReaderTags.THUMBNAIL_LIST, useUnmergedTree = true)
+            .performScrollToNode(hasContentDescription(thumbnailLabel(page)))
         composeRule.onNodeWithContentDescription(thumbnailLabel(page)).performClick()
     }
 
