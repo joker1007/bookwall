@@ -15,7 +15,7 @@ coroutines = "1.11.0"
 room = "2.8.5"
 datastore = "1.2.1"
 securityCrypto = "1.1.0"
-webkit = "1.17.0"
+webkit = "1.17.1"
 work = "2.11.2"
 
 junit = "4.13.2"
