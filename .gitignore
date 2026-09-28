@@ -10,3 +10,5 @@
 server/public/ui/
 
 .idea
+
+.envrc
