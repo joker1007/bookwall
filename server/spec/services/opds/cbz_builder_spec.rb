@@ -45,4 +45,21 @@ RSpec.describe Opds::CbzBuilder do
       end
     end
   end
+
+  describe ".size" do
+    it "matches the byte size of the streamed CBZ" do
+      files = described_class.image_files(dir_path)
+
+      expect(described_class.size(files)).to eq(stream_to_buffer(dir_path).size)
+    end
+
+    it "excludes non-image files" do
+      Dir.mktmpdir("cbz-builder-") do |tmp|
+        FileUtils.cp(File.join(dir_path, "001.jpg"), File.join(tmp, "a.jpg"))
+        File.write(File.join(tmp, "notes.txt"), "x" * 100_000)
+
+        expect(described_class.size(described_class.image_files(tmp))).to eq(stream_to_buffer(tmp).size)
+      end
+    end
+  end
 end

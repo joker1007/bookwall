@@ -6,10 +6,19 @@ module Opds
 
     # Streams the directory's images into `zip` (a ZipKit::Streamer) as a CBZ.
     # Images are already compressed formats, so store them without deflating.
-    def stream(dir_path, zip)
-      image_files(dir_path).each_with_index do |src_path, index|
+    def stream(dir_path, zip, files: image_files(dir_path))
+      files.each_with_index do |src_path, index|
         zip.write_stored_file(entry_name(src_path, index)) do |sink|
           File.open(src_path, "rb") { |f| IO.copy_stream(f, sink) }
+        end
+      end
+    end
+
+    # Exact byte size of the CBZ that `stream` produces for `files`.
+    def size(files)
+      ZipKit::SizeEstimator.estimate do |estimator|
+        files.each_with_index do |src_path, index|
+          estimator.add_stored_entry(filename: entry_name(src_path, index), size: File.size(src_path), use_data_descriptor: true)
         end
       end
     end

@@ -95,6 +95,7 @@ module Api
         return head :forbidden
       end
 
+      @book.correct_file_size!(File.size(resolved))
       etag = @book.updated_at.to_i.to_s
       response.set_header("Cache-Control", "private, max-age=31536000, immutable")
       response.set_header("Accept-Ranges", "bytes")

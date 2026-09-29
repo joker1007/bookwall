@@ -21,7 +21,7 @@ module Scanners
         if scanned_at.nil?
           to_add << job
         else
-          mtime = job[:mtime] || max_child_mtime(job[:path])
+          mtime = job[:mtime] || image_dir_mtime(job[:path])
           to_update << job if mtime > scanned_at
         end
       end
@@ -31,16 +31,18 @@ module Scanners
 
     private
 
-    def max_child_mtime(dir)
-      best = nil
+    # The directory's own mtime moves when images are added or removed, which
+    # child mtimes miss for removals and for copies that preserve timestamps.
+    def image_dir_mtime(dir)
+      best = File.mtime(dir)
       Dir.each_child(dir) do |name|
         m = File.mtime(File.join(dir, name))
       rescue Errno::ENOENT, SystemCallError
         next
       else
-        best = m if best.nil? || m > best
+        best = m if m > best
       end
-      best || Time.at(0)
+      best
     end
   end
 end

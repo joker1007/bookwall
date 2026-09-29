@@ -73,6 +73,27 @@ RSpec.describe "Opds::Downloads", type: :request do
       end
     end
 
+    it "sends the exact CBZ size as Content-Length and corrects a drifted file_size" do
+      book = create(:book, library: library, file_format: :image_dir, file_path: "sample_image_dir", file_size: 1)
+
+      get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Content-Length"]).to eq(response.body.bytesize.to_s)
+      expect(book.reload.file_size).to eq(response.body.bytesize)
+    end
+
+    it "corrects a drifted file_size of a single file and rotates its ETag" do
+      book = create(:book, library: library, file_format: :cbz, file_path: "sample.cbz", file_size: 1,
+        updated_at: 1.day.ago)
+      stale_etag = %("#{book.updated_at.to_i}")
+
+      get "/opds/books/#{book.id}/file.cbz", headers: {"Authorization" => auth_header}
+
+      expect(book.reload.file_size).to eq(File.size(File.join(library_path, "sample.cbz")))
+      expect(response.headers["ETag"]).not_to eq(stale_etag)
+    end
+
     it "rejects an image_dir download requested with a non-cbz format" do
       book = create(:book,
         library: library,

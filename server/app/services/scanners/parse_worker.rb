@@ -31,16 +31,10 @@ module Scanners
       nil
     end
 
+    # image_dir is downloaded as a CBZ built on the fly, so record that CBZ's size.
     def size_for(path, format)
-      return dir_size(path) if format == :image_dir
+      return Opds::CbzBuilder.size(Opds::CbzBuilder.image_files(path)) if format == :image_dir
       File.size(path)
-    end
-
-    def dir_size(path)
-      Dir.children(path).sum do |f|
-        full = File.join(path, f)
-        File.file?(full) ? File.size(full) : 0
-      end
     end
 
     def mtime_for(path)

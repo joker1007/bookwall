@@ -41,6 +41,13 @@ class Book < ApplicationRecord
     File.expand_path(File.join(library.path, file_path))
   end
 
+  # The file can change after a scan. Bumping updated_at rotates the download
+  # ETag so an If-Range resume against the old bytes is refused.
+  def correct_file_size!(actual)
+    return if file_size == actual
+    update_columns(file_size: actual, updated_at: Time.current)
+  end
+
   def replace_authors(names)
     self.authors = Author.upsert_by_name(names)
   end

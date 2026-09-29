@@ -227,7 +227,7 @@ class BookCacheRepositoryImplTest {
     }
 
     @Test
-    fun `reconcile requeues interrupted downloads keeping their part file`() = runTest {
+    fun `reconcile schedules downloads without touching an in-flight status`() = runTest {
         val repo = repository()
         repo.enqueue(server, book(42L))
         dao.updateStatus(1L, 42L, CachedBookStatus.DOWNLOADING)
@@ -238,8 +238,7 @@ class BookCacheRepositoryImplTest {
         repo.reconcile()
 
         val row = dao.find(1L, 42L)!!
-        assertEquals(CachedBookStatus.PENDING, row.status)
-        assertEquals(5L, row.downloadedBytes)
+        assertEquals(CachedBookStatus.DOWNLOADING, row.status)
         assertTrue(part.exists())
         assertEquals(1, scheduler.scheduled)
     }
