@@ -17,19 +17,30 @@ module Opds
       end
 
       if book.file_format == "image_dir"
-        # image_dir has no single file, so repackage the directory's images into
-        # a CBZ streamed straight to the response. Streaming keeps memory flat and
-        # starts sending bytes immediately, even for multi-GB directories.
-        zip_kit_stream(
-          filename: Books::FileFormat.download_filename(book),
-          type: Books::FileFormat.mime(book.file_format)
-        ) { |zip| Opds::CbzBuilder.stream(resolved, zip) }
+        send_image_dir(book, resolved)
       else
+        book.correct_file_size!(File.size(resolved))
         send_single_file(book, resolved)
       end
     end
 
     private
+
+    # image_dir has no single file, so repackage the directory's images into
+    # a CBZ streamed straight to the response. Streaming keeps memory flat and
+    # starts sending bytes immediately, even for multi-GB directories. The
+    # size is computed up front so clients can tell a complete body from a
+    # dropped connection.
+    def send_image_dir(book, path)
+      files = Opds::CbzBuilder.image_files(path)
+      size = Opds::CbzBuilder.size(files)
+      book.correct_file_size!(size)
+      response.set_header("Content-Length", size.to_s)
+      zip_kit_stream(
+        filename: Books::FileFormat.download_filename(book),
+        type: Books::FileFormat.mime(book.file_format)
+      ) { |zip| Opds::CbzBuilder.stream(path, zip, files: files) }
+    end
 
     def send_single_file(book, path)
       mime = Books::FileFormat.mime(book.file_format)

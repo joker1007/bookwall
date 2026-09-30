@@ -237,6 +237,47 @@ class BookCacheDrainerTest {
     }
 
     @Test
+    fun `completes a chunked download whose advertised size is stale`() = runTest {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                requests += request
+                return MockResponse().setResponseCode(200).setChunkedBody(Buffer().write(bookBytes), 16 * 1024)
+            }
+        }
+        dao.upsert(pendingRow().copy(totalBytes = bookBytes.size + 4096L))
+
+        drainer().drain()
+
+        val row = dao.find(1L, 1L)!!
+        assertEquals(CachedBookStatus.COMPLETED, row.status)
+        assertEquals(1, requests.size)
+        assertEquals(bookBytes.size.toLong(), row.totalBytes)
+        assertArrayEquals(bookBytes, cachedBytes(row))
+    }
+
+    @Test
+    fun `gives up when every resume is answered from scratch and cut off`() = runTest {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                requests += request
+                // Each restart gets a little further, so the part file keeps growing.
+                val sent = bookBytes.size / 5 * requests.size
+                return MockResponse().setResponseCode(200)
+                    .setBody(Buffer().write(bookBytes, 0, sent))
+                    .setHeader("Content-Length", bookBytes.size)
+                    .setSocketPolicy(SocketPolicy.DISCONNECT_AT_END)
+            }
+        }
+        dao.upsert(pendingRow())
+
+        drainer().drain()
+
+        val row = dao.find(1L, 1L)!!
+        assertEquals(CachedBookStatus.FAILED, row.status)
+        assertEquals(4, requests.size)
+    }
+
+    @Test
     fun `resumes a part file left by a killed worker`() = runTest {
         val row = pendingRow(etag = "\"v1\"").copy(status = CachedBookStatus.DOWNLOADING)
         val half = bookBytes.size / 2

@@ -20,7 +20,8 @@ import javax.inject.Provider
  *
  * An interrupted download keeps its part file and is resumed with a Range
  * request (If-Range guards against the server file having changed). Only an
- * attempt that made no progress counts against [MAX_RETRIES].
+ * attempt that made no progress counts against [MAX_RETRIES]; an attempt the
+ * server restarted from byte 0 never counts as progress.
  */
 class BookCacheDrainer(
     private val dao: CachedBookDao,
@@ -40,9 +41,9 @@ class BookCacheDrainer(
                 continue
             }
             val part = fileStore.partFileFor(row.fileName)
-            val startBytes = part.length()
+            val attempt = Attempt(startBytes = part.length())
             try {
-                download(server, row, part)
+                download(server, row, part, attempt)
                 repository.get().enforceLimit()
             } catch (e: CancelledByUser) {
                 part.delete()
@@ -55,7 +56,8 @@ class BookCacheDrainer(
                     part.delete()
                     continue
                 }
-                val retries = if (part.length() > startBytes) row.retryCount else row.retryCount + 1
+                val progressed = !attempt.restarted && part.length() > attempt.startBytes
+                val retries = if (progressed) row.retryCount else row.retryCount + 1
                 val failed = retries >= MAX_RETRIES
                 if (failed) part.delete()
                 dao.upsert(
@@ -69,7 +71,7 @@ class BookCacheDrainer(
         }
     }
 
-    private suspend fun download(server: OpdsServer, row: CachedBookEntity, part: File) {
+    private suspend fun download(server: OpdsServer, row: CachedBookEntity, part: File, attempt: Attempt) {
         dao.updateStatus(row.serverId, row.bookId, CachedBookStatus.DOWNLOADING)
         val client = clientFactory.forServer(server)
         val offset = part.length()
@@ -81,7 +83,9 @@ class BookCacheDrainer(
         }.build()
 
         client.newCall(request).execute().use { response ->
-            val plan = plan(response, row, part, offset) ?: return@use
+            val plan = plan(response, part, offset) ?: return@use
+            if (!plan.append && offset > 0) attempt.restarted = true
+            val displayTotal = plan.total.takeIf { it > 0 } ?: row.totalBytes
             if (response.code == 200 || row.etag == null) {
                 dao.updateEtag(row.serverId, row.bookId, response.header("ETag")?.takeUnless { it.startsWith("W/") })
             }
@@ -106,7 +110,7 @@ class BookCacheDrainer(
                     val now = clock()
                     if (now - lastReport >= PROGRESS_INTERVAL_MS) {
                         lastReport = now
-                        dao.updateProgress(row.serverId, row.bookId, copied, plan.total)
+                        dao.updateProgress(row.serverId, row.bookId, copied, displayTotal)
                     }
                 }
             }
@@ -118,20 +122,21 @@ class BookCacheDrainer(
         complete(server, row, part)
     }
 
+    private class Attempt(val startBytes: Long) {
+        var restarted = false
+    }
+
+    /** [total] is the size the server reported, 0 when unknown. The OPDS length can be stale, so it is only shown as progress. */
     private class Plan(val offset: Long, val append: Boolean, val total: Long)
 
     /** Decides where the response's bytes go; null means the part file is already complete. */
-    private fun plan(response: Response, row: CachedBookEntity, part: File, offset: Long): Plan? = when (response.code) {
-        200 -> Plan(
-            offset = 0,
-            append = false,
-            total = response.body.contentLength().takeIf { it > 0 } ?: row.totalBytes,
-        )
+    private fun plan(response: Response, part: File, offset: Long): Plan? = when (response.code) {
+        200 -> Plan(offset = 0, append = false, total = response.body.contentLength().coerceAtLeast(0))
         206 -> {
             val range = ContentRange.parse(response.header("Content-Range"))
                 ?: throw IOException("206 without a usable Content-Range")
             if (range.start != offset) throw IOException("Resume offset mismatch: asked $offset, got ${range.start}")
-            Plan(offset = offset, append = true, total = range.total ?: row.totalBytes)
+            Plan(offset = offset, append = true, total = range.total ?: 0)
         }
         416 -> {
             val total = ContentRange.parseUnsatisfiable(response.header("Content-Range"))

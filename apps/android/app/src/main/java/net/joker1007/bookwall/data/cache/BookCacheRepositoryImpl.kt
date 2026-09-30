@@ -153,15 +153,11 @@ class BookCacheRepositoryImpl @Inject constructor(
         var hasPending = false
         for (row in rows) {
             when (row.status) {
-                CachedBookStatus.DOWNLOADING -> {
-                    // Left over from a killed process; the part file is resumed with a Range request.
-                    dao.updateProgress(row.serverId, row.bookId, fileStore.partFileFor(row.fileName).length(), row.totalBytes)
-                    dao.updateStatus(row.serverId, row.bookId, CachedBookStatus.PENDING)
-                    hasPending = true
-                }
+                // Leave the status to the drainer: it may be running right now, and it
+                // treats a status change mid-download as a cancel that drops the part file.
+                CachedBookStatus.DOWNLOADING, CachedBookStatus.PENDING -> hasPending = true
                 CachedBookStatus.COMPLETED ->
                     if (!fileStore.fileFor(row.fileName).exists()) dao.delete(row.serverId, row.bookId)
-                CachedBookStatus.PENDING -> hasPending = true
                 CachedBookStatus.FAILED -> Unit
             }
         }

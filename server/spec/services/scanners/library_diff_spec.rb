@@ -38,4 +38,45 @@ RSpec.describe Scanners::LibraryDiff do
     expect(result[:add]).to be_empty
     expect(result[:update]).to be_empty
   end
+
+  context "with an image_dir" do
+    let(:library) { create(:library, path: Dir.mktmpdir("library-diff-")) }
+    let(:dir) { absolute("comic") }
+    let(:jobs) { [{path: dir, format: :image_dir, mtime: nil}] }
+
+    before do
+      FileUtils.mkdir_p(dir)
+      File.write(File.join(dir, "001.jpg"), "a")
+      File.write(File.join(dir, "002.jpg"), "b")
+      set_mtime(3.days.ago, *Dir.glob(File.join(dir, "*")))
+      create(:book, library: library, file_path: "comic", file_format: :image_dir, scanned_at: 2.days.ago)
+    end
+
+    after { FileUtils.rm_rf(library.path) }
+
+    def set_mtime(time, *paths)
+      File.utime(time.to_time, time.to_time, *paths)
+    end
+
+    it "updates when an image with an old timestamp is added" do
+      File.write(File.join(dir, "003.jpg"), "c")
+      set_mtime(3.days.ago, File.join(dir, "003.jpg"))
+      set_mtime(1.hour.ago, dir)
+
+      expect(diff(jobs)[:update]).to eq(jobs)
+    end
+
+    it "updates when an image is removed" do
+      File.delete(File.join(dir, "002.jpg"))
+      set_mtime(1.hour.ago, dir)
+
+      expect(diff(jobs)[:update]).to eq(jobs)
+    end
+
+    it "leaves an unchanged directory untouched" do
+      set_mtime(3.days.ago, dir)
+
+      expect(diff(jobs)[:update]).to be_empty
+    end
+  end
 end
