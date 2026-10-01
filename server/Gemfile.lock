@@ -437,7 +437,7 @@ GEM
     websocket-extensions (0.1.5)
     yaml (0.4.0)
     zeitwerk (2.8.3)
-    zip_kit (6.3.4)
+    zip_kit (6.3.5)
     zstd-ruby (2.0.10)
 
 PLATFORMS
@@ -656,7 +656,7 @@ CHECKSUMS
   websocket-extensions (0.1.5) sha256=1c6ba63092cda343eb53fc657110c71c754c56484aad42578495227d717a8241
   yaml (0.4.0) sha256=240e69d1e6ce3584d6085978719a0faa6218ae426e034d8f9b02fb54d3471942
   zeitwerk (2.8.3) sha256=2c85125a8467ce069e20123d1e709a08955c9d29c118c25b46b7b7fafdbb92e5
-  zip_kit (6.3.4) sha256=407c6d39feef818678fae2d129077bd2f920c9806072af3482e671eeae3c48ea
+  zip_kit (6.3.5) sha256=3cc3afe226e2804d6a0c3f42042548e6dc341aac7e28aef2d3c8da8af347f732
   zstd-ruby (2.0.10) sha256=b5f9410ccfad78ae25c3a5d7dfe16234d2bde8841fc79d8166773fd0a4028f9d
 
 BUNDLED WITH
