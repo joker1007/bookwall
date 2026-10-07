@@ -182,7 +182,7 @@ GEM
     geom2d (0.4.1)
     globalid (1.4.0)
       activesupport (>= 6.1)
-    hexapdf (1.11.0)
+    hexapdf (1.11.1)
       cmdparse (~> 3.0, >= 3.0.3)
       geom2d (~> 0.4, >= 0.4.1)
       openssl (>= 2.2.1)
@@ -546,7 +546,7 @@ CHECKSUMS
   geom2d (0.4.1) sha256=ea0998ea90c4f2752e24fe13d85a4f89bee689d151316140ebcc6369bf634ed9
   gepub (2.0.1)
   globalid (1.4.0) sha256=037f12fbf1d9d7a014d501c2d5c77356fd4ddd96d7a7991d6700bba96706f427
-  hexapdf (1.11.0) sha256=72e0459dd2482ec1791f9a44a97144566a00188889cc8742dda97413ca679c62
+  hexapdf (1.11.1) sha256=914578c3b2024f76b533144344379c7123d3eaa3ea586f4d98add59534b783a9
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   image_processing (2.2.0) sha256=e0cb9892a4395ac2b7bb2fac5c6f5bc63361f2f18ed08773e21fce5b111c6974
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
