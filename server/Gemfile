@@ -81,3 +81,11 @@ group :development, :test do
   # Ruby style
   gem "rubocop-rails-omakase", require: false
 end
+
+group :development do
+  # Deploy tooling; Capfile / config/deploy* are per-user and git-ignored.
+  gem "capistrano", "~> 3.20", require: false
+  # net-ssh needs these to handle ed25519 keys.
+  gem "ed25519", require: false
+  gem "bcrypt_pbkdf", require: false
+end
