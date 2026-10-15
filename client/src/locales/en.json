@@ -203,6 +203,10 @@
       "edit": "Edit",
       "deleteMeta": "Delete metadata",
       "deleteConfirm": "Delete Bookwall metadata for \"{{title}}\"? The original file will not be removed. Continue?",
+      "reloadMetadata": "Reload metadata",
+      "reloadMetadataConfirm": "Reload metadata for \"{{title}}\" from the file? Manual edits will be overwritten. Continue?",
+      "regenerateCover": "Regenerate thumbnail",
+      "refreshFailed": "Failed to read from the file.",
       "seriesBooksHeading": "Books in {{series}}"
     },
     "formats": {

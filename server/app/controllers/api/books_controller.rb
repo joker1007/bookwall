@@ -3,8 +3,8 @@
 module Api
   class BooksController < BaseController
     include ByteRangeServing
-    before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series]
-    before_action :require_book_owner!, only: %i[update destroy]
+    before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series reload_metadata regenerate_cover]
+    before_action :require_book_owner!, only: %i[update destroy reload_metadata regenerate_cover]
 
     def index
       search = Books::Search.new(
@@ -55,6 +55,18 @@ module Api
     def destroy
       @book.destroy!
       head :no_content
+    end
+
+    def reload_metadata
+      render json: serialize_book(Scanners::BookRefresher.new(@book).reload_metadata!)
+    rescue Scanners::BookRefresher::Error => e
+      render json: {errors: [e.message]}, status: :unprocessable_content
+    end
+
+    def regenerate_cover
+      render json: serialize_book(Scanners::BookRefresher.new(@book).regenerate_cover!)
+    rescue Scanners::BookRefresher::Error => e
+      render json: {errors: [e.message]}, status: :unprocessable_content
     end
 
     def favorite
