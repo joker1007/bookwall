@@ -428,4 +428,43 @@ RSpec.describe "Api::Books", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
   end
+
+  describe "POST /api/books/bulk_reload_metadata" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it "reloads owned books only, leaving shared books untouched" do
+      sign_in!
+      owned = create(:book, library: lib, file_format: :epub, file_path: "sample.epub", title: "Edited")
+      shared_dir = Dir.mktmpdir("bookwall-shared-")
+      FileUtils.cp(File.join(lib.path, "sample.epub"), shared_dir)
+      shared_lib = create(:library, path: shared_dir, owner: create(:user))
+      create(:library_share, library: shared_lib, user: user)
+      shared = create(:book, library: shared_lib, file_format: :epub, file_path: "sample.epub", title: "Shared")
+
+      post "/api/books/bulk_reload_metadata", params: {book_ids: [owned.id, shared.id]}, as: :json
+
+      expect(response).to have_http_status(:accepted)
+      expect(response.parsed_body["queued"]).to eq(1)
+      expect(owned.reload.title).not_to eq("Edited")
+      expect(shared.reload.title).to eq("Shared")
+    ensure
+      FileUtils.remove_entry(shared_dir) if shared_dir
+    end
+  end
+
+  describe "POST /api/books/bulk_regenerate_cover" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it "regenerates covers and keeps going past books whose file is missing" do
+      sign_in!
+      missing = create(:book, library: lib, file_format: :cbz, file_path: "missing.cbz")
+      book = create(:book, library: lib, file_format: :cbz, file_path: "sample.cbz")
+
+      post "/api/books/bulk_regenerate_cover", params: {book_ids: [missing.id, book.id]}, as: :json
+
+      expect(response).to have_http_status(:accepted)
+      expect(book.reload.cover).to be_attached
+      expect(missing.reload.cover).not_to be_attached
+    end
+  end
 end

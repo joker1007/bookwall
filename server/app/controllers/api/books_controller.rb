@@ -98,6 +98,14 @@ module Api
       head :no_content
     end
 
+    def bulk_reload_metadata
+      enqueue_bulk_refresh("reload_metadata")
+    end
+
+    def bulk_regenerate_cover
+      enqueue_bulk_refresh("regenerate_cover")
+    end
+
     def file
       return head :not_found if @book.file_format == "image_dir"
 
@@ -121,6 +129,13 @@ module Api
     end
 
     private
+
+    # Only books in owned libraries are refreshed; shared books are skipped.
+    def enqueue_bulk_refresh(target)
+      ids = accessible_books.where(id: bulk_ids, library_id: owned_library_ids).ids
+      Books::RefreshJob.perform_later(ids, target) if ids.any?
+      render json: {queued: ids.size}, status: :accepted
+    end
 
     def set_book
       @book = find_accessible_book!(params[:id])

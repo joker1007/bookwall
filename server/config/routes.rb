@@ -36,6 +36,8 @@ Rails.application.routes.draw do
         post :bulk_favorite
         delete :bulk_favorite, action: :bulk_unfavorite
         post :bulk_destroy
+        post :bulk_reload_metadata
+        post :bulk_regenerate_cover
       end
       member do
         post :favorite

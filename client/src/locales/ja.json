@@ -149,7 +149,16 @@
       "deleteConfirmTitle_other": "{{count}} 冊の書籍を削除しますか?",
       "deleteConfirmDescription": "Bookwall のメタデータのみ削除され、ディスク上のファイルはそのまま残ります。",
       "assignDescription_one": "{{count}} 冊の書籍をコレクションに追加します。",
-      "assignDescription_other": "{{count}} 冊の書籍をコレクションに追加します。"
+      "assignDescription_other": "{{count}} 冊の書籍をコレクションに追加します。",
+      "reloadMetadata": "メタデータを再読み込み",
+      "regenerateCover": "サムネイルを再生成",
+      "reloadConfirmTitle_one": "{{count}} 冊のメタデータを再読み込みしますか?",
+      "reloadConfirmTitle_other": "{{count}} 冊のメタデータを再読み込みしますか?",
+      "reloadConfirmDescription": "ファイルに埋め込まれたメタデータで上書きされ、手動で編集した内容は失われます。",
+      "reload": "再読み込み",
+      "refreshQueued_one": "{{count}} 冊の処理をバックグラウンドで開始しました。完了後に再表示すると反映されます。",
+      "refreshQueued_other": "{{count}} 冊の処理をバックグラウンドで開始しました。完了後に再表示すると反映されます。",
+      "refreshFailed": "処理を開始できませんでした。"
     },
     "coverMissing": "{{title}} の表紙 (未取得)",
     "coverAlt": "{{title}} の表紙",

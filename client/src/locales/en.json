@@ -149,7 +149,16 @@
       "deleteConfirmTitle_other": "Delete {{count}} books?",
       "deleteConfirmDescription": "Only the Bookwall metadata is removed — the files on disk are left untouched.",
       "assignDescription_one": "Add {{count}} book to a collection.",
-      "assignDescription_other": "Add {{count}} books to a collection."
+      "assignDescription_other": "Add {{count}} books to a collection.",
+      "reloadMetadata": "Reload metadata",
+      "regenerateCover": "Regenerate thumbnails",
+      "reloadConfirmTitle_one": "Reload metadata for {{count}} book?",
+      "reloadConfirmTitle_other": "Reload metadata for {{count}} books?",
+      "reloadConfirmDescription": "Metadata embedded in the files will overwrite any manual edits.",
+      "reload": "Reload",
+      "refreshQueued_one": "Started processing {{count}} book. Reload the page after it finishes to see the changes.",
+      "refreshQueued_other": "Started processing {{count}} books. Reload the page after it finishes to see the changes.",
+      "refreshFailed": "Could not start processing."
     },
     "coverMissing": "Cover for {{title}} (not available)",
     "coverAlt": "Cover for {{title}}",

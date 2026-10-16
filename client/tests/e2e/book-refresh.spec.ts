@@ -35,4 +35,36 @@ test.describe("book refresh", () => {
     await expect(cover).not.toHaveAttribute("src", before ?? "");
     await expect(cover).toBeVisible();
   });
+
+  test("reloads metadata and regenerates covers for a selection in bulk", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+    const libRes = await page.request.post("/api/libraries", {
+      data: { name: "Bulk Refresh Fixtures", path: FIXTURES_PATH },
+    });
+    const lib = (await libRes.json()) as { id: number };
+    expect((await page.request.post(`/api/libraries/${lib.id}/scans`)).status()).toBe(202);
+
+    const listRes = await page.request.get("/api/books", { params: { library_id: lib.id } });
+    const { books } = (await listRes.json()) as { books: BookJson[] };
+    for (const b of books) {
+      await page.request.patch(`/api/books/${b.id}`, { data: { title: `Edited ${b.id}` } });
+    }
+
+    await page.goto(`/ui/libraries/${lib.id}`);
+    await expect(page.getByText(`Edited ${books[0].id}`).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Select", exact: true }).click();
+    await page.getByRole("button", { name: "Select all" }).click();
+    await page.getByRole("button", { name: "Reload metadata" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Reload" }).click();
+    await expect(page.getByRole("status")).toContainText(`${books.length} books`);
+    await expect(page.getByText(/^Edited \d+$/)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Select all" }).click();
+    await page.getByRole("button", { name: "Regenerate thumbnails" }).click();
+    await expect(page.getByRole("status")).toContainText(`${books.length} books`);
+  });
 });
