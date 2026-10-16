@@ -358,4 +358,113 @@ RSpec.describe "Api::Books", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "POST /api/books/:id/reload_metadata" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it_behaves_like "requires authentication", :post, "/api/books/1/reload_metadata"
+
+    it "overwrites edited metadata with the values embedded in the file" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :epub, file_path: "sample.epub",
+        title: "Edited", page_count: nil)
+      book.replace_tags(["manual"])
+
+      post "/api/books/#{book.id}/reload_metadata"
+
+      expect(response).to have_http_status(:ok)
+      book.reload
+      expect(book.title).not_to eq("Edited")
+      expect(book.authors.pluck(:name)).to include("Lewis Carroll")
+      expect(lib.books.count).to eq(1)
+      expect(response.parsed_body["title"]).to eq(book.title)
+    end
+
+    it "returns 422 when the file is missing" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :epub, file_path: "missing.epub")
+
+      post "/api/books/#{book.id}/reload_metadata"
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "forbids users the library is only shared with" do
+      sign_in!
+      other_lib = create(:library, owner: create(:user))
+      create(:library_share, library: other_lib, user: user)
+      book = create(:book, library: other_lib)
+
+      post "/api/books/#{book.id}/reload_metadata"
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "POST /api/books/:id/regenerate_cover" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it_behaves_like "requires authentication", :post, "/api/books/1/regenerate_cover"
+
+    it "replaces the cover and preprocesses its thumbnail" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :cbz, file_path: "sample.cbz")
+
+      post "/api/books/#{book.id}/regenerate_cover"
+
+      expect(response).to have_http_status(:ok)
+      blob = book.reload.cover.blob
+      expect(blob).to be_present
+      expect(ActiveStorage::VariantRecord.where(blob_id: blob.id)).to exist
+      expect(response.parsed_body.dig("cover", "url")).to be_present
+    end
+
+    it "returns 422 when the file is missing" do
+      sign_in!
+      book = create(:book, library: lib, file_format: :cbz, file_path: "missing.cbz")
+
+      post "/api/books/#{book.id}/regenerate_cover"
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
+
+  describe "POST /api/books/bulk_reload_metadata" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it "reloads owned books only, leaving shared books untouched" do
+      sign_in!
+      owned = create(:book, library: lib, file_format: :epub, file_path: "sample.epub", title: "Edited")
+      shared_dir = Dir.mktmpdir("bookwall-shared-")
+      FileUtils.cp(File.join(lib.path, "sample.epub"), shared_dir)
+      shared_lib = create(:library, path: shared_dir, owner: create(:user))
+      create(:library_share, library: shared_lib, user: user)
+      shared = create(:book, library: shared_lib, file_format: :epub, file_path: "sample.epub", title: "Shared")
+
+      post "/api/books/bulk_reload_metadata", params: {book_ids: [owned.id, shared.id]}, as: :json
+
+      expect(response).to have_http_status(:accepted)
+      expect(response.parsed_body["queued"]).to eq(1)
+      expect(owned.reload.title).not_to eq("Edited")
+      expect(shared.reload.title).to eq("Shared")
+    ensure
+      FileUtils.remove_entry(shared_dir) if shared_dir
+    end
+  end
+
+  describe "POST /api/books/bulk_regenerate_cover" do
+    let(:lib) { create(:library, path: Rails.root.join("spec/fixtures/files").to_s, owner: user) }
+
+    it "regenerates covers and keeps going past books whose file is missing" do
+      sign_in!
+      missing = create(:book, library: lib, file_format: :cbz, file_path: "missing.cbz")
+      book = create(:book, library: lib, file_format: :cbz, file_path: "sample.cbz")
+
+      post "/api/books/bulk_regenerate_cover", params: {book_ids: [missing.id, book.id]}, as: :json
+
+      expect(response).to have_http_status(:accepted)
+      expect(book.reload.cover).to be_attached
+      expect(missing.reload.cover).not_to be_attached
+    end
+  end
 end

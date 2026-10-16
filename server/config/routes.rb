@@ -36,12 +36,16 @@ Rails.application.routes.draw do
         post :bulk_favorite
         delete :bulk_favorite, action: :bulk_unfavorite
         post :bulk_destroy
+        post :bulk_reload_metadata
+        post :bulk_regenerate_cover
       end
       member do
         post :favorite
         delete :favorite, action: :unfavorite
         get :file
         get :next_in_series
+        post :reload_metadata
+        post :regenerate_cover
       end
       get "pages/:n", to: "pages#show", as: :page, constraints: {n: /\d+/}
       resource :progress, only: %i[show update], controller: "reading_progresses"

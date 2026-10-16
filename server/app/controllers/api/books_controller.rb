@@ -3,8 +3,8 @@
 module Api
   class BooksController < BaseController
     include ByteRangeServing
-    before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series]
-    before_action :require_book_owner!, only: %i[update destroy]
+    before_action :set_book, only: %i[show update destroy favorite unfavorite file next_in_series reload_metadata regenerate_cover]
+    before_action :require_book_owner!, only: %i[update destroy reload_metadata regenerate_cover]
 
     def index
       search = Books::Search.new(
@@ -57,6 +57,18 @@ module Api
       head :no_content
     end
 
+    def reload_metadata
+      render json: serialize_book(Scanners::BookRefresher.new(@book).reload_metadata!)
+    rescue Scanners::BookRefresher::Error => e
+      render json: {errors: [e.message]}, status: :unprocessable_content
+    end
+
+    def regenerate_cover
+      render json: serialize_book(Scanners::BookRefresher.new(@book).regenerate_cover!)
+    rescue Scanners::BookRefresher::Error => e
+      render json: {errors: [e.message]}, status: :unprocessable_content
+    end
+
     def favorite
       Favorite.find_or_create_by!(user: Current.user, book: @book)
       render json: serialize_book(@book), status: :created
@@ -86,6 +98,14 @@ module Api
       head :no_content
     end
 
+    def bulk_reload_metadata
+      enqueue_bulk_refresh("reload_metadata")
+    end
+
+    def bulk_regenerate_cover
+      enqueue_bulk_refresh("regenerate_cover")
+    end
+
     def file
       return head :not_found if @book.file_format == "image_dir"
 
@@ -109,6 +129,13 @@ module Api
     end
 
     private
+
+    # Only books in owned libraries are refreshed; shared books are skipped.
+    def enqueue_bulk_refresh(target)
+      ids = accessible_books.where(id: bulk_ids, library_id: owned_library_ids).ids
+      Books::RefreshJob.perform_later(ids, target) if ids.any?
+      render json: {queued: ids.size}, status: :accepted
+    end
 
     def set_book
       @book = find_accessible_book!(params[:id])

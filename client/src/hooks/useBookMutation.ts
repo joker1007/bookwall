@@ -34,3 +34,17 @@ export function useDeleteBook() {
     },
   });
 }
+
+export type BookRefreshTarget = "reload_metadata" | "regenerate_cover";
+
+export function useRefreshBook() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, target }: { id: number; target: BookRefreshTarget }) =>
+      api<Book>(`/api/books/${id}/${target}`, { method: "POST" }),
+    onSuccess: (book) => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.setQueryData(["book", String(book.id)], book);
+    },
+  });
+}

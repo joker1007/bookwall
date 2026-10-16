@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Heart, HeartOff, FolderPlus, FolderMinus, Trash2, X } from "lucide-react";
+import {
+  FolderMinus,
+  FolderPlus,
+  Heart,
+  HeartOff,
+  ImageUp,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -17,8 +26,10 @@ import {
   useBulkFavorite,
   useBulkUnfavorite,
   useBulkDestroy,
+  useBulkRefresh,
 } from "@/hooks/useBulkBookActions";
 import { useRemoveBookFromCollection } from "@/hooks/useCollections";
+import type { BookRefreshTarget } from "@/hooks/useBookMutation";
 
 interface BulkActionBarProps {
   selectedIds: number[];
@@ -39,19 +50,34 @@ export function BulkActionBar({
   const favorite = useBulkFavorite();
   const unfavorite = useBulkUnfavorite();
   const destroy = useBulkDestroy();
+  const refresh = useBulkRefresh();
   const removeFromCollection = useRemoveBookFromCollection();
   const [assignOpen, setAssignOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [reloadOpen, setReloadOpen] = useState(false);
+  const [queuedCount, setQueuedCount] = useState<number | null>(null);
 
   const count = selectedIds.length;
   const busy =
     favorite.isPending ||
     unfavorite.isPending ||
     destroy.isPending ||
+    refresh.isPending ||
     removeFromCollection.isPending;
 
   const runAndClear = (mutate: Promise<unknown>) => {
     mutate.then(() => onClear()).catch(() => {});
+  };
+
+  const runRefresh = (target: BookRefreshTarget) => {
+    setQueuedCount(null);
+    refresh
+      .mutateAsync({ bookIds: selectedIds, target })
+      .then(({ queued }) => {
+        setQueuedCount(queued);
+        onClear();
+      })
+      .catch(() => {});
   };
 
   const handleRemoveFromCollection = () => {
@@ -120,6 +146,26 @@ export function BulkActionBar({
           <Button
             variant="outline"
             size="sm"
+            className="gap-2"
+            disabled={busy || count === 0}
+            onClick={() => setReloadOpen(true)}
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            {t("books.bulk.reloadMetadata")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={busy || count === 0}
+            onClick={() => runRefresh("regenerate_cover")}
+          >
+            <ImageUp className="size-4" aria-hidden />
+            {t("books.bulk.regenerateCover")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             className="gap-2 text-destructive hover:text-destructive"
             disabled={busy || count === 0}
             onClick={() => setDeleteOpen(true)}
@@ -131,6 +177,14 @@ export function BulkActionBar({
             <X className="size-4" aria-hidden />
           </Button>
         </div>
+        {queuedCount !== null ? (
+          <p role="status" className="w-full text-sm text-muted-foreground">
+            {t("books.bulk.refreshQueued", { count: queuedCount })}
+          </p>
+        ) : null}
+        {refresh.isError ? (
+          <p className="w-full text-sm text-destructive">{t("books.bulk.refreshFailed")}</p>
+        ) : null}
       </div>
 
       <CollectionAssignDialog
@@ -139,6 +193,28 @@ export function BulkActionBar({
         bookIds={selectedIds}
         onAssigned={onClear}
       />
+
+      <AlertDialog open={reloadOpen} onOpenChange={setReloadOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("books.bulk.reloadConfirmTitle", { count })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("books.bulk.reloadConfirmDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                runRefresh("reload_metadata");
+                setReloadOpen(false);
+              }}
+            >
+              {t("books.bulk.reload")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

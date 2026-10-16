@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { BookRefreshTarget } from "@/hooks/useBookMutation";
 
 function invalidateAfterBulk(queryClient: QueryClient) {
   return () => {
@@ -33,6 +34,18 @@ export function useBulkDestroy() {
   return useMutation({
     mutationFn: (bookIds: number[]) =>
       api("/api/books/bulk_destroy", { method: "POST", body: { book_ids: bookIds } }),
+    onSuccess: invalidateAfterBulk(queryClient),
+  });
+}
+
+export function useBulkRefresh() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookIds, target }: { bookIds: number[]; target: BookRefreshTarget }) =>
+      api<{ queued: number }>(`/api/books/bulk_${target}`, {
+        method: "POST",
+        body: { book_ids: bookIds },
+      }),
     onSuccess: invalidateAfterBulk(queryClient),
   });
 }

@@ -1,9 +1,18 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Download, Heart, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Download,
+  Heart,
+  ImageUp,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { useBook, useBookList, useFavoriteBook } from "@/hooks/useBooks";
-import { useDeleteBook } from "@/hooks/useBookMutation";
+import { useDeleteBook, useRefreshBook } from "@/hooks/useBookMutation";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +38,7 @@ export default function BookDetailPage() {
   const query = useBook(id);
   const favorite = useFavoriteBook();
   const remove = useDeleteBook();
+  const refresh = useRefreshBook();
   const user = useAuthStore((s) => s.user);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -63,6 +73,11 @@ export default function BookDetailPage() {
     remove.mutate(book.id, {
       onSuccess: () => navigate("/", { replace: true }),
     });
+  };
+
+  const handleReloadMetadata = () => {
+    if (!window.confirm(t("books.detail.reloadMetadataConfirm", { title: book.title }))) return;
+    refresh.mutate({ id: book.id, target: "reload_metadata" });
   };
 
   return (
@@ -187,6 +202,24 @@ export default function BookDetailPage() {
               {t("books.detail.edit")}
             </Button>
             <Button
+              variant="outline"
+              onClick={handleReloadMetadata}
+              disabled={refresh.isPending}
+              className="gap-2"
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {t("books.detail.reloadMetadata")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => refresh.mutate({ id: book.id, target: "regenerate_cover" })}
+              disabled={refresh.isPending}
+              className="gap-2"
+            >
+              <ImageUp className="size-4" aria-hidden />
+              {t("books.detail.regenerateCover")}
+            </Button>
+            <Button
               variant="ghost"
               onClick={handleDelete}
               disabled={remove.isPending}
@@ -196,6 +229,9 @@ export default function BookDetailPage() {
               {t("books.detail.deleteMeta")}
             </Button>
           </div>
+          {refresh.isError ? (
+            <p className="text-sm text-destructive">{t("books.detail.refreshFailed")}</p>
+          ) : null}
         </div>
       </div>
 

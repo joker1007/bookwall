@@ -64,6 +64,32 @@ module Scanners
       "scan_progress:#{scan_log_id}"
     end
 
+    def upsert_book(result, attach_cover: true)
+      meta = result[:metadata]
+      author_records = upsert_named(Author, meta[:authors])
+      tag_records = upsert_named(Tag, meta[:tags])
+      series_name = meta[:series].presence || fallback_series_from_path(result[:path])
+      series_record = ensure_series(series_name)
+
+      relative_path = relative_to_library(result[:path])
+      book = library.books.find_or_initialize_by(file_path: relative_path)
+      book.assign_attributes(
+        series: series_record,
+        title: meta[:title].presence || File.basename(result[:path], ".*"),
+        volume: meta[:volume],
+        file_format: result[:format],
+        file_size: result[:file_size],
+        page_count: meta[:page_count],
+        published_at: meta[:published_at],
+        scanned_at: Time.current
+      )
+      book.save!
+      book.authors = author_records
+      book.tags = tag_records
+      Covers::Extractor.attach(book, result[:cover_bytes]) if attach_cover
+      book
+    end
+
     private
 
     def enqueue_fts_sync(upserted_ids)
@@ -120,31 +146,6 @@ module Scanners
       self.class.progress_cache_key(scan_log_id)
     end
 
-    def upsert_book(result)
-      meta = result[:metadata]
-      author_records = upsert_named(Author, meta[:authors])
-      tag_records = upsert_named(Tag, meta[:tags])
-      series_name = meta[:series].presence || fallback_series_from_path(result[:path])
-      series_record = ensure_series(series_name)
-
-      relative_path = relative_to_library(result[:path])
-      book = library.books.find_or_initialize_by(file_path: relative_path)
-      book.assign_attributes(
-        series: series_record,
-        title: meta[:title].presence || File.basename(result[:path], ".*"),
-        volume: meta[:volume],
-        file_format: result[:format],
-        file_size: result[:file_size],
-        page_count: meta[:page_count],
-        published_at: meta[:published_at],
-        scanned_at: Time.current
-      )
-      book.save!
-      book.authors = author_records
-      book.tags = tag_records
-      Covers::Extractor.attach(book, result[:cover_bytes])
-      book
-    end
 
     def upsert_named(model, names)
       return [] if names.blank?
