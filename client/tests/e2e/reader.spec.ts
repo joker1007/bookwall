@@ -42,7 +42,10 @@ test.describe("image reader progress restore", () => {
 
     const requestedPages: number[] = [];
     await page.route(`**/api/books/${bookId}/pages/*`, async (route) => {
-      const m = route.request().url().match(/\/pages\/(\d+)/);
+      const m = route
+        .request()
+        .url()
+        .match(/\/pages\/(\d+)/);
       if (m) requestedPages.push(Number(m[1]));
       await route.continue();
     });
@@ -255,7 +258,9 @@ test.describe("image reader thumbnails", () => {
     await page.getByRole("button", { name: "Page thumbnails" }).click();
     const grid = page.getByTestId("thumbnail-grid");
     await expect(grid).toBeVisible();
-    await expect(grid.getByRole("button", { name: /^\d+ \/ 4$/ })).toHaveCount(4);
+    await expect(grid.getByRole("button", { name: /^\d+ \/ 4$/ })).toHaveCount(
+      4,
+    );
     await expect(grid.getByRole("button", { name: "1 / 4" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -272,5 +277,21 @@ test.describe("image reader thumbnails", () => {
     await page.keyboard.press("Escape");
     await expect(grid).toBeHidden();
     await expect(page.getByRole("banner").getByText("3 / 4")).toBeVisible();
+
+    const rtlRes = await page.request.patch(`/api/books/${bookId}/progress`, {
+      data: { settings: { direction: "rtl" } },
+    });
+    expect(rtlRes.ok()).toBeTruthy();
+    await page.reload();
+    await page.keyboard.press("g");
+    await expect(grid).toBeVisible();
+    const first = await grid
+      .getByRole("button", { name: "1 / 4" })
+      .boundingBox();
+    const second = await grid
+      .getByRole("button", { name: "2 / 4" })
+      .boundingBox();
+    expect(first!.y).toBe(second!.y);
+    expect(first!.x).toBeLessThan(second!.x);
   });
 });

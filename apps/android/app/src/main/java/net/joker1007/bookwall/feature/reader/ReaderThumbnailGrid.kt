@@ -30,22 +30,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import net.joker1007.bookwall.data.reader.PageSource
-import net.joker1007.bookwall.data.reader.ReadingDirection
 
 /**
  * Full-screen overlay listing every page as a thumbnail. Cells are composed
@@ -56,7 +52,6 @@ import net.joker1007.bookwall.data.reader.ReadingDirection
 fun ReaderThumbnailGrid(
     currentPage: Int,
     pageCount: Int,
-    direction: ReadingDirection,
     pageSource: PageSource?,
     imageLoader: ImageLoader?,
     onSelect: (Int) -> Unit,
@@ -66,8 +61,6 @@ fun ReaderThumbnailGrid(
     BackHandler(onBack = onClose)
 
     val gridState = rememberLazyGridState(initialFirstVisibleItemIndex = currentPage)
-    val layoutDirection =
-        if (direction == ReadingDirection.RTL) LayoutDirection.Rtl else LayoutDirection.Ltr
 
     Column(
         modifier = modifier
@@ -89,29 +82,27 @@ fun ReaderThumbnailGrid(
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
         )
-        CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = CELL_MIN_WIDTH),
-                state = gridState,
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(ReaderTags.THUMBNAIL_LIST),
-            ) {
-                items(count = pageCount, key = { it }) { page ->
-                    ThumbnailCell(
-                        page = page,
-                        current = page == currentPage,
-                        pageSource = pageSource,
-                        imageLoader = imageLoader,
-                        onClick = { onSelect(page) },
-                    )
-                }
-                item(key = "bottom_inset", span = { GridItemSpan(maxLineSpan) }) {
-                    Box(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-                }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = CELL_MIN_WIDTH),
+            state = gridState,
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(ReaderTags.THUMBNAIL_LIST),
+        ) {
+            items(count = pageCount, key = { it }) { page ->
+                ThumbnailCell(
+                    page = page,
+                    current = page == currentPage,
+                    pageSource = pageSource,
+                    imageLoader = imageLoader,
+                    onClick = { onSelect(page) },
+                )
+            }
+            item(key = "bottom_inset", span = { GridItemSpan(maxLineSpan) }) {
+                Box(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             }
         }
     }

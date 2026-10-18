@@ -8,7 +8,6 @@ interface ReaderThumbnailGridProps {
   bookId: string;
   total: number;
   currentPage: number;
-  direction: "ltr" | "rtl";
   onSelect: (page: number) => void;
   onClose: () => void;
 }
@@ -19,7 +18,6 @@ export function ReaderThumbnailGrid({
   bookId,
   total,
   currentPage,
-  direction,
   onSelect,
   onClose,
 }: ReaderThumbnailGridProps) {
@@ -68,7 +66,6 @@ export function ReaderThumbnailGrid({
       </div>
       <div
         ref={scrollRef}
-        dir={direction}
         className="grid flex-1 auto-rows-max grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3 overflow-y-auto p-3 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]"
       >
         {Array.from({ length: total }, (_, p) => (
