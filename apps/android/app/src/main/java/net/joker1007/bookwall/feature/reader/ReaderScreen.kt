@@ -287,7 +287,6 @@ fun ReaderScreen(
                     ReaderThumbnailGrid(
                         currentPage = state.currentPage,
                         pageCount = state.pageCount,
-                        direction = state.direction,
                         pageSource = viewModel.pageSource,
                         imageLoader = imageLoader,
                         onSelect = viewModel::selectThumbnail,

@@ -69,6 +69,7 @@ class ReaderThumbnailGridTest {
             assertPageIndicator("1 / 12")
 
             openThumbnails()
+            assertThumbnailsOrderedLeftToRight(0, 1)
             clickThumbnail(8)
             assertThumbnailsHidden()
             assertPageIndicator("9 / 12")

@@ -19,6 +19,8 @@ import net.joker1007.bookwall.feature.reader.ReaderTags
 import net.joker1007.bookwall.feature.reader.ReaderZoomScaleKey
 import net.joker1007.bookwall.feature.reader.thumbnailLabel
 import net.joker1007.bookwall.ui.NextBookDialogTags
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 
 /** Robot driving the image reader screen. */
 class ReaderRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
@@ -105,6 +107,16 @@ class ReaderRobot(composeRule: ComposeTestRule) : ComposeRobot(composeRule) {
         composeRule.onNodeWithTag(ReaderTags.THUMBNAIL_LIST, useUnmergedTree = true)
             .performScrollToNode(hasContentDescription(thumbnailLabel(page)))
         composeRule.onNodeWithContentDescription(thumbnailLabel(page)).performClick()
+    }
+
+    fun assertThumbnailsOrderedLeftToRight(first: Int, second: Int) = apply {
+        val bounds = { page: Int ->
+            composeRule.onNodeWithContentDescription(thumbnailLabel(page)).fetchSemanticsNode().boundsInRoot
+        }
+        val a = bounds(first)
+        val b = bounds(second)
+        assertEquals(a.top, b.top)
+        assertTrue("page $first should be left of page $second", a.left < b.left)
     }
 
     fun closeThumbnails() = apply {

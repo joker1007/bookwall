@@ -468,7 +468,6 @@ function ReaderPageInner() {
           bookId={id}
           total={total}
           currentPage={page}
-          direction={direction}
           onSelect={jumpToPage}
           onClose={closeThumbnails}
         />
