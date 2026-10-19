@@ -53,9 +53,9 @@ module Parsers
             image_entries << entry
           end
         end
-        image_entries.sort_by! { |e| e.name.downcase }
-        @image_entry_names = image_entries.map(&:name).freeze
-        @cover_bytes = image_entries.first&.get_input_stream&.read
+        @image_entry_names = Parsers.natural_sort(image_entries.map(&:name)).freeze
+        cover_name = @image_entry_names.first
+        @cover_bytes = cover_name && zip.get_input_stream(cover_name).read
         @comic_info_xml = info_entry&.get_input_stream&.read
       end
       @loaded = true

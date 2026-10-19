@@ -29,6 +29,17 @@ RSpec.describe Parsers do
     end
   end
 
+  describe ".natural_sort" do
+    # Same vector as the Android NaturalOrderTest.
+    it "sorts digit runs numerically and case-insensitively" do
+      names = %w[Page10.jpg page2.jpg page1.jpg page01.jpg Page1.jpg ch10/001.jpg ch2/010.jpg ch2/2.jpg cover.jpg a.jpg]
+
+      expect(described_class.natural_sort(names)).to eq(
+        %w[a.jpg ch2/2.jpg ch2/010.jpg ch10/001.jpg cover.jpg Page1.jpg page01.jpg page1.jpg page2.jpg Page10.jpg]
+      )
+    end
+  end
+
   describe ".for" do
     it "returns CbzParser for .cbz" do
       expect(described_class.for(FIXTURES.join("sample.cbz").to_s)).to be_a(Parsers::CbzParser)

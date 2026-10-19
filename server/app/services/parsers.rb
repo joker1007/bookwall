@@ -20,6 +20,16 @@ module Parsers
     EXTENSION_MIME_TYPES.fetch(File.extname(filename).downcase, default)
   end
 
+  # Digit runs compare numerically so "2.jpg" precedes "10.jpg"; ties fall back
+  # to the raw name to keep the order deterministic.
+  def self.natural_sort(names)
+    names.sort_by { |name| [natural_key(name), name] }
+  end
+
+  def self.natural_key(name)
+    name.downcase.scan(/\d+|\D+/).map { |chunk| chunk.match?(/\A\d/) ? [0, chunk.to_i] : [1, chunk] }
+  end
+
   module_function
 
   def for(path)

@@ -82,6 +82,23 @@ RSpec.describe Parsers::CbzParser do
     end
   end
 
+  context "with unpadded page numbers" do
+    let(:path) do
+      cbz_path = File.join(Dir.mktmpdir("bookwall-cbz-natural-"), "natural.cbz")
+      Zip::File.open(cbz_path, create: true) do |zip|
+        %w[Pages/10.jpg Pages/2.jpg pages/1.JPG].each do |name|
+          zip.get_output_stream(name) { |io| io.write(name) }
+        end
+      end
+      cbz_path
+    end
+
+    it "orders pages naturally and uses the first as the cover" do
+      expect((0...3).map { |i| parser.page_bytes(i) }).to eq(%w[pages/1.JPG Pages/2.jpg Pages/10.jpg])
+      expect(parser.cover_bytes).to eq("pages/1.JPG")
+    end
+  end
+
   describe "zip open count" do
     it "opens the zip once across metadata + cover_bytes + page_count" do
       opens = 0
