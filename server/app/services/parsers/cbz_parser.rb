@@ -53,14 +53,24 @@ module Parsers
             image_entries << entry
           end
         end
-        @image_entry_names = Parsers.natural_sort(image_entries.map(&:name)).freeze
-        cover_name = @image_entry_names.first
-        @cover_bytes = cover_name && zip.get_input_stream(cover_name).read
+        @image_entry_names = Parsers.order_pages(image_entries.map(&:name)).freeze
         @comic_info_xml = info_entry&.get_input_stream&.read
+        cover_name = front_cover_index&.then { |i| @image_entry_names[i] } || @image_entry_names.first
+        @cover_bytes = cover_name && zip.get_input_stream(cover_name).read
       end
       @loaded = true
     rescue Zip::Error => e
       raise InvalidFile, "broken CBZ: #{e.message}"
+    end
+
+    # ComicInfo marks the cover by page index; it only picks the thumbnail and
+    # never reorders pages.
+    def front_cover_index
+      return unless @comic_info_xml
+
+      image = Nokogiri::XML(@comic_info_xml).at_xpath("//Pages/Page[@Type='FrontCover']/@Image")&.value
+      index = Integer(image, exception: false) if image
+      index unless index&.negative?
     end
 
     def build_metadata

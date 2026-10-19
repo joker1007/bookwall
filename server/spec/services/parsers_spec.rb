@@ -40,6 +40,17 @@ RSpec.describe Parsers do
     end
   end
 
+  describe ".order_pages" do
+    # Same vector as the Android NaturalOrderTest.
+    it "moves the first front-cover-named file to the front" do
+      names = %w[10.jpg 2.jpg back-cover.jpg 表紙裏.jpg x/Cover.JPG discover.jpg covers/1.jpg 表紙.jpg]
+
+      expect(described_class.order_pages(names)).to eq(
+        %w[x/Cover.JPG 2.jpg 10.jpg back-cover.jpg covers/1.jpg discover.jpg 表紙.jpg 表紙裏.jpg]
+      )
+    end
+  end
+
   describe ".for" do
     it "returns CbzParser for .cbz" do
       expect(described_class.for(FIXTURES.join("sample.cbz").to_s)).to be_a(Parsers::CbzParser)

@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class NaturalOrderTest {
-    // Same vector as server/spec/services/parsers_spec.rb (.natural_sort).
+    // Vectors shared with server/spec/services/parsers_spec.rb.
     @Test
     fun `sorts digit runs numerically and case-insensitively`() {
         val names = listOf(
@@ -18,6 +18,22 @@ class NaturalOrderTest {
                 "Page1.jpg", "page01.jpg", "page1.jpg", "page2.jpg", "Page10.jpg",
             ),
             names.sortedWith(NaturalOrder),
+        )
+    }
+
+    @Test
+    fun `moves the first front-cover-named file to the front`() {
+        val names = listOf(
+            "10.jpg", "2.jpg", "back-cover.jpg", "表紙裏.jpg",
+            "x/Cover.JPG", "discover.jpg", "covers/1.jpg", "表紙.jpg",
+        )
+
+        assertEquals(
+            listOf(
+                "x/Cover.JPG", "2.jpg", "10.jpg", "back-cover.jpg",
+                "covers/1.jpg", "discover.jpg", "表紙.jpg", "表紙裏.jpg",
+            ),
+            NaturalOrder.orderPages(names),
         )
     }
 }

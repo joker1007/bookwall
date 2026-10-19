@@ -7,6 +7,23 @@ package net.joker1007.bookwall.data.reader.local
  */
 object NaturalOrder : Comparator<String> {
     private val CHUNK = Regex("""\d+|\D+""")
+    private val COVER_NAME = Regex("""(?<![a-z])cover(?![a-z])|表紙""")
+    private val BACK_COVER_NAME = Regex("""(?<![a-z])(?:back|ura)(?![a-z])|裏""")
+
+    /**
+     * Natural order, with the first file explicitly named as a front cover
+     * moved to the front. Mirrors the server's `Parsers.order_pages`.
+     */
+    fun orderPages(names: List<String>): List<String> {
+        val sorted = names.sortedWith(this)
+        val cover = sorted.firstOrNull(::isCoverName) ?: return sorted
+        return listOf(cover) + (sorted - cover)
+    }
+
+    private fun isCoverName(name: String): Boolean {
+        val base = name.substringAfterLast('/').substringBeforeLast('.').lowercase()
+        return COVER_NAME.containsMatchIn(base) && !BACK_COVER_NAME.containsMatchIn(base)
+    }
 
     override fun compare(a: String, b: String): Int {
         val ca = chunks(a)

@@ -9,7 +9,7 @@ data class CbzPage(val source: LocalCbzPageSource, val index: Int)
 
 /**
  * Serves CBZ pages straight out of the archive (no extraction). Pages follow
- * [NaturalOrder], the same rule the server uses, so page numbers stay
+ * [NaturalOrder.orderPages], the same rule the server uses, so page numbers stay
  * interchangeable with PSE progress.
  */
 class LocalCbzPageSource private constructor(
@@ -42,8 +42,8 @@ class LocalCbzPageSource private constructor(
                 .filter { !it.isDirectory }
                 .map { it.name }
                 .filter { it.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS }
-                .sortedWith(NaturalOrder)
                 .toList()
+                .let(NaturalOrder::orderPages)
             return LocalCbzPageSource(zip, names, file.absolutePath)
         }
     }
