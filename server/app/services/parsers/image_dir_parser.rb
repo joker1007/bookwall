@@ -38,10 +38,9 @@ module Parsers
     private
 
     def image_files
-      @image_files ||= Dir.children(@path)
-        .select { |f| IMAGE_EXTENSIONS.include?(File.extname(f).downcase) }
-        .sort
-        .map { |f| File.join(@path, f) }
+      @image_files ||= Parsers.order_pages(
+        Dir.children(@path).select { |f| IMAGE_EXTENSIONS.include?(File.extname(f).downcase) }
+      ).map { |f| File.join(@path, f) }
     end
   end
 end

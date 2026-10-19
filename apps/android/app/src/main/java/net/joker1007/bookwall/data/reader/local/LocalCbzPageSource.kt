@@ -8,9 +8,9 @@ import java.util.zip.ZipFile
 data class CbzPage(val source: LocalCbzPageSource, val index: Int)
 
 /**
- * Serves CBZ pages straight out of the archive (no extraction). Page order is
- * the lowercased entry-name lexicographic sort — the same rule the server's
- * CBZ parser uses, so page numbers stay interchangeable with PSE progress.
+ * Serves CBZ pages straight out of the archive (no extraction). Pages follow
+ * [NaturalOrder.orderPages], the same rule the server uses, so page numbers stay
+ * interchangeable with PSE progress.
  */
 class LocalCbzPageSource private constructor(
     private val zip: ZipFile,
@@ -34,7 +34,7 @@ class LocalCbzPageSource private constructor(
     override fun close() = zip.close()
 
     companion object {
-        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif")
 
         fun open(file: File): LocalCbzPageSource {
             val zip = ZipFile(file)
@@ -42,8 +42,8 @@ class LocalCbzPageSource private constructor(
                 .filter { !it.isDirectory }
                 .map { it.name }
                 .filter { it.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS }
-                .sortedBy { it.lowercase() }
                 .toList()
+                .let(NaturalOrder::orderPages)
             return LocalCbzPageSource(zip, names, file.absolutePath)
         }
     }

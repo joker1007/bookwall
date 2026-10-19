@@ -17,7 +17,7 @@ RSpec.describe Parsers::ImageDirParser do
   end
 
   describe "#cover_bytes" do
-    it "returns bytes of the first image (lexicographically)" do
+    it "returns bytes of the first image" do
       bytes = parser.cover_bytes
       expect(bytes).to be_a(String)
       expect(bytes.bytesize).to be > 0
@@ -57,6 +57,18 @@ RSpec.describe Parsers::ImageDirParser do
 
     it "ignores non-image files" do
       expect(parser.page_count).to eq(2)
+    end
+  end
+
+  context "with unpadded page numbers" do
+    let(:path) do
+      tmp = Dir.mktmpdir("bookwall-natural-imgdir-")
+      %w[10.jpg 2.jpg 1.jpg].each { |name| File.write(File.join(tmp, name), name) }
+      tmp
+    end
+
+    it "orders pages naturally" do
+      expect((0...3).map { |i| parser.page_bytes(i) }).to eq(%w[1.jpg 2.jpg 10.jpg])
     end
   end
 end

@@ -33,14 +33,14 @@ class LocalBookSourceFactoryTest {
     }
 
     @Test
-    fun `opens a cbz with pages in lowercased lexicographic entry order`() = runTest {
-        // Deliberately out of insertion order + mixed case; matches the server's
-        // name.downcase sort, so page numbers stay PSE-compatible.
+    fun `opens a cbz with pages in natural entry order`() = runTest {
+        // Deliberately out of insertion order + mixed case; matches the server
+        // sort, so page numbers stay PSE-compatible.
         val file = zipFile(
             "book.cbz",
             linkedMapOf(
-                "Pages/010.JPG" to byteArrayOf(1),
-                "Pages/002.jpg" to byteArrayOf(2),
+                "Pages/10.JPG" to byteArrayOf(1),
+                "Pages/2.jpg" to byteArrayOf(2),
                 "cover.png" to byteArrayOf(3),
                 "notes.txt" to byteArrayOf(4),
             ),
@@ -52,7 +52,7 @@ class LocalBookSourceFactoryTest {
         assertEquals(3, source.pageCount)
         val pages = (0 until source.pageCount).map { (source.pageModel(it) as CbzPage) }
         assertEquals(listOf(0, 1, 2), pages.map { it.index })
-        // Sorted lowercased: cover.png < pages/002.jpg < pages/010.jpg.
+        // cover.png < pages/2.jpg < pages/10.jpg.
         assertEquals(byteArrayOf(3).toList(), source.openPage(0).use { it.readBytes() }.toList())
         assertEquals(byteArrayOf(2).toList(), source.openPage(1).use { it.readBytes() }.toList())
         assertEquals(byteArrayOf(1).toList(), source.openPage(2).use { it.readBytes() }.toList())
