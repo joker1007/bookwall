@@ -283,6 +283,8 @@ test.describe("image reader thumbnails", () => {
     });
     expect(rtlRes.ok()).toBeTruthy();
     await page.reload();
+    // "g" is only bound once the reader has mounted.
+    await expect(page.getByRole("banner").getByText(/^\d \/ 4$/)).toBeVisible();
     await page.keyboard.press("g");
     await expect(grid).toBeVisible();
     const first = await grid
