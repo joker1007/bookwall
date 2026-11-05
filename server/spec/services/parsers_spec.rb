@@ -51,6 +51,22 @@ RSpec.describe Parsers do
     end
   end
 
+  describe ".decode_entry_name" do
+    def raw(name, encoding) = name.encode(encoding).b.tr("\\", "/")
+
+    it "keeps UTF-8 names" do
+      expect(described_class.decode_entry_name(raw("表紙.jpg", "UTF-8"))).to eq("表紙.jpg")
+    end
+
+    it "decodes CP932 names, restoring 0x5C trail bytes that rubyzip turned into slashes" do
+      expect(described_class.decode_entry_name(raw("ソフト/能力/表紙.jpg", "Windows-31J"))).to eq("ソフト/能力/表紙.jpg")
+    end
+
+    it "scrubs names in neither encoding" do
+      expect(described_class.decode_entry_name("\xFF\xFE.jpg".b)).to eq("��.jpg")
+    end
+  end
+
   describe ".for" do
     it "returns CbzParser for .cbz" do
       expect(described_class.for(FIXTURES.join("sample.cbz").to_s)).to be_a(Parsers::CbzParser)

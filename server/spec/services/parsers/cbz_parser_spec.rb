@@ -126,6 +126,22 @@ RSpec.describe Parsers::CbzParser do
     end
   end
 
+  context "with Shift_JIS entry names" do
+    let(:path) do
+      cbz_path = File.join(Dir.mktmpdir("bookwall-cbz-sjis-"), "sjis.cbz")
+      Zip::File.open(cbz_path, create: true) do |zip|
+        %w[本文02.jpg 表紙.jpg 本文01.jpg].each do |name|
+          zip.get_output_stream(name.encode("Windows-31J").b) { |io| io.write(name) }
+        end
+      end
+      cbz_path
+    end
+
+    it "orders and serves pages by their decoded names" do
+      expect((0...3).map { |i| parser.page_bytes(i).force_encoding("UTF-8") }).to eq(%w[表紙.jpg 本文01.jpg 本文02.jpg])
+    end
+  end
+
   describe "zip open count" do
     it "opens the zip once across metadata + cover_bytes + page_count" do
       opens = 0

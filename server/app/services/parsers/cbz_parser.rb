@@ -53,7 +53,8 @@ module Parsers
             image_entries << entry
           end
         end
-        @image_entry_names = Parsers.order_pages(image_entries.map(&:name)).freeze
+        raw_names = image_entries.to_h { |entry| [Parsers.decode_entry_name(entry.name), entry.name] }
+        @image_entry_names = Parsers.order_pages(raw_names.keys).map { |name| raw_names.fetch(name) }.freeze
         @comic_info_xml = info_entry&.get_input_stream&.read
         cover_name = front_cover_index&.then { |i| @image_entry_names[i] } || @image_entry_names.first
         @cover_bytes = cover_name && zip.get_input_stream(cover_name).read

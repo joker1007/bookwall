@@ -9,6 +9,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.charset.Charset
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -20,9 +21,9 @@ class LocalBookSourceFactoryTest {
 
     private val factory = LocalBookSourceFactory(UnconfinedTestDispatcher())
 
-    private fun zipFile(name: String, entries: Map<String, ByteArray>): File {
+    private fun zipFile(name: String, entries: Map<String, ByteArray>, charset: Charset = Charsets.UTF_8): File {
         val file = tmp.newFile(name)
-        ZipOutputStream(file.outputStream()).use { zip ->
+        ZipOutputStream(file.outputStream(), charset).use { zip ->
             entries.forEach { (entryName, bytes) ->
                 zip.putNextEntry(ZipEntry(entryName))
                 zip.write(bytes)
@@ -56,6 +57,25 @@ class LocalBookSourceFactoryTest {
         assertEquals(byteArrayOf(3).toList(), source.openPage(0).use { it.readBytes() }.toList())
         assertEquals(byteArrayOf(2).toList(), source.openPage(1).use { it.readBytes() }.toList())
         assertEquals(byteArrayOf(1).toList(), source.openPage(2).use { it.readBytes() }.toList())
+        source.close()
+    }
+
+    @Test
+    fun `decodes shift_jis entry names so the named cover comes first`() = runTest {
+        val file = zipFile(
+            "sjis.cbz",
+            linkedMapOf(
+                "本文01.jpg" to byteArrayOf(1),
+                "ソフト/表紙.jpg" to byteArrayOf(2),
+            ),
+            charset = Charset.forName("windows-31j"),
+        )
+
+        val source = (factory.open(file) as LocalBook.Images).pageSource as LocalCbzPageSource
+
+        assertEquals(2, source.pageCount)
+        assertEquals(byteArrayOf(2).toList(), source.openPage(0).use { it.readBytes() }.toList())
+        assertEquals(byteArrayOf(1).toList(), source.openPage(1).use { it.readBytes() }.toList())
         source.close()
     }
 
