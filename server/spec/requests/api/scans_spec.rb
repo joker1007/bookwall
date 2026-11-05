@@ -19,17 +19,18 @@ RSpec.describe "Api::Scans", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it "enqueues a ScanLibraryJob" do
-      # test env uses :inline by default; flip to :test so the enqueue itself
-      # is what we observe (otherwise the job would also run inline and try
-      # to scan a non-existent directory).
+    it "creates a pending scan log and enqueues a ScanLibraryJob for it" do
       original = ActiveJob::Base.queue_adapter
       ActiveJob::Base.queue_adapter = :test
       begin
         expect {
           post "/api/libraries/#{library.id}/scans"
-        }.to have_enqueued_job(ScanLibraryJob).with(library.id).on_queue("default")
+        }.to change { library.scan_logs.pending.count }.by(1)
+
+        log = library.scan_logs.last
+        expect(ScanLibraryJob).to have_been_enqueued.with(library.id, log.id).on_queue("default")
         expect(response).to have_http_status(:accepted)
+        expect(response.parsed_body).to include("id" => log.id, "status" => "pending")
       ensure
         ActiveJob::Base.queue_adapter = original
       end

@@ -6,8 +6,10 @@ module Api
 
     def create
       library = find_owned_library!(params[:library_id])
-      ScanLibraryJob.perform_later(library.id)
-      head :accepted
+      # Created up front so the client sees the scan immediately and keeps polling until the job finishes.
+      log = library.scan_logs.create!(status: :pending, started_at: Time.current)
+      ScanLibraryJob.perform_later(library.id, log.id)
+      render json: ScanLogSerializer.new(log).serializable_hash, status: :accepted
     end
 
     def index

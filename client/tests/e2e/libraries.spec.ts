@@ -1,4 +1,9 @@
+import { fileURLToPath } from "node:url";
 import { test, expect } from "./helpers/test-base";
+
+const FIXTURES_PATH = fileURLToPath(
+  new URL("../../../server/spec/fixtures/files", import.meta.url),
+);
 
 test.describe("library sidebar", () => {
   test("shows empty hint when no libraries are registered", async ({ page, signup }) => {
@@ -30,6 +35,25 @@ test.describe("library sidebar", () => {
     await sidebarLink.click();
     await expect(page).toHaveURL(/\/ui\/libraries\/\d+(\?.*)?$/);
     await expect(page.getByRole("heading", { name: "Home NAS" })).toBeVisible();
+  });
+
+  test("a manual scan updates the status and last scan time without a reload", async ({
+    page,
+    signup,
+  }) => {
+    await signup();
+    await page.request.post("/api/libraries", {
+      data: { name: "Scan Fixtures", path: FIXTURES_PATH },
+    });
+
+    await page.goto("/ui/settings/libraries");
+    const row = page.getByRole("row", { name: /Scan Fixtures/ });
+    await expect(row.getByRole("cell").nth(2)).toHaveText("—");
+
+    await row.getByRole("button", { name: "Scan", exact: true }).click();
+
+    await expect(row.getByText(/^\+\d+ added, 0 updated$/)).toBeVisible();
+    await expect(row.getByRole("cell").nth(2)).toContainText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
   });
 
   test("deleting a library shows a deletion-started dialog and removes it from the list", async ({

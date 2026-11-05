@@ -18,6 +18,17 @@ RSpec.describe ScanLibraryJob, type: :job do
     }.to change { library.books.count }.by(1)
   end
 
+  it "promotes a given pending scan log instead of creating a new one" do
+    log = library.scan_logs.create!(status: :pending, started_at: 1.minute.ago)
+
+    expect {
+      described_class.perform_now(library.id, log.id)
+    }.not_to change { library.scan_logs.count }
+
+    expect(log.reload).to be_succeeded
+    expect(log.added_count).to eq(1)
+  end
+
   it "enqueues onto the default queue" do
     # test env uses :inline by default; switch to :test for this assertion.
     original = ActiveJob::Base.queue_adapter
