@@ -15,9 +15,10 @@ module Scanners
 
     attr_reader :library
 
-    def initialize(library, pool_size: DEFAULT_POOL_SIZE)
+    def initialize(library, pool_size: DEFAULT_POOL_SIZE, scan_log: nil)
       @library = library
       @pool_size = pool_size
+      @scan_log = scan_log
     end
 
     def call
@@ -25,7 +26,7 @@ module Scanners
       previous_skip = Thread.current[:bookwall_skip_fts_callback]
       Thread.current[:bookwall_skip_fts_callback] = true
 
-      log = library.scan_logs.create!(status: :running, started_at: Time.current)
+      log = start_log
       jobs = Scanners::LibraryDiscovery.new(library.path).call.freeze
       diff = Scanners::LibraryDiff.new(library).call(jobs)
 
@@ -91,6 +92,15 @@ module Scanners
     end
 
     private
+
+    def start_log
+      if @scan_log
+        @scan_log.update!(status: :running, started_at: Time.current)
+        @scan_log
+      else
+        library.scan_logs.create!(status: :running, started_at: Time.current)
+      end
+    end
 
     def enqueue_fts_sync(upserted_ids)
       return if upserted_ids.empty?

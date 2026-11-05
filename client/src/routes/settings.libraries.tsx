@@ -295,7 +295,7 @@ function LibraryRow({ library, onEdit, onDeleteStarted }: LibraryRowProps) {
   // Only owners can scan; skip polling (which would 403) for shared libraries.
   const scans = useLibraryScans(library.can_manage ? library.id : undefined);
   const latest = scans.data?.scans?.[0];
-  const running = latest?.status === "running";
+  const running = latest?.status === "running" || latest?.status === "pending";
 
   const handleScan = () => {
     scan.mutate(library.id);
@@ -403,7 +403,7 @@ function LibraryDeleteStartedDialog({ name, onClose }: LibraryDeleteStartedDialo
 
 function ScanStatusBadge({ log }: { log: ScanLog }) {
   const { t } = useTranslation();
-  if (log.status === "running") {
+  if (log.status === "running" || log.status === "pending") {
     const total = (log.added_count ?? 0) + (log.updated_count ?? 0);
     const processed = log.processed_count ?? 0;
     return (

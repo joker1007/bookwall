@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Library, Pagination, ScanLog } from "@/types/api";
@@ -60,29 +61,49 @@ export function useDeleteLibrary() {
   });
 }
 
-export function useScanLibrary() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      api(`/api/libraries/${id}/scans`, { method: "POST" }),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ["library_scans", id] });
-    },
-  });
-}
-
 interface LibraryScansResponse {
   scans: ScanLog[];
 }
 
+const isActive = (log: ScanLog | undefined) =>
+  log?.status === "pending" || log?.status === "running";
+
+export function useScanLibrary() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      api<ScanLog>(`/api/libraries/${id}/scans`, { method: "POST" }),
+    onSuccess: (log, id) => {
+      queryClient.setQueryData<LibraryScansResponse>(["library_scans", id], (prev) => ({
+        scans: [log, ...(prev?.scans ?? []).filter((s) => s.id !== log.id)],
+      }));
+    },
+  });
+}
+
 export function useLibraryScans(id: number | undefined) {
-  return useQuery<LibraryScansResponse>({
+  const queryClient = useQueryClient();
+  const query = useQuery<LibraryScansResponse>({
     queryKey: ["library_scans", id],
     enabled: id !== undefined,
     queryFn: () => api<LibraryScansResponse>(`/api/libraries/${id}/scans`),
-    refetchInterval: (query) => {
-      const latest = query.state.data?.scans?.[0];
-      return latest?.status === "running" ? 2000 : false;
-    },
+    refetchInterval: (query) => (isActive(query.state.data?.scans?.[0]) ? 2000 : false),
   });
+
+  const latest = query.data?.scans?.[0];
+  const prevActiveId = useRef<number | null>(null);
+  useEffect(() => {
+    if (!latest) return;
+    if (isActive(latest)) {
+      prevActiveId.current = latest.id;
+    } else if (prevActiveId.current === latest.id) {
+      prevActiveId.current = null;
+      // A finished scan can change books, series, authors, tags and last_scanned_at.
+      queryClient.invalidateQueries({
+        predicate: (q) => q.queryKey[0] !== "library_scans",
+      });
+    }
+  }, [latest, queryClient]);
+
+  return query;
 }
