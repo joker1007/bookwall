@@ -791,6 +791,7 @@ function PdfPageView({
     })();
 
     return () => {
+      // oxlint-disable-next-line react/immutability -- effect-local flag; false positive (React's own plugin accepts it)
       cancelled = true;
       try {
         renderTaskRef.current?.cancel();
@@ -850,6 +851,7 @@ function PdfThumb({ doc, pageNumber, cache }: PdfThumbProps) {
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.floor(viewport.width));
         canvas.height = Math.max(1, Math.floor(viewport.height));
+        // oxlint-disable-next-line react/immutability -- effect-local variable; false positive (React's own plugin accepts it)
         task = page.render({ canvas, viewport });
         await task.promise;
         if (cancelled) return;

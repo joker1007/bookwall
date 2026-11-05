@@ -65,7 +65,7 @@ jobs:
         run: bin/bundler-audit
 
   client:
-    name: Client (ESLint / build)
+    name: Client (Oxlint / build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -82,7 +82,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: ESLint
+      - name: Oxlint
         run: npm run lint
 
       # `npm run build` is `tsc -b && vite build`, so this is the type check too.
