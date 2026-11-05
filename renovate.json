@@ -14,6 +14,32 @@
       "automerge": true
     },
     {
+      "description": "Collect patch updates across every manager into a single PR. AGP stays out because it is merged by hand.",
+      "matchPackageNames": [
+        "*",
+        "!com.android.tools.build:gradle",
+        "!com.android.application"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": "all patch dependencies",
+      "groupSlug": "all-patch"
+    },
+    {
+      "description": "Collect minor updates across every manager into a single PR, separate from the patch group. AGP stays out because it is merged by hand.",
+      "matchPackageNames": [
+        "*",
+        "!com.android.tools.build:gradle",
+        "!com.android.application"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "groupName": "all minor dependencies",
+      "groupSlug": "all-minor"
+    },
+    {
       "description": "GitHub Actions are automerged for every update type, majors included.",
       "matchManagers": [
         "github-actions"
