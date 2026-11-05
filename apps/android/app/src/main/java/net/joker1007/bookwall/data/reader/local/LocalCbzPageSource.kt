@@ -2,6 +2,7 @@ package net.joker1007.bookwall.data.reader.local
 
 import java.io.File
 import java.io.InputStream
+import java.nio.charset.Charset
 import java.util.zip.ZipFile
 
 /** A page of an open CBZ; resolved by [CbzPageFetcher] via the owning source. */
@@ -35,9 +36,10 @@ class LocalCbzPageSource private constructor(
 
     companion object {
         private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif")
+        private val LEGACY_CHARSET = Charset.forName("windows-31j")
 
         fun open(file: File): LocalCbzPageSource {
-            val zip = ZipFile(file)
+            val zip = openZip(file)
             val names = zip.entries().asSequence()
                 .filter { !it.isDirectory }
                 .map { it.name }
@@ -45,6 +47,19 @@ class LocalCbzPageSource private constructor(
                 .toList()
                 .let(NaturalOrder::orderPages)
             return LocalCbzPageSource(zip, names, file.absolutePath)
+        }
+
+        /**
+         * Entries without the UTF-8 flag are usually CP932 in Japanese archives.
+         * Mirrors the server's `Parsers.decode_entry_name` so page order matches.
+         */
+        private fun openZip(file: File): ZipFile {
+            runCatching { ZipFile(file) }.getOrNull()?.let { zip ->
+                val names = runCatching { zip.entries().asSequence().map { it.name }.toList() }.getOrNull()
+                if (names != null && names.none { '�' in it }) return zip
+                zip.close()
+            }
+            return ZipFile(file, LEGACY_CHARSET)
         }
     }
 }

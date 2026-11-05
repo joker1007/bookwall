@@ -20,6 +20,27 @@ module Parsers
     EXTENSION_MIME_TYPES.fetch(File.extname(filename).downcase, default)
   end
 
+  # ZIP entries without the UTF-8 flag come back as BINARY; Japanese archives
+  # made on Windows are usually Shift_JIS (CP932).
+  def self.decode_entry_name(raw)
+    utf8 = raw.dup.force_encoding(Encoding::UTF_8)
+    return utf8 if utf8.valid_encoding?
+
+    cp932 = restore_cp932_backslashes(raw).force_encoding(Encoding::Windows_31J)
+    return cp932.encode(Encoding::UTF_8, undef: :replace) if cp932.valid_encoding?
+
+    utf8.scrub
+  end
+
+  CP932_DOUBLE_BYTE = /[\x81-\x9F\xE0-\xFC][\x00-\xFF]/n
+
+  # rubyzip rewrites every "\" to "/", which breaks CP932 characters whose
+  # trail byte is 0x5C (表, ソ, 能...). "/" is never a valid trail byte, so
+  # one following a lead byte must have been 0x5C.
+  def self.restore_cp932_backslashes(raw)
+    raw.b.gsub(CP932_DOUBLE_BYTE) { |pair| pair.end_with?("/") ? "#{pair[0]}\\".b : pair }
+  end
+
   # Digit runs compare numerically so "2.jpg" precedes "10.jpg"; ties fall back
   # to the raw name to keep the order deterministic.
   def self.natural_sort(names)
