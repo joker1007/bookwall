@@ -1,11 +1,31 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { REGISTRATION_SETTINGS_KEY } from "@/hooks/useRegistrationSettings";
 import type { User } from "@/types/api";
 
 const SESSION_KEY = ["session"] as const;
+
+const GLOBAL_QUERY_KEYS: ReadonlySet<unknown> = new Set([
+  SESSION_KEY[0],
+  REGISTRATION_SETTINGS_KEY[0],
+]);
+
+// Everything else in the cache belongs to whoever was logged in; drop it on
+// any identity change so the next user never sees the previous user's books,
+// collections, progress, tokens, etc. Called before the auth store flips so
+// no page is still observing the queries being removed.
+export function dropUserScopedQueries(queryClient: QueryClient) {
+  queryClient.removeQueries({
+    predicate: (query) => !GLOBAL_QUERY_KEYS.has(query.queryKey[0]),
+  });
+}
 
 export function useSessionBootstrap() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -48,6 +68,7 @@ export function useLogin() {
     mutationFn: (input: LoginInput) =>
       api<User>("/api/session", { method: "POST", body: input }),
     onSuccess: (user) => {
+      dropUserScopedQueries(queryClient);
       setUser(user);
       queryClient.setQueryData(SESSION_KEY, user);
     },
@@ -68,6 +89,7 @@ export function useRegister() {
     mutationFn: (input: RegistrationInput) =>
       api<User>("/api/registrations", { method: "POST", body: input }),
     onSuccess: (user) => {
+      dropUserScopedQueries(queryClient);
       setUser(user);
       queryClient.setQueryData(SESSION_KEY, user);
       queryClient.invalidateQueries({ queryKey: REGISTRATION_SETTINGS_KEY });
@@ -82,9 +104,9 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api<void>("/api/session", { method: "DELETE" }),
     onSuccess: () => {
+      dropUserScopedQueries(queryClient);
       setUser(null);
       queryClient.setQueryData(SESSION_KEY, null);
-      queryClient.removeQueries({ queryKey: ["books"] });
     },
   });
 }
